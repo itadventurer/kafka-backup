@@ -1,0 +1,10 @@
+rootProject.name = 'kafka-backup'
+
+//include 'api'
+//include 'common'
+include 'sink'
+//include 'source'
+//include 'system_test'
+
+//include ':metrics-datadog'
+//project(':metrics-datadog').projectDir = new File('./metrics/datadog')

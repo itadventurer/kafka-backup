@@ -1,0 +1,82 @@
+buildscript {
+	repositories {
+		jcenter()
+	}
+	dependencies {
+		classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.2'
+		classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.20.0"
+	}
+}
+
+plugins {
+	id 'com.palantir.git-version' version '0.5.2'
+}
+
+apply plugin: 'java'
+apply plugin: 'idea'
+
+description = "kafka-backup"
+
+allprojects  {
+    apply plugin: 'maven'
+    apply plugin: 'idea'
+
+    group = 'de.azapps.kafkabackup'
+	// circle only builds tags, so don't worry if it thinks it is dirty and strip the leading v
+	//version = versionDetails().lastTag.replaceAll(/^v/,'').replaceAll(/\.dirty$/, '')
+
+	apply plugin: 'java'
+	sourceCompatibility = 1.8
+	targetCompatibility = 1.8
+
+	repositories {
+		maven { url "http://repo.maven.apache.org/maven2" }
+	}
+}
+
+apply plugin: "com.github.johnrengelman.shadow"
+
+
+shadowJar {
+	dependencies {
+		// provided in the connect classpath
+		exclude(dependency('org.apache.kafka:connect-api:2.2.0'))
+		exclude(dependency('org.apache.kafka:kafka-clients:2.2.0'))
+		exclude(dependency('net.jpountz.lz4:.*:.*'))
+		exclude(dependency('org.xerial.snappy:.*:.*'))
+		exclude(dependency('org.slf4j:.*:.*'))
+	}
+
+	// for things we directly depend on, repackage so we don't conflict with other connectors
+	/*relocate 'com.amazonaws', 'com.spredfast.shade.amazonaws'
+	relocate 'com.fasterxml', 'com.spredfast.shade.fasterxml'
+	relocate 'org.apache.commons', 'com.spredfast.shade.apache.commons'
+	relocate 'org.apache.http', 'com.spredfast.shade.apache.http'
+	relocate 'org.joda', 'com.spredfast.shade.joda'*/
+}
+
+dependencies {
+	compile project(':sink')
+	//compile project(':source')
+}
+
+
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+	classifier = 'javadoc'
+	from subprojects*.tasks.javadoc.destinationDir
+}
+
+task sourcesJar(type: Jar) {
+	from subprojects*.sourceSets.main.allSource
+	classifier = 'sources'
+}
+
+artifacts {
+	archives javadocJar, sourcesJar
+}
+
+ext {
+	pomHumanName = 'Kafka Backup'
+	pomDesc = 'Kafka Backup Connector'
+}
