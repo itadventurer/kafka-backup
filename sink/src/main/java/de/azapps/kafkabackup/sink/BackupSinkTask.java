@@ -1,5 +1,9 @@
-package de.azapps.kafkabackup;
+package de.azapps.kafkabackup.sink;
 
+import de.azapps.kafkabackup.common.Constants;
+import de.azapps.kafkabackup.common.Index;
+import de.azapps.kafkabackup.common.PartitionWriter;
+import de.azapps.kafkabackup.common.Record;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.sink.SinkRecord;

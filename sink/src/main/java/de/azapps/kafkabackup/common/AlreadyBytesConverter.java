@@ -1,4 +1,4 @@
-package de.azapps.kafkabackup;
+package de.azapps.kafkabackup.common;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;

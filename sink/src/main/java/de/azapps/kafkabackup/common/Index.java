@@ -1,7 +1,6 @@
-package de.azapps.kafkabackup;
+package de.azapps.kafkabackup.common;
 
 import java.io.*;
-import java.nio.channels.Channels;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;

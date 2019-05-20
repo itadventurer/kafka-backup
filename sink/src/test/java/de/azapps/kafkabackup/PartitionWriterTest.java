@@ -1,5 +1,9 @@
 package de.azapps.kafkabackup;
 
+import de.azapps.kafkabackup.common.Index;
+import de.azapps.kafkabackup.common.IndexEntry;
+import de.azapps.kafkabackup.common.PartitionWriter;
+import de.azapps.kafkabackup.common.Record;
 import org.junit.Before;
 import org.junit.Test;
 

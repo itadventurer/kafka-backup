@@ -1,12 +1,12 @@
-package de.azapps.kafkabackup;
+package de.azapps.kafkabackup.sink;
 
+import de.azapps.kafkabackup.common.Constants;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkConnector;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 

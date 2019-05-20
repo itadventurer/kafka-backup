@@ -1,6 +1,4 @@
-package de.azapps.kafkabackup;
-
-import org.apache.kafka.connect.sink.SinkRecord;
+package de.azapps.kafkabackup.common;
 
 import java.io.File;
 import java.io.FileInputStream;

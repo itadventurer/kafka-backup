@@ -1,4 +1,4 @@
-package de.azapps.kafkabackup;
+package de.azapps.kafkabackup.common;
 
 import java.io.*;
 
