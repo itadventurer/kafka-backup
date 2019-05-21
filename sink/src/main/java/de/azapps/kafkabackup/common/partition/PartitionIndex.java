@@ -12,12 +12,12 @@ public class PartitionIndex {
     private List<PartitionIndexEntry> index = new ArrayList<>();
     private FileOutputStream fileOutputStream;
     private FileInputStream fileInputStream;
-    private long latestStartOffset = -1;
 
     PartitionIndex(Path indexFile) throws IOException, IndexException {
         this.fileInputStream = new FileInputStream(indexFile.toFile());
         this.fileOutputStream = new FileOutputStream(indexFile.toFile(), true);
         fileInputStream.getChannel().position(0);
+        long latestStartOffset = -1;
         while (true) {
             try {
                 PartitionIndexEntry partitionIndexEntry = PartitionIndexEntry.fromStream(fileInputStream);
@@ -53,7 +53,20 @@ public class PartitionIndex {
         }
     }
 
-    long latestStartOffset() {
-        return latestStartOffset;
+    public String fileForOffset(long offset) throws IndexException {
+        PartitionIndexEntry previousEntry = null;
+        for(PartitionIndexEntry current : index) {
+            if(current.startOffset() > offset) {
+                if(previousEntry != null) {
+                    return previousEntry.filename();
+                } else {
+                    throw new IndexException("No Index file found matching the target index. Search for offset " + offset + ", smallest offset in index: " + current.startOffset());
+                }
+            } else {
+                previousEntry = current;
+            }
+        }
+        return previousEntry.filename();
     }
+
 }

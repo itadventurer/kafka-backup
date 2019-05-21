@@ -43,6 +43,10 @@ class PartitionIndexEntry {
         return new PartitionIndexEntry(filename, startOffset);
     }
 
+    String filename() {
+        return filename;
+    }
+
 
 
 }

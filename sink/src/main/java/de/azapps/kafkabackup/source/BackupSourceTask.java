@@ -1,7 +1,7 @@
 package de.azapps.kafkabackup.source;
 
 import de.azapps.kafkabackup.common.Constants;
-import de.azapps.kafkabackup.common.segment.Segment;
+import de.azapps.kafkabackup.common.segment.SegmentReader;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
@@ -14,7 +14,7 @@ import java.util.Map;
 
 public class BackupSourceTask extends SourceTask {
     private Path targetDir;
-    private Map<TopicPartition, Segment> partitionSegments = new HashMap<>();
+    private Map<TopicPartition, SegmentReader> partitionSegments = new HashMap<>();
     private int batchSize;
 
     @Override
