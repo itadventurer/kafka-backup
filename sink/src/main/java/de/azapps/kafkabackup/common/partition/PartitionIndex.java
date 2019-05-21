@@ -9,7 +9,7 @@ public class PartitionIndex {
     private List<PartitionIndexEntry> index = new ArrayList<>();
     private FileOutputStream fileOutputStream;
     private FileInputStream fileInputStream;
-    private long lastValidRecordOffset = -1;
+    private long latestStartOffset = -1;
 
     PartitionIndex(Path indexFile) throws IOException, IndexException {
         this.fileInputStream = new FileInputStream(indexFile.toFile());
@@ -18,15 +18,11 @@ public class PartitionIndex {
         while (true) {
             try {
                 PartitionIndexEntry partitionIndexEntry = PartitionIndexEntry.fromStream(fileInputStream);
-                if (partitionIndexEntry.startOffset() <= lastValidRecordOffset) {
+                if (partitionIndexEntry.startOffset() <= latestStartOffset) {
                     throw new IndexException("Offsets must be always increasing! There is something terribly wrong in your index!");
                 }
                 index.add(partitionIndexEntry);
-                if(partitionIndexEntry.hasLastOffset()) {
-                    lastValidRecordOffset = partitionIndexEntry.lastOffset();
-                } else {
-                    lastValidRecordOffset = partitionIndexEntry.startOffset();
-                }
+                latestStartOffset = partitionIndexEntry.startOffset();
             } catch (EOFException e) {
                 // reached End of File
                 break;
@@ -34,26 +30,9 @@ public class PartitionIndex {
         }
     }
 
-    void startSegment(String segmentFile, long startOffset) throws IOException {
+    void nextSegment(String segmentFile, long startOffset) throws IOException {
         PartitionIndexEntry indexEntry = new PartitionIndexEntry(fileOutputStream, segmentFile, startOffset);
         index.add(indexEntry);
-    }
-
-    boolean hasOpenSegment() {
-        if(index.isEmpty()) {
-            return false;
-        } else {
-            PartitionIndexEntry indexEntry = index.get(index.size() - 1);
-            return !indexEntry.hasLastOffset();
-        }
-    }
-
-    void endSegment(long lastOffset) throws IndexException, IOException {
-        if(!hasOpenSegment()) {
-            throw new IndexException("Segment has already a last offset");
-        }
-        PartitionIndexEntry indexEntry = index.get(index.size() - 1);
-        indexEntry.endSegment(fileOutputStream, lastOffset);
     }
 
     void close() throws IOException {
@@ -71,7 +50,7 @@ public class PartitionIndex {
         }
     }
 
-    long getLastValidRecordOffset() {
-        return lastValidRecordOffset;
+    long latestStartOffset() {
+        return latestStartOffset;
     }
 }

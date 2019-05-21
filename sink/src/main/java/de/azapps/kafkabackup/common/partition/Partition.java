@@ -17,7 +17,6 @@ public class Partition {
     private Optional<Segment> currentSegment = Optional.empty();
     private PartitionIndex partitionIndex;
     private long maxSegmentSize;
-    private long lastOffset;
 
     public Partition(String topic, int partition, Path topicDir, boolean forWriting, long maxSegmentSize) throws IOException, PartitionIndex.IndexException, PartitionException {
         this.topic = topic;
@@ -37,17 +36,15 @@ public class Partition {
             Files.createFile(indexFile);
         }
         partitionIndex = new PartitionIndex(indexFile);
-        lastOffset = partitionIndex.getLastValidRecordOffset();
         this.maxSegmentSize = maxSegmentSize;
     }
 
     private void nextSegment(long startOffset) throws PartitionIndex.IndexException, IOException, SegmentIndex.IndexException {
-        if(partitionIndex.hasOpenSegment()) {
-            partitionIndex.endSegment(lastOffset);
+        if(currentSegment.isPresent()) {
             currentSegment.get().close();
         }
         Segment segment = new Segment(topic, partition, startOffset, topicDir);
-        partitionIndex.startSegment(segment.fileName(), startOffset);
+        partitionIndex.nextSegment(segment.fileName(), startOffset);
         currentSegment = Optional.of(segment);
     }
 
@@ -56,7 +53,6 @@ public class Partition {
             nextSegment(record.kafkaOffset());
         }
         currentSegment.get().append(record);
-        lastOffset = record.kafkaOffset();
     }
 
     public void close() throws IOException {
