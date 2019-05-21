@@ -1,4 +1,7 @@
-package de.azapps.kafkabackup.common;
+package de.azapps.kafkabackup.common.segment;
+
+import de.azapps.kafkabackup.common.record.Record;
+import de.azapps.kafkabackup.common.record.RecordSerde;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -9,52 +12,52 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class PartitionWriter {
+public class Segment {
 	private String topic;
 	private int partition;
 	private String filePrefix;
-	private Index index;
+	private SegmentIndex segmentIndex;
 	private FileOutputStream recordOutputStream;
 	private FileInputStream recordInputStream;
 	private int readerPosition = 0;
 
-	public PartitionWriter(String topic, int partition, Path directory) throws IOException, Index.IndexException {
+	public Segment(String topic, int partition, long startOffset, Path topicDirectory) throws IOException, SegmentIndex.IndexException {
 		this.topic = topic;
 		this.partition = partition;
-		filePrefix = topic + "_" + partition;
+		filePrefix = topic + "_" + partition + "_" + startOffset;
 
-		File indexFile = new File(directory.toFile(), filePrefix + "_index");
-		File recordFile = new File(directory.toFile(), filePrefix);
+		File indexFile = new File(topicDirectory.toFile(), filePrefix + "_index");
+		File recordFile = new File(topicDirectory.toFile(), filePrefix);
 		if (!indexFile.exists()) {
 			indexFile.createNewFile();
 		}
 		if (!recordFile.exists()) {
 			recordFile.createNewFile();
 		}
-		index = new Index(indexFile);
+		segmentIndex = new SegmentIndex(indexFile);
 		recordOutputStream = new FileOutputStream(recordFile, true);
 		recordInputStream = new FileInputStream(recordFile);
 	}
 
-	public Index getIndex() {
-		return index;
+	public SegmentIndex getSegmentIndex() {
+		return segmentIndex;
 	}
 
-	public void append(Record record) throws IOException, Index.IndexException {
+	public void append(Record record) throws IOException, SegmentIndex.IndexException {
 		if (!record.topic().equals(topic) || record.kafkaPartition() != partition) {
 			throw new RuntimeException("Trying to append to wrong topic or partition!\n" +
 				"Expected topic: " + topic + " given topic: " + record.topic() + "\n" +
 				"Expected partition: " + partition + " given partition: " + partition);
 		}
-		Optional<IndexEntry> optionalPreviousIndexEntry = index.lastIndexEntry();
+		Optional<SegmentIndexEntry> optionalPreviousIndexEntry = segmentIndex.lastIndexEntry();
 		long startPosition;
 		if (optionalPreviousIndexEntry.isPresent()) {
-			IndexEntry previousIndexEntry = optionalPreviousIndexEntry.get();
+			SegmentIndexEntry previousSegmentIndexEntry = optionalPreviousIndexEntry.get();
 
-			if (record.kafkaOffset() <= previousIndexEntry.getOffset()) {
-				throw new Index.IndexException("Offsets must be always increasing! There is something terribly wrong in your index!");
+			if (record.kafkaOffset() <= previousSegmentIndexEntry.getOffset()) {
+				throw new SegmentIndex.IndexException("Offsets must be always increasing! There is something terribly wrong in your segmentIndex!");
 			}
-			startPosition = previousIndexEntry.getRecordFileOffset() + previousIndexEntry.getRecordByteLength();
+			startPosition = previousSegmentIndexEntry.getRecordFileOffset() + previousSegmentIndexEntry.getRecordByteLength();
 		} else {
 			startPosition = 0;
 		}
@@ -62,12 +65,12 @@ public class PartitionWriter {
 		recordOutputStream.getChannel().position(startPosition);
 		RecordSerde.write(recordOutputStream, record);
 		long recordByteLength = recordOutputStream.getChannel().position() - startPosition;
-		IndexEntry indexEntry = new IndexEntry(record.kafkaOffset(), startPosition, recordByteLength);
-		index.addEntry(indexEntry);
+		SegmentIndexEntry segmentIndexEntry = new SegmentIndexEntry(record.kafkaOffset(), startPosition, recordByteLength);
+		segmentIndex.addEntry(segmentIndexEntry);
 	}
 
 	public Optional<Record> readNext() throws IOException {
-		Optional<IndexEntry> currentRecordIndex = index.getByPosition(readerPosition);
+		Optional<SegmentIndexEntry> currentRecordIndex = segmentIndex.getByPosition(readerPosition);
 		if(currentRecordIndex.isEmpty()) {
 			return Optional.empty();
 		} else {
@@ -79,7 +82,7 @@ public class PartitionWriter {
 	}
 
 	public List<Record> readAll() throws IOException {
-		List<Record> records = new ArrayList<>(index.size());
+		List<Record> records = new ArrayList<>(segmentIndex.size());
 		readerPosition=0;
 		while(true) {
 			Optional<Record> optionalRecord = readNext();
@@ -91,13 +94,21 @@ public class PartitionWriter {
 		}
 	}
 
+	public String fileName() {
+	    return filePrefix;
+    }
+
+	public long size() throws IOException{
+		return recordOutputStream.getChannel().size();
+	}
+
 	public void flush() throws IOException {
 		recordOutputStream.flush();
-		index.flush();
+		segmentIndex.flush();
 	}
 
 	public void close() throws IOException {
 		recordOutputStream.close();
-		index.close();
+		segmentIndex.close();
 	}
 }

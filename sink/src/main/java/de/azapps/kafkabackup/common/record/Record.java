@@ -1,5 +1,6 @@
-package de.azapps.kafkabackup.common;
+package de.azapps.kafkabackup.common.record;
 
+import de.azapps.kafkabackup.common.AlreadyBytesConverter;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.header.ConnectHeaders;
 import org.apache.kafka.connect.header.Header;

@@ -1,9 +1,9 @@
 package de.azapps.kafkabackup;
 
-import de.azapps.kafkabackup.common.Index;
-import de.azapps.kafkabackup.common.IndexEntry;
-import de.azapps.kafkabackup.common.PartitionWriter;
-import de.azapps.kafkabackup.common.Record;
+import de.azapps.kafkabackup.common.segment.Segment;
+import de.azapps.kafkabackup.common.segment.SegmentIndex;
+import de.azapps.kafkabackup.common.segment.SegmentIndexEntry;
+import de.azapps.kafkabackup.common.record.Record;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -17,13 +17,13 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
-public class PartitionWriterTest {
+public class SegmentTest {
 
-	private String tmpDirPrefix = "PartitionWriterTest";
+	private String tmpDirPrefix = "SegmentTest";
 	private Path tmpDir;
 
 
-	public PartitionWriterTest() {
+	public SegmentTest() {
 		String tempDir = System.getProperty("java.io.tmpdir");
 		this.tmpDir = Paths.get(tempDir, tmpDirPrefix);
 	}
@@ -50,12 +50,12 @@ public class PartitionWriterTest {
 	public void simpleTest() throws Exception {
 		String topic = "foo";
 		int partition = 0;
-		PartitionWriter partitionWriter = new PartitionWriter(topic, partition, tmpDir);
-		Index index = partitionWriter.getIndex();
-		IndexEntry indexEntry = index.lastIndexEntry().orElse(null);
+		Segment segment = new Segment(topic, partition, 0, tmpDir);
+		SegmentIndex segmentIndex = segment.getSegmentIndex();
+		SegmentIndexEntry segmentIndexEntry = segmentIndex.lastIndexEntry().orElse(null);
 		long startOffset;
-		if (indexEntry != null) {
-			startOffset = indexEntry.getOffset() + 1;
+		if (segmentIndexEntry != null) {
+			startOffset = segmentIndexEntry.getOffset() + 1;
 		} else {
 			startOffset = 0;
 		}
@@ -64,12 +64,12 @@ public class PartitionWriterTest {
 
 		for (long offset = startOffset; offset < startOffset + 3; offset++) {
 			Record record = genRecord(topic, partition, offset);
-			partitionWriter.append(record);
+			segment.append(record);
 			writtenRecords.add(record);
 		}
-		partitionWriter.close();
+		segment.close();
 
-		List<Record> readRecords = partitionWriter.readAll();
+		List<Record> readRecords = segment.readAll();
 		assertEquals(writtenRecords, readRecords);
 	}
 

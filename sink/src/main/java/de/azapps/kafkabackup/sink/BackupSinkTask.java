@@ -1,9 +1,11 @@
 package de.azapps.kafkabackup.sink;
 
 import de.azapps.kafkabackup.common.Constants;
-import de.azapps.kafkabackup.common.Index;
-import de.azapps.kafkabackup.common.PartitionWriter;
-import de.azapps.kafkabackup.common.Record;
+import de.azapps.kafkabackup.common.partition.Partition;
+import de.azapps.kafkabackup.common.partition.PartitionIndex;
+import de.azapps.kafkabackup.common.segment.Segment;
+import de.azapps.kafkabackup.common.segment.SegmentIndex;
+import de.azapps.kafkabackup.common.record.Record;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -18,9 +20,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class BackupSinkTask extends SinkTask {
-	private static final String TARGET_DIR_CONFIG = "target.dir";
 	private Path targetDir;
-	private Map<TopicPartition, PartitionWriter> partitionWriters = new HashMap<>();
+	private Map<TopicPartition, Partition> partitions = new HashMap<>();
+	private long maxSegmentSize;
 
 	@Override
 	public String version() {
@@ -30,24 +32,39 @@ public class BackupSinkTask extends SinkTask {
 	@Override
 	public void start(Map<String, String> props) {
 		try {
-			targetDir = Paths.get(props.get(TARGET_DIR_CONFIG));
+			if(!props.containsKey(Constants.TARGET_DIR_CONFIG)) {
+				throw new RuntimeException("Missing Configuration Variable: " + Constants.TARGET_DIR_CONFIG);
+			}
+			if(!props.containsKey(Constants.MAX_SEGMENT_SIZE)) {
+				throw new RuntimeException("Missing Configuration Variable: " + Constants.MAX_SEGMENT_SIZE);
+			}
+			targetDir = Paths.get(props.get(Constants.TARGET_DIR_CONFIG));
+			maxSegmentSize = Long.parseLong(props.get(Constants.MAX_SEGMENT_SIZE));
 			Files.createDirectories(targetDir);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
+	private Partition preparePartition(TopicPartition topicPartition) throws IOException, PartitionIndex.IndexException, Partition.PartitionException {
+		Path topicDir = Paths.get(targetDir.toString(), topicPartition.topic());
+		Files.createDirectories(topicDir);
+		return new Partition(topicPartition.topic(), topicPartition.partition(), topicDir, true, maxSegmentSize);
+	}
+
 	@Override
 	public void open(Collection<TopicPartition> partitions) {
 		try {
 			for (TopicPartition topicPartition : partitions) {
-				PartitionWriter partitionWriter = new PartitionWriter(topicPartition.topic(), topicPartition.partition(), targetDir);
-				partitionWriters.put(topicPartition, partitionWriter);
+				Partition partition = preparePartition(topicPartition);
+				this.partitions.put(topicPartition, partition);
 			}
-		} catch (Index.IndexException e) {
-			throw new RuntimeException("IndexException", e);
 		} catch (IOException e) {
 			throw new RuntimeException("IOException", e);
+		} catch (PartitionIndex.IndexException e) {
+			throw new RuntimeException("IndexException", e);
+		} catch (Partition.PartitionException e) {
+			throw new RuntimeException("PartitionException", e);
 		}
 
 	}
@@ -57,10 +74,10 @@ public class BackupSinkTask extends SinkTask {
 		try {
 			for (SinkRecord sinkRecord : records) {
 				TopicPartition topicPartition = new TopicPartition(sinkRecord.topic(), sinkRecord.kafkaPartition());
-				PartitionWriter partitionWriter = partitionWriters.get(topicPartition);
-				partitionWriter.append(Record.fromSinkRecord(sinkRecord));
+				Partition partition = partitions.get(topicPartition);
+				partition.append(Record.fromSinkRecord(sinkRecord));
 			}
-		} catch (IOException | Index.IndexException e) {
+		} catch (IOException | SegmentIndex.IndexException | PartitionIndex.IndexException e ) {
 			throw new RuntimeException(e);
 		}
 	}
@@ -68,8 +85,8 @@ public class BackupSinkTask extends SinkTask {
 	@Override
 	public void stop() {
 		try {
-			for (PartitionWriter partitionWriter : partitionWriters.values()) {
-				partitionWriter.close();
+			for (Partition partition : partitions.values()) {
+				partition.close();
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
@@ -79,8 +96,8 @@ public class BackupSinkTask extends SinkTask {
 	@Override
 	public void flush(Map<TopicPartition, OffsetAndMetadata> currentOffsets) {
 		try {
-			for (PartitionWriter partitionWriter : partitionWriters.values()) {
-				partitionWriter.flush();
+			for (Partition partition : partitions.values()) {
+				partition.flush();
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);

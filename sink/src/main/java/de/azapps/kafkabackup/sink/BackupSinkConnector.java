@@ -40,7 +40,7 @@ public class BackupSinkConnector extends SinkConnector {
 
 	@Override
 	public ConfigDef config() {
-		return null;
+		return new ConfigDef();
 	}
 
 	@Override
