@@ -27,7 +27,7 @@ public class Segment {
 		filePrefix = topic + "_" + partition + "_" + startOffset;
 
 		File indexFile = new File(topicDirectory.toFile(), filePrefix + "_index");
-		File recordFile = new File(topicDirectory.toFile(), filePrefix);
+		File recordFile = new File(topicDirectory.toFile(), filePrefix + "_records");
 		if (!indexFile.exists()) {
 			indexFile.createNewFile();
 		}

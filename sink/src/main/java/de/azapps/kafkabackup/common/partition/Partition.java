@@ -23,14 +23,14 @@ public class Partition {
         this.partition = partition;
         this.topicDir = topicDir;
         Path indexFile = Paths.get(topicDir.toString(), "index_partition_" + partition);
-        if(!Files.isDirectory(this.topicDir)) {
-            if(!forWriting) {
+        if (!Files.isDirectory(this.topicDir)) {
+            if (!forWriting) {
                 throw new PartitionException("Cannot find topic directory for topic " + topic);
             }
             Files.createDirectories(this.topicDir);
         }
-        if(!Files.isRegularFile(indexFile)) {
-            if(!forWriting) {
+        if (!Files.isRegularFile(indexFile)) {
+            if (!forWriting) {
                 throw new PartitionException("Cannot find index file for partition " + partition);
             }
             Files.createFile(indexFile);
@@ -39,8 +39,8 @@ public class Partition {
         this.maxSegmentSize = maxSegmentSize;
     }
 
-    private void nextSegment(long startOffset) throws PartitionIndex.IndexException, IOException, SegmentIndex.IndexException {
-        if(currentSegment.isPresent()) {
+    private void nextSegment(long startOffset) throws IOException, SegmentIndex.IndexException {
+        if (currentSegment.isPresent()) {
             currentSegment.get().close();
         }
         Segment segment = new Segment(topic, partition, startOffset, topicDir);
@@ -49,7 +49,7 @@ public class Partition {
     }
 
     public void append(Record record) throws IOException, SegmentIndex.IndexException, PartitionIndex.IndexException {
-        if(currentSegment.isEmpty()  || currentSegment.get().size() > maxSegmentSize) {
+        if (currentSegment.isEmpty() || currentSegment.get().size() > maxSegmentSize) {
             nextSegment(record.kafkaOffset());
         }
         currentSegment.get().append(record);
@@ -57,7 +57,7 @@ public class Partition {
 
     public void close() throws IOException {
         partitionIndex.close();
-        if(currentSegment.isPresent()) {
+        if (currentSegment.isPresent()) {
             currentSegment.get().close();
         }
 
@@ -65,7 +65,7 @@ public class Partition {
 
     public void flush() throws IOException {
         partitionIndex.flush();
-        if(currentSegment.isPresent()) {
+        if (currentSegment.isPresent()) {
             currentSegment.get().flush();
         }
     }
