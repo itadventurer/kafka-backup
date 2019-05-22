@@ -22,7 +22,11 @@ repositories {
 }
 
 dependencies {
-	compile group: 'org.apache.kafka', name: 'connect-api', version: '2.2.0'
+	// TODO: Remove Jars and add connect-api 2.3.0
+	//compile group: 'org.apache.kafka', name: 'connect-api', version: '2.3.0'
+	compile files('libs/connect-api-2.3.0-SNAPSHOT.jar')
+	compile files('libs/kafka-clients-2.3.0-SNAPSHOT.jar')
+	testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 
 apply plugin: "com.github.johnrengelman.shadow"
@@ -30,7 +34,8 @@ apply plugin: "com.github.johnrengelman.shadow"
 shadowJar {
 	dependencies {
 		// provided in the connect classpath
-		exclude(dependency('org.apache.kafka:connect-api:2.2.0-SNAPSHOT'))
+		exclude(dependency('org.apache.kafka:connect-api:2.3.0-SNAPSHOT'))
+		exclude(dependency('org.apache.kafka:kafka-clients:2.3.0-SNAPSHOT'))
 		exclude(dependency('net.jpountz.lz4:.*:.*'))
 		exclude(dependency('org.xerial.snappy:.*:.*'))
 		exclude(dependency('org.slf4j:.*:.*'))
