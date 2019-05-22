@@ -1,23 +1,24 @@
 package de.azapps.kafkabackup.common.partition;
 
 import de.azapps.kafkabackup.common.record.Record;
-import de.azapps.kafkabackup.common.segment.SegmentWriter;
+import de.azapps.kafkabackup.common.segment.SegmentIndex;
+import de.azapps.kafkabackup.common.segment.SegmentReader;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class PartitionReader {
     private String topic;
     private int partition;
     private Path topicDir;
-    private Optional<SegmentWriter> currentSegment = Optional.empty();
+    private SegmentReader currentSegment;
     private PartitionIndex partitionIndex;
 
-    public PartitionReader(String topic, int partition, Path topicDir) throws IOException, PartitionIndex.IndexException, PartitionException {
+    public PartitionReader(String topic, int partition, Path topicDir) throws IOException, PartitionIndex.IndexException, PartitionException, SegmentIndex.IndexException {
         this.topic = topic;
         this.partition = partition;
         this.topicDir = topicDir;
@@ -29,19 +30,56 @@ public class PartitionReader {
             throw new PartitionException("Cannot find index file for partition " + partition);
         }
         partitionIndex = new PartitionIndex(indexFile);
+        seek(partitionIndex.firstOffset());
     }
 
     public void close() throws IOException {
         partitionIndex.close();
-        if (currentSegment.isPresent()) {
-            currentSegment.get().close();
+        currentSegment.close();
+    }
+
+    public void seek(long offset) throws PartitionIndex.IndexException, IOException, SegmentIndex.IndexException, IndexOutOfBoundsException {
+        partitionIndex.seek(offset);
+        String segmentFilePrefix = partitionIndex.readFileName();
+        currentSegment = new SegmentReader(topic, partition, topicDir, segmentFilePrefix);
+        currentSegment.seek(offset);
+    }
+
+    public boolean hasMoreData() throws IOException {
+        return currentSegment.hasMoreData() || partitionIndex.hasMoreData();
+    }
+
+    public Record read() throws IOException, SegmentIndex.IndexException {
+        if (currentSegment.hasMoreData()) {
+            return currentSegment.read();
+        } else if (partitionIndex.hasMoreData()) {
+            currentSegment.close();
+            String segmentFilePrefix = partitionIndex.readFileName();
+            currentSegment = new SegmentReader(topic, partition, topicDir, segmentFilePrefix);
+            return currentSegment.read();
+        } else {
+            throw new IndexOutOfBoundsException("No more data available");
         }
     }
 
-    /*public List<Record> getRecords(long startOffset, int batchSize) throws PartitionIndex.IndexException {
-        String segmentFilePrefix = partitionIndex.fileForOffset(startOffset);
+    public List<Record> readN(int n) throws IOException, SegmentIndex.IndexException {
+        List<Record> records = new ArrayList<>();
+        while (hasMoreData() && records.size() < n) {
+            Record record = read();
+            records.add(record);
+        }
+        return records;
     }
-*/
+
+    public List<Record> readFully() throws IOException, SegmentIndex.IndexException {
+        List<Record> records = new ArrayList<>();
+        while (hasMoreData()) {
+            Record record = read();
+            records.add(record);
+        }
+        return records;
+    }
+
 
     public static class PartitionException extends Exception {
         PartitionException(String message) {

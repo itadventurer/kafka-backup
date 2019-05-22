@@ -12,7 +12,7 @@ public class SegmentIndex {
 	private FileOutputStream fileOutputStream;
 	private FileInputStream fileInputStream;
 
-	public SegmentIndex(File file) throws IOException, IndexException {
+	SegmentIndex(File file) throws IOException, IndexException {
 		this.fileInputStream = new FileInputStream(file);
 		this.fileOutputStream = new FileOutputStream(file, true);
 		fileInputStream.getChannel().position(0);
@@ -32,7 +32,7 @@ public class SegmentIndex {
 		}
 	}
 
-	public void addEntry(SegmentIndexEntry segmentIndexEntry) throws IOException, IndexException {
+	void addEntry(SegmentIndexEntry segmentIndexEntry) throws IOException, IndexException {
 		if (segmentIndexEntry.getOffset() <= lastValidRecordOffset) {
 			throw new IndexException("Offsets must be always increasing! There is something terribly wrong in your index!");
 		}
@@ -43,12 +43,21 @@ public class SegmentIndex {
 		index.add(segmentIndexEntry);
 	}
 
-	public Optional<SegmentIndexEntry> lastIndexEntry() {
+	Optional<SegmentIndexEntry> lastIndexEntry() {
 		if (!index.isEmpty()) {
 			return Optional.of(index.get(index.size() - 1));
 		} else {
 			return Optional.empty();
 		}
+	}
+
+	long lastValidStartPosition() {
+		if (!index.isEmpty()) {
+			return index.get(index.size() - 1).recordFilePosition();
+		} else {
+			return 0L;
+		}
+
 	}
 
 	Optional<SegmentIndexEntry> getByPosition(int position) {
@@ -59,15 +68,24 @@ public class SegmentIndex {
 		}
 	}
 
+	Optional<Long> findByOffset(long offset) {
+		for(SegmentIndexEntry current : index) {
+			if(current.getOffset() == offset) {
+				return Optional.of(current.recordFilePosition());
+			}
+		}
+		return Optional.empty();
+	}
+
 	int size() {
 		return index.size();
 	}
 
-	public void flush() throws IOException {
+	void flush() throws IOException {
 		fileOutputStream.flush();
 	}
 
-	public void close() throws IOException {
+	void close() throws IOException {
 		fileInputStream.close();
 		fileOutputStream.close();
 	}

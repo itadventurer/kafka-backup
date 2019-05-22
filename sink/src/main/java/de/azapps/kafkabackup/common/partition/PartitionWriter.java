@@ -38,7 +38,7 @@ public class PartitionWriter {
             currentSegment.get().close();
         }
         SegmentWriter segment = new SegmentWriter(topic, partition, startOffset, topicDir);
-        partitionIndex.nextSegment(segment.fileName(), startOffset);
+        partitionIndex.appendSegment(segment.fileName(), startOffset);
         currentSegment = Optional.of(segment);
     }
 

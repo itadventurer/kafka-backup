@@ -12,6 +12,7 @@ public class PartitionIndex {
     private List<PartitionIndexEntry> index = new ArrayList<>();
     private FileOutputStream fileOutputStream;
     private FileInputStream fileInputStream;
+    private int position = 0;
 
     PartitionIndex(Path indexFile) throws IOException, IndexException {
         this.fileInputStream = new FileInputStream(indexFile.toFile());
@@ -33,7 +34,7 @@ public class PartitionIndex {
         }
     }
 
-    void nextSegment(String segmentFile, long startOffset) throws IOException {
+    void appendSegment(String segmentFile, long startOffset) throws IOException {
         PartitionIndexEntry indexEntry = new PartitionIndexEntry(fileOutputStream, segmentFile, startOffset);
         index.add(indexEntry);
     }
@@ -53,20 +54,36 @@ public class PartitionIndex {
         }
     }
 
-    public String fileForOffset(long offset) throws IndexException {
-        PartitionIndexEntry previousEntry = null;
-        for(PartitionIndexEntry current : index) {
-            if(current.startOffset() > offset) {
-                if(previousEntry != null) {
-                    return previousEntry.filename();
-                } else {
-                    throw new IndexException("No Index file found matching the target index. Search for offset " + offset + ", smallest offset in index: " + current.startOffset());
-                }
-            } else {
-                previousEntry = current;
-            }
-        }
-        return previousEntry.filename();
+    long firstOffset() {
+        return index.get(0).startOffset();
     }
 
+    void seek(long offset) throws PartitionIndex.IndexException {
+        int previousPosition = -1;
+        for (int i = 0; i < index.size(); i++) {
+            PartitionIndexEntry current = index.get(i);
+            if (current.startOffset() > offset) {
+                if (previousPosition >= 0) {
+                    position = previousPosition;
+                } else {
+                    throw new PartitionIndex.IndexException("No Index file found matching the target index. Search for offset " + offset + ", smallest offset in index: " + current.startOffset());
+                }
+            } else {
+                previousPosition = i;
+            }
+        }
+    }
+
+    boolean hasMoreData() {
+        return position < index.size();
+    }
+
+    String readFileName() {
+        if(!hasMoreData()) {
+            throw new IndexOutOfBoundsException("No more data");
+        }
+        String fileName = index.get(position).filename();
+        position++;
+        return fileName;
+    }
 }

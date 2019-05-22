@@ -5,21 +5,21 @@ import java.io.*;
 /**
  * Format:
  * offset: int64
- * recordFileOffset: int64
+ * recordFilePosition: int64
  * recordLength: int64
  */
-public class SegmentIndexEntry {
+class SegmentIndexEntry {
 	private long offset;
-	private long recordFileOffset;
+	private long recordFilePosition;
 	private long recordByteLength;
 
-	public SegmentIndexEntry(long offset, long recordFileOffset, long recordByteLength) {
+	SegmentIndexEntry(long offset, long recordFilePosition, long recordByteLength) {
 		this.offset = offset;
-		this.recordFileOffset = recordFileOffset;
+		this.recordFilePosition = recordFilePosition;
 		this.recordByteLength = recordByteLength;
 	}
 
-	public static SegmentIndexEntry fromStream(InputStream byteStream) throws IOException {
+	static SegmentIndexEntry fromStream(InputStream byteStream) throws IOException {
 		DataInputStream stream = new DataInputStream(byteStream);
 		long offset = stream.readLong();
 		long recordFileOffset = stream.readLong();
@@ -27,22 +27,22 @@ public class SegmentIndexEntry {
 		return new SegmentIndexEntry(offset, recordFileOffset, recordByteLength);
 	}
 
-	public long getOffset() {
+	long getOffset() {
 		return offset;
 	}
 
-	public long getRecordFileOffset() {
-		return recordFileOffset;
+	long recordFilePosition() {
+		return recordFilePosition;
 	}
 
-	public long getRecordByteLength() {
+	long recordByteLength() {
 		return recordByteLength;
 	}
 
-	public void writeToStream(OutputStream byteStream) throws IOException {
+	void writeToStream(OutputStream byteStream) throws IOException {
 		DataOutputStream stream = new DataOutputStream(byteStream);
 		stream.writeLong(offset);
-		stream.writeLong(recordFileOffset);
+		stream.writeLong(recordFilePosition);
 		stream.writeLong(recordByteLength);
 	}
 

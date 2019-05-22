@@ -51,7 +51,7 @@ public class SegmentWriter {
             if (record.kafkaOffset() <= previousSegmentIndexEntry.getOffset()) {
                 throw new SegmentIndex.IndexException("Offsets must be always increasing! There is something terribly wrong in your segmentIndex!");
             }
-            startPosition = previousSegmentIndexEntry.getRecordFileOffset() + previousSegmentIndexEntry.getRecordByteLength();
+            startPosition = previousSegmentIndexEntry.recordFilePosition() + previousSegmentIndexEntry.recordByteLength();
         } else {
             startPosition = 0;
         }

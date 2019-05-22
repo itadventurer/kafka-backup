@@ -41,7 +41,7 @@ public class BackupSourceConnector extends SourceConnector {
 
     @Override
     public ConfigDef config() {
-        return null;
+        return new ConfigDef();
     }
 
     @Override
