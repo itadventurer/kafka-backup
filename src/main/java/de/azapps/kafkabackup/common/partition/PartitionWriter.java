@@ -14,11 +14,11 @@ public class PartitionWriter {
     private String topic;
     private int partition;
     private Path topicDir;
-    private Optional<SegmentWriter> currentSegment = Optional.empty();
+    private SegmentWriter currentSegment;
     private PartitionIndex partitionIndex;
     private long maxSegmentSize;
 
-    public PartitionWriter(String topic, int partition, Path topicDir, long maxSegmentSize) throws IOException, PartitionIndex.IndexException {
+    public PartitionWriter(String topic, int partition, Path topicDir, long maxSegmentSize) throws IOException, PartitionIndex.IndexException, SegmentIndex.IndexException {
         this.topic = topic;
         this.partition = partition;
         this.topicDir = topicDir;
@@ -31,37 +31,37 @@ public class PartitionWriter {
             Files.createFile(indexFile);
         }
         partitionIndex = new PartitionIndex(indexFile);
+        Optional<PartitionIndexEntry> optionalPartitionIndexEntry = partitionIndex.latestSegmentFile();
+        if (optionalPartitionIndexEntry.isPresent()) {
+            currentSegment = new SegmentWriter(topic, partition, optionalPartitionIndexEntry.get().startOffset(), topicDir);
+        } else {
+            currentSegment = new SegmentWriter(topic, partition, 0, topicDir);
+        }
     }
 
     private void nextSegment(long startOffset) throws IOException, SegmentIndex.IndexException, PartitionIndex.IndexException {
-        if (currentSegment.isPresent()) {
-            currentSegment.get().close();
-        }
+        currentSegment.close();
         SegmentWriter segment = new SegmentWriter(topic, partition, startOffset, topicDir);
-        if(startOffset > partitionIndex.latestStartOffset()) {
+        if (startOffset > partitionIndex.latestStartOffset()) {
             partitionIndex.appendSegment(segment.filePrefix(), startOffset);
         }
-        currentSegment = Optional.of(segment);
+        currentSegment = segment;
     }
 
     public void append(Record record) throws IOException, SegmentIndex.IndexException, PartitionIndex.IndexException, SegmentWriter.SegmentException {
-        if (currentSegment.isEmpty() || currentSegment.get().size() > maxSegmentSize) {
+        if (currentSegment.size() > maxSegmentSize) {
             nextSegment(record.kafkaOffset());
         }
-        currentSegment.get().append(record);
+        currentSegment.append(record);
     }
 
     public void close() throws IOException {
         partitionIndex.close();
-        if (currentSegment.isPresent()) {
-            currentSegment.get().close();
-        }
+        currentSegment.close();
     }
 
     public void flush() throws IOException {
         partitionIndex.flush();
-        if (currentSegment.isPresent()) {
-            currentSegment.get().flush();
-        }
+        currentSegment.flush();
     }
 }

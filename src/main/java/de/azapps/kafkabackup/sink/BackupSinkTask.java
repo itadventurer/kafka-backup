@@ -47,7 +47,7 @@ public class BackupSinkTask extends SinkTask {
 		}
 	}
 
-	private PartitionWriter preparePartition(TopicPartition topicPartition) throws IOException, PartitionIndex.IndexException {
+	private PartitionWriter preparePartition(TopicPartition topicPartition) throws IOException, PartitionIndex.IndexException, SegmentIndex.IndexException {
 		Path topicDir = Paths.get(targetDir.toString(), topicPartition.topic());
 		Files.createDirectories(topicDir);
 		return new PartitionWriter(topicPartition.topic(), topicPartition.partition(), topicDir, maxSegmentSize);
@@ -60,13 +60,11 @@ public class BackupSinkTask extends SinkTask {
 				PartitionWriter partition = preparePartition(topicPartition);
 				this.partitionWriters.put(topicPartition, partition);
 			}
-		} catch (IOException e) {
-			throw new RuntimeException("IOException", e);
-		} catch (PartitionIndex.IndexException e) {
-			throw new RuntimeException("IndexException", e);
-		}
+		} catch (IOException | PartitionIndex.IndexException | SegmentIndex.IndexException e) {
+			throw new RuntimeException(e);
+        }
 
-	}
+    }
 
 	@Override
 	public void put(Collection<SinkRecord> records) {
