@@ -23,7 +23,7 @@ public class PartitionWriter {
         this.partition = partition;
         this.topicDir = topicDir;
         this.maxSegmentSize = maxSegmentSize;
-        Path indexFile = Paths.get(topicDir.toString(), "index_partition_" + partition);
+        Path indexFile = PartitionUtils.indexFile(topicDir, partition);
         if (!Files.isDirectory(this.topicDir)) {
             Files.createDirectories(this.topicDir);
         }

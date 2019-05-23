@@ -5,7 +5,7 @@ import java.nio.file.Path;
 
 class SegmentUtils {
     static String filePrefix(int partition, long startOffset) {
-        return "segment_" + partition + "_" + startOffset;
+        return String.format("segment_partition_%03d_from_offset_%010d", partition, startOffset);
     }
 
     static File indexFile(Path topicDir, int partition, long startOffset) {

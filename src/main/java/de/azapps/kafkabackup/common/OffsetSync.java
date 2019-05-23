@@ -93,6 +93,10 @@ public class OffsetSync {
         flush();
     }
 
+    static String offsetStoreFileName(int partition) {
+        return String.format("offsets_partition_%03d", partition);
+    }
+
 
     private class OffsetStoreFile {
         private Map<String, Long> groupOffsets = new HashMap<>();
@@ -101,7 +105,7 @@ public class OffsetSync {
         private Path storeFile;
 
         OffsetStoreFile(Path targetDir, TopicPartition topicPartition) throws IOException {
-            storeFile = Paths.get(targetDir.toString(), topicPartition.topic(), "offsets_partition_" + topicPartition.partition());
+            storeFile = Paths.get(targetDir.toString(), topicPartition.topic(), offsetStoreFileName(topicPartition.partition()));
             if (!Files.exists(storeFile)) {
                 Files.createFile(storeFile);
             }
