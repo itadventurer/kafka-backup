@@ -22,7 +22,7 @@ public class PartitionReader {
         this.topic = topic;
         this.partition = partition;
         this.topicDir = topicDir;
-        Path indexFile = Paths.get(topicDir.toString(), "index_partition_" + partition);
+        Path indexFile = PartitionUtils.indexFile(topicDir, partition);
         if (!Files.isDirectory(this.topicDir)) {
             throw new PartitionException("Cannot find topic directory for topic " + topic);
         }

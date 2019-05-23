@@ -6,6 +6,7 @@ import de.azapps.kafkabackup.common.partition.PartitionIndex;
 import de.azapps.kafkabackup.common.partition.PartitionWriter;
 import de.azapps.kafkabackup.common.segment.SegmentIndex;
 import de.azapps.kafkabackup.common.record.Record;
+import de.azapps.kafkabackup.common.segment.SegmentWriter;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -79,10 +80,10 @@ public class BackupSinkTask extends SinkTask {
 				offsetSync.syncConsumerGroups();
 				offsetSync.syncOffsets();
 			}
-		} catch (IOException | SegmentIndex.IndexException e ) {
+		} catch (IOException | SegmentIndex.IndexException | PartitionIndex.IndexException | SegmentWriter.SegmentException e ) {
 			throw new RuntimeException(e);
-		}
-	}
+        }
+    }
 
 	@Override
 	public void stop() {

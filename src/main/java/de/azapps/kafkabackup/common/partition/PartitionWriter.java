@@ -22,6 +22,7 @@ public class PartitionWriter {
         this.topic = topic;
         this.partition = partition;
         this.topicDir = topicDir;
+        this.maxSegmentSize = maxSegmentSize;
         Path indexFile = Paths.get(topicDir.toString(), "index_partition_" + partition);
         if (!Files.isDirectory(this.topicDir)) {
             Files.createDirectories(this.topicDir);
@@ -30,19 +31,20 @@ public class PartitionWriter {
             Files.createFile(indexFile);
         }
         partitionIndex = new PartitionIndex(indexFile);
-        this.maxSegmentSize = maxSegmentSize;
     }
 
-    private void nextSegment(long startOffset) throws IOException, SegmentIndex.IndexException {
+    private void nextSegment(long startOffset) throws IOException, SegmentIndex.IndexException, PartitionIndex.IndexException {
         if (currentSegment.isPresent()) {
             currentSegment.get().close();
         }
         SegmentWriter segment = new SegmentWriter(topic, partition, startOffset, topicDir);
-        partitionIndex.appendSegment(segment.fileName(), startOffset);
+        if(startOffset > partitionIndex.latestStartOffset()) {
+            partitionIndex.appendSegment(segment.filePrefix(), startOffset);
+        }
         currentSegment = Optional.of(segment);
     }
 
-    public void append(Record record) throws IOException, SegmentIndex.IndexException {
+    public void append(Record record) throws IOException, SegmentIndex.IndexException, PartitionIndex.IndexException, SegmentWriter.SegmentException {
         if (currentSegment.isEmpty() || currentSegment.get().size() > maxSegmentSize) {
             nextSegment(record.kafkaOffset());
         }

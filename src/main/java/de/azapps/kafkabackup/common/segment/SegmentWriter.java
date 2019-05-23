@@ -12,17 +12,19 @@ import java.util.Optional;
 public class SegmentWriter {
     private String topic;
     private int partition;
-    private String filePrefix;
+    private long startOffset;
     private SegmentIndex segmentIndex;
     private FileOutputStream recordOutputStream;
+    private Path topicDir;
 
-    public SegmentWriter(String topic, int partition, long startOffset, Path topicDirectory) throws IOException, SegmentIndex.IndexException {
+    public SegmentWriter(String topic, int partition, long startOffset, Path topicDir) throws IOException, SegmentIndex.IndexException {
         this.topic = topic;
         this.partition = partition;
-        filePrefix = topic + "_" + partition + "_" + startOffset;
+        this.topicDir = topicDir;
+        this.startOffset = startOffset;
 
-        File indexFile = new File(topicDirectory.toFile(), filePrefix + "_index");
-        File recordFile = new File(topicDirectory.toFile(), filePrefix + "_records");
+        File indexFile = SegmentUtils.indexFile(topicDir, partition, startOffset);
+        File recordFile = SegmentUtils.recordsFile(topicDir, partition, startOffset);
         if (!indexFile.exists()) {
             indexFile.createNewFile();
         }
@@ -33,11 +35,9 @@ public class SegmentWriter {
         recordOutputStream = new FileOutputStream(recordFile, true);
     }
 
-    public SegmentIndex getSegmentIndex() {
-        return segmentIndex;
-    }
 
-    public void append(Record record) throws IOException, SegmentIndex.IndexException {
+
+    public void append(Record record) throws IOException, SegmentIndex.IndexException, SegmentException {
         if (!record.topic().equals(topic) || record.kafkaPartition() != partition) {
             throw new RuntimeException("Trying to append to wrong topic or partition!\n" +
                     "Expected topic: " + topic + " given topic: " + record.topic() + "\n" +
@@ -49,7 +49,15 @@ public class SegmentWriter {
             SegmentIndexEntry previousSegmentIndexEntry = optionalPreviousIndexEntry.get();
 
             if (record.kafkaOffset() <= previousSegmentIndexEntry.getOffset()) {
-                throw new SegmentIndex.IndexException("Offsets must be always increasing! There is something terribly wrong in your segmentIndex!");
+                // Handle at least once semantics: Read from partition file and verify
+                // that the written data is the same as the one we want to write.
+                // Otherwise we are overwriting some data (maybe from a previous backup) and should throw exceptions!
+                SegmentReader segmentReader = new SegmentReader(topic, partition, topicDir, startOffset);
+                segmentReader.seek(previousSegmentIndexEntry.getOffset());
+                Record fsRecord = segmentReader.read();
+                if(!record.equals(fsRecord)) {
+                    throw new SegmentException("Trying to override a written record. Records not equal. There is something terribly wrong in your setup! Please check whether you are trying to override an existing backup");
+                }
             }
             startPosition = previousSegmentIndexEntry.recordFilePosition() + previousSegmentIndexEntry.recordByteLength();
         } else {
@@ -63,8 +71,8 @@ public class SegmentWriter {
         segmentIndex.addEntry(segmentIndexEntry);
     }
 
-    public String fileName() {
-        return filePrefix;
+    public String filePrefix() {
+        return SegmentUtils.filePrefix(partition, startOffset);
     }
 
     public long size() throws IOException {
@@ -79,5 +87,11 @@ public class SegmentWriter {
     public void close() throws IOException {
         recordOutputStream.close();
         segmentIndex.close();
+    }
+
+    public static class SegmentException extends Exception {
+        SegmentException(String message) {
+            super(message);
+        }
     }
 }

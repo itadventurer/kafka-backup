@@ -15,23 +15,27 @@ import java.util.Optional;
 public class SegmentReader {
     private String topic;
     private int partition;
+    private String filePrefix;
     private SegmentIndex segmentIndex;
     private FileInputStream recordInputStream;
-    private String filePrefix;
     private long lastValidStartPosition;
+
+    public SegmentReader(String topic, int partition, Path topicDir, long startOffset) throws IOException, SegmentIndex.IndexException {
+        this(topic, partition, topicDir, SegmentUtils.filePrefix(partition, startOffset));
+    }
 
     public SegmentReader(String topic, int partition, Path topicDir, String filePrefix) throws IOException, SegmentIndex.IndexException {
         this.topic = topic;
         this.partition = partition;
         this.filePrefix = filePrefix;
 
-        File indexFile = new File(topicDir.toFile(),filePrefix + "_index");
-        File recordFile = new File(topicDir.toFile(), filePrefix + "_records");
+        File indexFile = SegmentUtils.indexFile(topicDir, filePrefix);
+        File recordFile = SegmentUtils.recordsFile(topicDir, filePrefix);
         if (!indexFile.exists()) {
-            throw new RuntimeException("Index for Segment not found: " + filePrefix);
+            throw new RuntimeException("Index for Segment not found: " + indexFile.toString());
         }
         if (!recordFile.exists()) {
-            throw new RuntimeException("Segment not found: " + filePrefix);
+            throw new RuntimeException("Segment not found: " + recordFile.toString());
         }
         segmentIndex = new SegmentIndex(indexFile);
         recordInputStream = new FileInputStream(recordFile);
@@ -41,7 +45,7 @@ public class SegmentReader {
     public void seek(long offset) throws IndexOutOfBoundsException, IOException {
         Optional<Long> optionalPosition = segmentIndex.findByOffset(offset);
         if (optionalPosition.isEmpty()) {
-            throw new IndexOutOfBoundsException("Could not find offset " + offset + " in segment " + filePrefix);
+            throw new IndexOutOfBoundsException("Could not find offset " + offset + " in topic " + topic + ", segment " + filePrefix);
         }
         recordInputStream.getChannel().position(optionalPosition.get());
     }
@@ -52,7 +56,7 @@ public class SegmentReader {
 
     public Record read() throws IOException {
         if (!hasMoreData()) {
-            throw new EOFException("Already read the last valid record in segment " + filePrefix);
+            throw new EOFException("Already read the last valid record in topic " + topic + ", segment " + filePrefix);
         }
         return RecordSerde.read(topic, partition, recordInputStream);
     }
