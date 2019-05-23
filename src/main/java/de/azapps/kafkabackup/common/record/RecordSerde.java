@@ -56,11 +56,22 @@ public class RecordSerde {
             timestamp = null;
         }
         int keyLength = dataStream.readInt();
-        byte[] key = new byte[keyLength];
-        dataStream.read(key);
+        byte[] key;
+        if (keyLength == 0) {
+            key = null;
+        } else {
+            key = new byte[keyLength];
+            dataStream.read(key);
+        }
+
         int valueLength = dataStream.readInt();
-        byte[] value = new byte[valueLength];
-        dataStream.read(value);
+        byte[] value;
+        if (valueLength == 0) {
+            value = null;
+        } else {
+            value = new byte[valueLength];
+            dataStream.read(value);
+        }
         int headerCount = dataStream.readInt();
         Headers headers = new ConnectHeaders();
         for (int i = 0; i < headerCount; i++) {

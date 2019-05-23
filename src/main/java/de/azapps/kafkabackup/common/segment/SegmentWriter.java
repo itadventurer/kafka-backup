@@ -53,11 +53,12 @@ public class SegmentWriter {
                 // that the written data is the same as the one we want to write.
                 // Otherwise we are overwriting some data (maybe from a previous backup) and should throw exceptions!
                 SegmentReader segmentReader = new SegmentReader(topic, partition, topicDir, startOffset);
-                segmentReader.seek(previousSegmentIndexEntry.getOffset());
+                segmentReader.seek(record.kafkaOffset());
                 Record fsRecord = segmentReader.read();
                 if(!record.equals(fsRecord)) {
                     throw new SegmentException("Trying to override a written record. Records not equal. There is something terribly wrong in your setup! Please check whether you are trying to override an existing backup");
                 }
+                return;
             }
             startPosition = previousSegmentIndexEntry.recordFilePosition() + previousSegmentIndexEntry.recordByteLength();
         } else {
