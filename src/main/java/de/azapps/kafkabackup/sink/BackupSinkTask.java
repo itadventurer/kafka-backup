@@ -1,11 +1,10 @@
 package de.azapps.kafkabackup.sink;
 
-import de.azapps.kafkabackup.common.Constants;
-import de.azapps.kafkabackup.common.OffsetSync;
+import de.azapps.kafkabackup.common.offset.OffsetSink;
 import de.azapps.kafkabackup.common.partition.PartitionIndex;
 import de.azapps.kafkabackup.common.partition.PartitionWriter;
-import de.azapps.kafkabackup.common.segment.SegmentIndex;
 import de.azapps.kafkabackup.common.record.Record;
+import de.azapps.kafkabackup.common.segment.SegmentIndex;
 import de.azapps.kafkabackup.common.segment.SegmentWriter;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
@@ -17,18 +16,20 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 public class BackupSinkTask extends SinkTask {
 	private Path targetDir;
 	private Map<TopicPartition, PartitionWriter> partitionWriters = new HashMap<>();
 	private long maxSegmentSize;
-    private OffsetSync offsetSync;
+    private OffsetSink offsetSink;
 	private BackupSinkConfig config;
 
 	@Override
 	public String version() {
-		return Constants.VERSION;
+		return "0.1";
 	}
 
 	@Override
@@ -39,9 +40,9 @@ public class BackupSinkTask extends SinkTask {
 			maxSegmentSize = config.maxSegmentSize();
 			Files.createDirectories(targetDir);
 
-			// Setup OffsetSync
+			// Setup OffsetSink
             AdminClient adminClient = AdminClient.create(config.adminConfig());
-			offsetSync = new OffsetSync(adminClient, targetDir);
+			offsetSink = new OffsetSink(adminClient, targetDir);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -75,8 +76,8 @@ public class BackupSinkTask extends SinkTask {
 				partition.append(Record.fromSinkRecord(sinkRecord));
 
 				// Todo: refactor to own worker. E.g. using the scheduler of MM2
-				offsetSync.syncConsumerGroups();
-				offsetSync.syncOffsets();
+				offsetSink.syncConsumerGroups();
+				offsetSink.syncOffsets();
 			}
 		} catch (IOException | SegmentIndex.IndexException | PartitionIndex.IndexException | SegmentWriter.SegmentException e ) {
 			throw new RuntimeException(e);
@@ -89,7 +90,7 @@ public class BackupSinkTask extends SinkTask {
 			for (PartitionWriter partition : partitionWriters.values()) {
 				partition.close();
 			}
-			offsetSync.close();
+			offsetSink.close();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -101,7 +102,7 @@ public class BackupSinkTask extends SinkTask {
 			for (PartitionWriter partition : partitionWriters.values()) {
 				partition.flush();
 			}
-			offsetSync.flush();
+			offsetSink.flush();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

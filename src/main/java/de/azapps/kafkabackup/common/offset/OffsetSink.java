@@ -1,4 +1,4 @@
-package de.azapps.kafkabackup.common;
+package de.azapps.kafkabackup.common.offset;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -18,13 +18,13 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-public class OffsetSync {
+public class OffsetSink {
     private final Path targetDir;
     private Map<TopicPartition, OffsetStoreFile> topicOffsets = new HashMap<>();
     private List<String> consumerGroups = new ArrayList<>();
     private AdminClient adminClient;
 
-    public OffsetSync(AdminClient adminClient, Path targetDir) {
+    public OffsetSink(AdminClient adminClient, Path targetDir) {
         this.adminClient = adminClient;
         this.targetDir = targetDir;
     }
@@ -93,11 +93,6 @@ public class OffsetSync {
         flush();
     }
 
-    static String offsetStoreFileName(int partition) {
-        return String.format("offsets_partition_%03d", partition);
-    }
-
-
     private class OffsetStoreFile {
         private Map<String, Long> groupOffsets = new HashMap<>();
 
@@ -105,7 +100,7 @@ public class OffsetSync {
         private Path storeFile;
 
         OffsetStoreFile(Path targetDir, TopicPartition topicPartition) throws IOException {
-            storeFile = Paths.get(targetDir.toString(), topicPartition.topic(), offsetStoreFileName(topicPartition.partition()));
+            storeFile = OffsetUtils.offsetStoreFile(targetDir, topicPartition);
             if (!Files.exists(storeFile)) {
                 Files.createFile(storeFile);
             }

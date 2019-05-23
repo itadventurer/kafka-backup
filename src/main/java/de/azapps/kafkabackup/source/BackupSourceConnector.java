@@ -1,6 +1,5 @@
 package de.azapps.kafkabackup.source;
 
-import de.azapps.kafkabackup.common.Constants;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.errors.ConnectException;
@@ -46,6 +45,6 @@ public class BackupSourceConnector extends SourceConnector {
 
     @Override
     public String version() {
-        return Constants.VERSION;
+        return "0.1";
     }
 }
