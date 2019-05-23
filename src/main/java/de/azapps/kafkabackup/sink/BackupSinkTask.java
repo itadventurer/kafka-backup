@@ -1,10 +1,12 @@
 package de.azapps.kafkabackup.sink;
 
 import de.azapps.kafkabackup.common.Constants;
+import de.azapps.kafkabackup.common.OffsetSync;
 import de.azapps.kafkabackup.common.partition.PartitionIndex;
 import de.azapps.kafkabackup.common.partition.PartitionWriter;
 import de.azapps.kafkabackup.common.segment.SegmentIndex;
 import de.azapps.kafkabackup.common.record.Record;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -14,14 +16,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class BackupSinkTask extends SinkTask {
 	private Path targetDir;
 	private Map<TopicPartition, PartitionWriter> partitionWriters = new HashMap<>();
 	private long maxSegmentSize;
+    private OffsetSync offsetSync;
+	private BackupSinkConfig config;
 
 	@Override
 	public String version() {
@@ -30,16 +32,15 @@ public class BackupSinkTask extends SinkTask {
 
 	@Override
 	public void start(Map<String, String> props) {
+		config = new BackupSinkConfig(props);
 		try {
-			if(!props.containsKey(Constants.TARGET_DIR_CONFIG)) {
-				throw new RuntimeException("Missing Configuration Variable: " + Constants.TARGET_DIR_CONFIG);
-			}
-			if(!props.containsKey(Constants.MAX_SEGMENT_SIZE)) {
-				throw new RuntimeException("Missing Configuration Variable: " + Constants.MAX_SEGMENT_SIZE);
-			}
-			targetDir = Paths.get(props.get(Constants.TARGET_DIR_CONFIG));
-			maxSegmentSize = Long.parseLong(props.get(Constants.MAX_SEGMENT_SIZE));
+			targetDir = Paths.get(config.targetDir());
+			maxSegmentSize = config.maxSegmentSize();
 			Files.createDirectories(targetDir);
+
+			// Setup OffsetSync
+            AdminClient adminClient = AdminClient.create(config.adminConfig());
+			offsetSync = new OffsetSync(adminClient, targetDir);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -73,6 +74,10 @@ public class BackupSinkTask extends SinkTask {
 				TopicPartition topicPartition = new TopicPartition(sinkRecord.topic(), sinkRecord.kafkaPartition());
 				PartitionWriter partition = partitionWriters.get(topicPartition);
 				partition.append(Record.fromSinkRecord(sinkRecord));
+
+				// Todo: refactor to own worker. E.g. using the scheduler of MM2
+				offsetSync.syncConsumerGroups();
+				offsetSync.syncOffsets();
 			}
 		} catch (IOException | SegmentIndex.IndexException e ) {
 			throw new RuntimeException(e);
@@ -85,6 +90,7 @@ public class BackupSinkTask extends SinkTask {
 			for (PartitionWriter partition : partitionWriters.values()) {
 				partition.close();
 			}
+			offsetSync.close();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -96,6 +102,7 @@ public class BackupSinkTask extends SinkTask {
 			for (PartitionWriter partition : partitionWriters.values()) {
 				partition.flush();
 			}
+			offsetSync.flush();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
