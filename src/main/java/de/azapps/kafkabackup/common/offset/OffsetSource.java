@@ -52,6 +52,7 @@ public class OffsetSource {
                 OffsetAndMetadata offsetAndMetadata = new OffsetAndMetadata(offset);
                 Map<TopicPartition, OffsetAndMetadata> offsets = Collections.singletonMap(topicPartition, offsetAndMetadata);
                 consumer.commitSync(offsets);
+                consumer.close();
             }
         }
     }

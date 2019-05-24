@@ -103,4 +103,8 @@ public class PartitionIndex {
         position++;
         return fileName;
     }
+
+    List<PartitionIndexEntry> index() {
+        return index;
+    }
 }

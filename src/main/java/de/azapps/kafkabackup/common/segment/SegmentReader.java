@@ -62,7 +62,7 @@ public class SegmentReader {
     }
 
     public List<Record> readN(int n) throws IOException {
-        List<Record> records = new ArrayList<>(segmentIndex.size());
+        List<Record> records = new ArrayList<>(n);
         while (hasMoreData() && records.size() < n) {
             Record record = read();
             records.add(record);

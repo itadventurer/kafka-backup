@@ -19,8 +19,12 @@ import java.nio.file.Paths;
 import java.util.*;
 
 public class BackupSourceTask extends SourceTask {
+    private static final String SOURCE_PARTITION_PARTITION = "Partition";
+    private static final String SOURCE_PARTITION_TOPIC = "Topic";
+    private static final String SOURCE_OFFSET_OFFSET = "Offset";
     private Path sourceDir;
     private Map<TopicPartition, PartitionReader> partitionReaders = new HashMap<>();
+    private Map<TopicPartition, Long> offsets = new HashMap<>();
     private int batchSize = 100;
     private OffsetSource offsetSource;
     private List<String> topics;
@@ -41,6 +45,21 @@ public class BackupSourceTask extends SourceTask {
             offsetSource = new OffsetSource(sourceDir, topics, config.consumerConfig());
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+
+        for (TopicPartition topicPartition : partitionReaders.keySet()) {
+            Map<String, String> sourcePartition = new HashMap<>();
+            sourcePartition.put(SOURCE_PARTITION_TOPIC, topicPartition.topic());
+            sourcePartition.put(SOURCE_PARTITION_PARTITION, String.valueOf(topicPartition.partition()));
+            Map<String, Object> sourceOffset = context.offsetStorageReader().offset(sourcePartition);
+
+            PartitionReader partitionReader = partitionReaders.get(topicPartition);
+
+            try {
+                partitionReader.seek((Long) sourceOffset.get(SOURCE_OFFSET_OFFSET));
+            } catch (IOException | SegmentIndex.IndexException | PartitionIndex.IndexException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -74,7 +93,10 @@ public class BackupSourceTask extends SourceTask {
             for (PartitionReader partitionReader : partitionReaders.values()) {
                 List<Record> records = partitionReader.readN(batchSize);
                 if (records.size() > 0) {
-                    System.out.println("Read " + records.size() + " record from topic " + records.get(0).topic() + " partition " + records.get(0).kafkaPartition());
+                    System.out.println("Read " + records.size() + " record " +
+                            "from topic " + records.get(0).topic() +
+                            " partition " + records.get(0).kafkaPartition() +
+                            ". Current offset: " + records.get(records.size()-1).kafkaOffset());
                 }
                 for (Record record : records) {
                     sourceRecords.add(toSourceRecord(record));
@@ -88,9 +110,9 @@ public class BackupSourceTask extends SourceTask {
 
     private SourceRecord toSourceRecord(Record record) {
         Map<String, String> sourcePartition = new HashMap<>();
-        sourcePartition.put("Partition", record.kafkaPartition().toString());
-        sourcePartition.put("Topic", record.topic());
-        Map<String, Long> sourceOffset = Collections.singletonMap("Offset", record.kafkaOffset());
+        sourcePartition.put(SOURCE_PARTITION_PARTITION, record.kafkaPartition().toString());
+        sourcePartition.put(SOURCE_PARTITION_TOPIC, record.topic());
+        Map<String, Long> sourceOffset = Collections.singletonMap(SOURCE_OFFSET_OFFSET, record.kafkaOffset());
         return new SourceRecord(sourcePartition, sourceOffset,
                 record.topic(), record.kafkaPartition(),
                 Schema.BYTES_SCHEMA, record.key(),

@@ -81,6 +81,10 @@ public class SegmentIndex {
 		return index.size();
 	}
 
+	List<SegmentIndexEntry> index() {
+		return index;
+	}
+
 	void flush() throws IOException {
 		fileOutputStream.flush();
 	}
