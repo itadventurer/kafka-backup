@@ -2,12 +2,14 @@ package de.azapps.kafkabackup.cli;
 
 import de.azapps.kafkabackup.common.segment.SegmentIndex;
 import de.azapps.kafkabackup.common.segment.SegmentIndexEntry;
+import de.azapps.kafkabackup.common.segment.SegmentIndexRestore;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import org.apache.kafka.common.utils.Exit;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
@@ -53,14 +55,19 @@ public class SegmentIndexCLI {
         if (options.has(CMD_LIST)) {
             list((String) options.valueOf(ARG_SEGMENT_INDEX));
         } else if (options.has(CMD_RESTORE)) {
-            restore((String) options.valueOf(ARG_SEGMENT));
+            restore((String) options.valueOf(ARG_SEGMENT), (String) options.valueOf(ARG_SEGMENT_INDEX));
         }
     }
 
-    private static void restore(String segmentFileName) {
+    private static void restore(String segmentFileName, String segmentIndexFileName) throws SegmentIndex.IndexException, SegmentIndexRestore.RestoreException, IOException {
         if (!segmentFileName.endsWith("_records")) {
             segmentFileName += "_records";
         }
+        if (!segmentIndexFileName.endsWith("_index")) {
+            segmentIndexFileName += "_index";
+        }
+        SegmentIndexRestore restore = new SegmentIndexRestore(Paths.get(segmentFileName), Paths.get(segmentIndexFileName));
+        restore.restore();
     }
 
     private static void list(String segmentIndexFileName) throws IOException, SegmentIndex.IndexException {

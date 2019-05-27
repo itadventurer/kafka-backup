@@ -2,6 +2,7 @@ package de.azapps.kafkabackup.cli;
 
 import de.azapps.kafkabackup.common.partition.PartitionIndex;
 import de.azapps.kafkabackup.common.partition.PartitionIndexEntry;
+import de.azapps.kafkabackup.common.partition.PartitionIndexRestore;
 import joptsimple.OptionException;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -56,8 +57,9 @@ public class PartitionIndexCLI {
         }
     }
 
-    private static void restore(String topicDir, Integer partition) {
-
+    private static void restore(String topicDir, int partition) throws PartitionIndex.IndexException, PartitionIndexRestore.RestoreException, IOException {
+        PartitionIndexRestore restore = new PartitionIndexRestore(Paths.get(topicDir), partition);
+        restore.restore();
     }
 
     private static void list(String partitionIndexFileName) throws IOException, PartitionIndex.IndexException {

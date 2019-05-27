@@ -7,7 +7,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class PartitionUtils {
-    private static final Pattern PARTITION_INDEX_PATTERN = Pattern.compile("index_partition_([0-9]+)");
+    private static final Pattern PARTITION_INDEX_PATTERN = Pattern.compile("^index_partition_([0-9]+)$");
     static Path indexFile(Path topicDir, int partition) {
         return Paths.get(topicDir.toString(), String.format("index_partition_%03d",partition));
     }

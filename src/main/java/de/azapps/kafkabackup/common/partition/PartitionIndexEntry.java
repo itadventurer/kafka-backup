@@ -24,7 +24,7 @@ public class PartitionIndexEntry {
         stream.writeLong(startOffset);
     }
 
-    private PartitionIndexEntry(String filename, long startOffset) {
+    PartitionIndexEntry(String filename, long startOffset) {
         this.filename = filename;
         this.startOffset = startOffset;
     }
