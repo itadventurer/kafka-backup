@@ -12,7 +12,7 @@ public class SegmentIndex {
 	private FileOutputStream fileOutputStream;
 	private FileInputStream fileInputStream;
 
-	SegmentIndex(File file) throws IOException, IndexException {
+	public SegmentIndex(File file) throws IOException, IndexException {
 		this.fileInputStream = new FileInputStream(file);
 		this.fileOutputStream = new FileOutputStream(file, true);
 		fileInputStream.getChannel().position(0);
@@ -81,7 +81,7 @@ public class SegmentIndex {
 		return index.size();
 	}
 
-	List<SegmentIndexEntry> index() {
+	public List<SegmentIndexEntry> index() {
 		return index;
 	}
 

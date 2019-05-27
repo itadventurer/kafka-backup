@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets;
  * startOffset: int64
  * [endOffset: int64]
  */
-class PartitionIndexEntry {
+public class PartitionIndexEntry {
     private String filename;
     private long startOffset;
 
@@ -29,7 +29,7 @@ class PartitionIndexEntry {
         this.startOffset = startOffset;
     }
 
-    long startOffset() {
+    public long startOffset() {
         return startOffset;
     }
 
@@ -43,7 +43,7 @@ class PartitionIndexEntry {
         return new PartitionIndexEntry(filename, startOffset);
     }
 
-    String filename() {
+    public String filename() {
         return filename;
     }
 

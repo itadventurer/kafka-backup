@@ -17,7 +17,7 @@ public class PartitionIndex {
     private int position = 0;
     private long latestStartOffset = -1;
 
-    PartitionIndex(Path indexFile) throws IOException, IndexException {
+    public PartitionIndex(Path indexFile) throws IOException, IndexException {
         this.indexFile = indexFile;
         this.fileInputStream = new FileInputStream(indexFile.toFile());
         this.fileOutputStream = new FileOutputStream(indexFile.toFile(), true);
@@ -109,7 +109,7 @@ public class PartitionIndex {
         return fileName;
     }
 
-    List<PartitionIndexEntry> index() {
+    public List<PartitionIndexEntry> index() {
         return index;
     }
 }

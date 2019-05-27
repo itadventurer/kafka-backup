@@ -8,7 +8,7 @@ import java.io.*;
  * recordFilePosition: int64
  * recordLength: int64
  */
-class SegmentIndexEntry {
+public class SegmentIndexEntry {
 	private long offset;
 	private long recordFilePosition;
 	private long recordByteLength;
@@ -27,15 +27,15 @@ class SegmentIndexEntry {
 		return new SegmentIndexEntry(offset, recordFileOffset, recordByteLength);
 	}
 
-	long getOffset() {
+	public long getOffset() {
 		return offset;
 	}
 
-	long recordFilePosition() {
+	public long recordFilePosition() {
 		return recordFilePosition;
 	}
 
-	long recordByteLength() {
+	public long recordByteLength() {
 		return recordByteLength;
 	}
 
