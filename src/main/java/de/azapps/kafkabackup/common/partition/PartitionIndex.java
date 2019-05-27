@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 public class PartitionIndex {
+    private Path indexFile;
     private List<PartitionIndexEntry> index = new ArrayList<>();
     private FileOutputStream fileOutputStream;
     private FileInputStream fileInputStream;
@@ -17,6 +18,7 @@ public class PartitionIndex {
     private long latestStartOffset = -1;
 
     PartitionIndex(Path indexFile) throws IOException, IndexException {
+        this.indexFile = indexFile;
         this.fileInputStream = new FileInputStream(indexFile.toFile());
         this.fileOutputStream = new FileOutputStream(indexFile.toFile(), true);
         fileInputStream.getChannel().position(0);
@@ -71,7 +73,10 @@ public class PartitionIndex {
         }
     }
 
-    long firstOffset() {
+    long firstOffset() throws IndexException {
+        if(index.size() == 0) {
+            throw new PartitionIndex.IndexException("Partition Index is empty. Something is wrong with your partition index. Try to rebuild the index.");
+        }
         return index.get(0).startOffset();
     }
 

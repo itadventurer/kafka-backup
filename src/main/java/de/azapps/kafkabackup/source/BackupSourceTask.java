@@ -52,13 +52,13 @@ public class BackupSourceTask extends SourceTask {
             sourcePartition.put(SOURCE_PARTITION_TOPIC, topicPartition.topic());
             sourcePartition.put(SOURCE_PARTITION_PARTITION, String.valueOf(topicPartition.partition()));
             Map<String, Object> sourceOffset = context.offsetStorageReader().offset(sourcePartition);
-
-            PartitionReader partitionReader = partitionReaders.get(topicPartition);
-
-            try {
-                partitionReader.seek((Long) sourceOffset.get(SOURCE_OFFSET_OFFSET));
-            } catch (IOException | SegmentIndex.IndexException | PartitionIndex.IndexException e) {
-                throw new RuntimeException(e);
+            if(sourceOffset!=null) {
+                PartitionReader partitionReader = partitionReaders.get(topicPartition);
+                try {
+                    partitionReader.seek((Long) sourceOffset.get(SOURCE_OFFSET_OFFSET));
+                } catch (IOException | SegmentIndex.IndexException | PartitionIndex.IndexException e) {
+                    throw new RuntimeException(e);
+                }
             }
         }
     }

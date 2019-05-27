@@ -36,6 +36,8 @@ public class PartitionWriter {
             currentSegment = new SegmentWriter(topic, partition, optionalPartitionIndexEntry.get().startOffset(), topicDir);
         } else {
             currentSegment = new SegmentWriter(topic, partition, 0, topicDir);
+            // do not forget to add the current segment to the partition index. Even if it is empty
+            partitionIndex.appendSegment(currentSegment.filePrefix(), 0);
         }
     }
 
