@@ -3,3 +3,5 @@ local-*
 .idea
 *.iml
 .gradle
+*\#*
+*~
