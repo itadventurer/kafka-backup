@@ -26,7 +26,7 @@ public class PartitionIndex {
             try {
                 PartitionIndexEntry partitionIndexEntry = PartitionIndexEntry.fromStream(fileInputStream);
                 if (partitionIndexEntry.startOffset() <= latestStartOffset) {
-                    throw new IndexException("Offsets must be always increasing! There is something terribly wrong in your index! Got " + partitionIndexEntry.startOffset() + " expected an offset larger than " + latestStartOffset);
+                    throw new IndexException("Offsets must be always increasing! There is something terribly wrong in your index " + indexFile + "! Got " + partitionIndexEntry.startOffset() + " expected an offset larger than " + latestStartOffset);
                 }
                 index.add(partitionIndexEntry);
                 latestStartOffset = partitionIndexEntry.startOffset();
@@ -39,7 +39,7 @@ public class PartitionIndex {
 
     void appendSegment(String segmentFile, long startOffset) throws IOException, IndexException {
         if (startOffset <= latestStartOffset) {
-            throw new IndexException("Offsets must be always increasing! There is something terribly wrong in your index! Got " + startOffset + " expected an offset larger than " + latestStartOffset);
+            throw new IndexException("Offsets must be always increasing! There is something terribly wrong in your index " + indexFile + "! Got " + startOffset + " expected an offset larger than " + latestStartOffset);
         }
         PartitionIndexEntry indexEntry = new PartitionIndexEntry(fileOutputStream, segmentFile, startOffset);
         index.add(indexEntry);
@@ -47,7 +47,7 @@ public class PartitionIndex {
     }
 
     Optional<PartitionIndexEntry> latestSegmentFile() {
-        if(index.isEmpty()) {
+        if (index.isEmpty()) {
             return Optional.empty();
         } else {
             return Optional.of(index.get(index.size() - 1));
@@ -74,24 +74,33 @@ public class PartitionIndex {
     }
 
     long firstOffset() throws IndexException {
-        if(index.size() == 0) {
-            throw new PartitionIndex.IndexException("Partition Index is empty. Something is wrong with your partition index. Try to rebuild the index.");
+        if (index.size() == 0) {
+            throw new PartitionIndex.IndexException("Partition Index is empty. Something is wrong with your partition index. Try to rebuild the index " + indexFile);
         }
         return index.get(0).startOffset();
     }
 
     void seek(long offset) throws PartitionIndex.IndexException {
         int previousPosition = -1;
-        for (int i = 0; i < index.size(); i++) {
-            PartitionIndexEntry current = index.get(i);
-            if (current.startOffset() > offset) {
-                if (previousPosition >= 0) {
-                    position = previousPosition;
-                } else {
-                    throw new PartitionIndex.IndexException("No Index file found matching the target index. Search for offset " + offset + ", smallest offset in index: " + current.startOffset());
-                }
+        // Iterate the index after the last element
+        // Such that we can seek to an offset in the last index entry
+        for (int i = 0; i <= index.size(); i++) {
+            if (i == index.size()) {
+                // Offset must be in the last index entry
+                position = previousPosition;
             } else {
-                previousPosition = i;
+                PartitionIndexEntry current = index.get(i);
+                if (current.startOffset() > offset) {
+                    if (previousPosition >= 0) {
+                        position = previousPosition;
+                        //
+                        return;
+                    } else {
+                        throw new PartitionIndex.IndexException("No Index file found matching the target offset in partition index " + indexFile + ". Search for offset " + offset + ", smallest offset in index: " + current.startOffset());
+                    }
+                } else {
+                    previousPosition = i;
+                }
             }
         }
     }
@@ -101,11 +110,13 @@ public class PartitionIndex {
     }
 
     String readFileName() {
-        if(!hasMoreData()) {
-            throw new IndexOutOfBoundsException("No more data");
-        }
         String fileName = index.get(position).filename();
         position++;
+        // allow the cursor to be one after the index size.
+        // This way we can detect easier when we reached the end of the index
+        if (position > index.size()) {
+            throw new IndexOutOfBoundsException("Index " + indexFile + " out of bound");
+        }
         return fileName;
     }
 

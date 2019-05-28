@@ -52,10 +52,15 @@ public class BackupSourceTask extends SourceTask {
             sourcePartition.put(SOURCE_PARTITION_TOPIC, topicPartition.topic());
             sourcePartition.put(SOURCE_PARTITION_PARTITION, String.valueOf(topicPartition.partition()));
             Map<String, Object> sourceOffset = context.offsetStorageReader().offset(sourcePartition);
-            if(sourceOffset!=null) {
+            if (sourceOffset != null) {
                 PartitionReader partitionReader = partitionReaders.get(topicPartition);
                 try {
+                    // seek() seeks to the position of the OFFSET. We need to move to the position after the current OFFSET.
+                    // Otherwise we would write the OFFSET multiple times in case of a restart
                     partitionReader.seek((Long) sourceOffset.get(SOURCE_OFFSET_OFFSET));
+                    if (partitionReader.hasMoreData()) {
+                        partitionReader.read();
+                    }
                 } catch (IOException | SegmentIndex.IndexException | PartitionIndex.IndexException e) {
                     throw new RuntimeException(e);
                 }
@@ -89,6 +94,7 @@ public class BackupSourceTask extends SourceTask {
     @Override
     public List<SourceRecord> poll() throws InterruptedException {
         List<SourceRecord> sourceRecords = new ArrayList<>();
+        int emptyPartitions = 0;
         try {
             for (PartitionReader partitionReader : partitionReaders.values()) {
                 List<Record> records = partitionReader.readN(batchSize);
@@ -96,7 +102,9 @@ public class BackupSourceTask extends SourceTask {
                     System.out.println("Read " + records.size() + " record " +
                             "from topic " + records.get(0).topic() +
                             " partition " + records.get(0).kafkaPartition() +
-                            ". Current offset: " + records.get(records.size()-1).kafkaOffset());
+                            ". Current offset: " + records.get(records.size() - 1).kafkaOffset());
+                } else {
+                    emptyPartitions++;
                 }
                 for (Record record : records) {
                     sourceRecords.add(toSourceRecord(record));
@@ -104,6 +112,10 @@ public class BackupSourceTask extends SourceTask {
             }
         } catch (IOException | SegmentIndex.IndexException e) {
             e.printStackTrace();
+        }
+        if (emptyPartitions == partitionReaders.size()) {
+            System.out.println("All records read. Restore was successful");
+            Thread.sleep(5000);
         }
         return sourceRecords;
     }

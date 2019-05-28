@@ -1,5 +1,6 @@
 package de.azapps.kafkabackup.common.offset;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.azapps.kafkabackup.common.partition.PartitionIndex;
 import de.azapps.kafkabackup.common.partition.PartitionReader;
@@ -61,9 +62,12 @@ public class OffsetSource {
         private Map<Long, List<String>> offsetGroups = new HashMap<>();
 
         private ObjectMapper mapper = new ObjectMapper();
+        TypeReference<HashMap<String,Long>> typeRef
+                = new TypeReference<HashMap<String,Long>>() {};
+
 
         OffsetStoreFile(Path storeFile) throws IOException {
-            Map<String, Long> groupOffsets = mapper.readValue(storeFile.toFile(), Map.class);
+            Map<String, Long> groupOffsets = mapper.readValue(storeFile.toFile(), typeRef);
             for (String group : groupOffsets.keySet()) {
                 Long offset = groupOffsets.get(group);
                 if (offsetGroups.containsKey(offset)) {

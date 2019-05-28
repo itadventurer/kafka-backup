@@ -30,12 +30,16 @@ public class PartitionReader {
             throw new PartitionException("Cannot find index file for partition " + partition);
         }
         partitionIndex = new PartitionIndex(indexFile);
-        seek(partitionIndex.firstOffset());
+        if(partitionIndex.hasMoreData()) {
+            seek(partitionIndex.firstOffset());
+        }
     }
 
     public void close() throws IOException {
         partitionIndex.close();
-        currentSegment.close();
+        if(currentSegment != null) {
+            currentSegment.close();
+        }
     }
 
     public void seek(long offset) throws PartitionIndex.IndexException, IOException, SegmentIndex.IndexException, IndexOutOfBoundsException {
@@ -46,7 +50,11 @@ public class PartitionReader {
     }
 
     public boolean hasMoreData() throws IOException {
-        return currentSegment.hasMoreData() || partitionIndex.hasMoreData();
+        if(currentSegment != null) {
+            return currentSegment.hasMoreData() || partitionIndex.hasMoreData();
+        } else {
+            return false;
+        }
     }
 
     public Record read() throws IOException, SegmentIndex.IndexException {
