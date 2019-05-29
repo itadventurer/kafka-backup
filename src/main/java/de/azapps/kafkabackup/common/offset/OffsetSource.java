@@ -41,20 +41,22 @@ public class OffsetSource {
         }
     }
 
-    public void syncGroupForOffset(TopicPartition topicPartition, long offset) throws IOException {
+    public void syncGroupForOffset(TopicPartition topicPartition, long sourceOffset, long targetOffset) throws IOException {
         OffsetStoreFile offsetStoreFile = topicOffsets.get(topicPartition);
-        List<String> groups = offsetStoreFile.groupForOffset(offset);
+        List<String> groups = offsetStoreFile.groupForOffset(sourceOffset);
         if (groups != null && groups.size() > 0) {
             for (String group : groups) {
                 Map<String, Object> groupConsumerConfig = new HashMap<>(consumerConfig);
                 groupConsumerConfig.put("group.id", group);
                 Consumer<byte[], byte[]> consumer = new KafkaConsumer<>(groupConsumerConfig);
                 consumer.assign(Collections.singletonList(topicPartition));
-                OffsetAndMetadata offsetAndMetadata = new OffsetAndMetadata(offset);
+                OffsetAndMetadata offsetAndMetadata = new OffsetAndMetadata(targetOffset);
                 Map<TopicPartition, OffsetAndMetadata> offsets = Collections.singletonMap(topicPartition, offsetAndMetadata);
                 consumer.commitSync(offsets);
                 consumer.close();
             }
+        } else {
+
         }
     }
 

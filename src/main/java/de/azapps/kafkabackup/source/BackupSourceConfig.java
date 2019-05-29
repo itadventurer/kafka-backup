@@ -8,13 +8,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class BackupSourceConfig extends AbstractConfig {
+class BackupSourceConfig extends AbstractConfig {
     private static final String CLUSTER_PREFIX = "cluster.";
+    private static final String CLUSTER_BOOTSTRAP_SERVERS = CLUSTER_PREFIX + "bootstrap.servers";
+    private static final String CLUSTER_KEY_DESERIALIZER = CLUSTER_PREFIX + "key.deserializer";
+    private static final String CLUSTER_VALUE_DESERIALIZER = CLUSTER_PREFIX + "value.deserializer";
     private static final String BATCH_SIZE_CONFIG = "batch.size";
-    public static final String SOURCE_DIR_CONFIG = "source.dir";
-    public static final String TOPICS_CONFIG = "topics";
+    private static final String SOURCE_DIR_CONFIG = "source.dir";
+    private static final String TOPICS_CONFIG = "topics";
 
-    public static final ConfigDef CONFIG_DEF = new ConfigDef()
+
+    private static final ConfigDef CONFIG_DEF = new ConfigDef()
             .define(SOURCE_DIR_CONFIG, ConfigDef.Type.STRING,
                     ConfigDef.Importance.HIGH, "TargetDir")
             .define(BATCH_SIZE_CONFIG, ConfigDef.Type.INT, 100,
@@ -22,7 +26,7 @@ public class BackupSourceConfig extends AbstractConfig {
             .define(TOPICS_CONFIG, ConfigDef.Type.STRING,
                     ConfigDef.Importance.HIGH, "Topics to restore");
 
-    public BackupSourceConfig(Map<?, ?> props) {
+    BackupSourceConfig(Map<?, ?> props) {
         super(CONFIG_DEF, props);
         if (!props.containsKey(SOURCE_DIR_CONFIG)) {
             throw new RuntimeException("Missing Configuration Variable: " + SOURCE_DIR_CONFIG);
@@ -30,23 +34,30 @@ public class BackupSourceConfig extends AbstractConfig {
         if (!props.containsKey(TOPICS_CONFIG)) {
             throw new RuntimeException("Missing Configuration Variable: " + TOPICS_CONFIG);
         }
+        if(!props.containsKey(CLUSTER_BOOTSTRAP_SERVERS)) {
+            throw new RuntimeException("Missing Configuration Variable: " + CLUSTER_BOOTSTRAP_SERVERS);
+        }
+        if(!props.containsKey(CLUSTER_KEY_DESERIALIZER)) {
+            throw new RuntimeException("Missing Configuration Variable: " + CLUSTER_KEY_DESERIALIZER);
+        }
+        if(!props.containsKey(CLUSTER_VALUE_DESERIALIZER)) {
+            throw new RuntimeException("Missing Configuration Variable: " + CLUSTER_VALUE_DESERIALIZER);
+        }
     }
 
     Map<String, Object> consumerConfig() {
-        Map<String, Object> props = new HashMap<>();
-        props.putAll(originalsWithPrefix(CLUSTER_PREFIX));
-        return props;
+        return new HashMap<>(originalsWithPrefix(CLUSTER_PREFIX));
     }
 
-    public String sourceDir() {
+    String sourceDir() {
         return getString(SOURCE_DIR_CONFIG);
     }
 
-    public Integer batchSize() {
+    Integer batchSize() {
         return getInt(BATCH_SIZE_CONFIG);
     }
 
-    public List<String> topics() {
+    List<String> topics() {
         return Arrays.asList(getString(TOPICS_CONFIG).split("\\s*,\\s*"));
     }
 

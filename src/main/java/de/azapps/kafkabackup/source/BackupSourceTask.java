@@ -135,9 +135,10 @@ public class BackupSourceTask extends SourceTask {
     @Override
     public void commitRecord(SourceRecord record, RecordMetadata metadata) {
         TopicPartition topicPartition = new TopicPartition(metadata.topic(), metadata.partition());
-        long offset = metadata.offset();
+        long sourceOffset = (Long) record.sourceOffset().get(SOURCE_OFFSET_OFFSET);
+        long targetOffset = metadata.offset();
         try {
-            offsetSource.syncGroupForOffset(topicPartition, offset);
+            offsetSource.syncGroupForOffset(topicPartition, sourceOffset, targetOffset);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
