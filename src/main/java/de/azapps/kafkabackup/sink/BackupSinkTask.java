@@ -54,24 +54,19 @@ public class BackupSinkTask extends SinkTask {
 		return new PartitionWriter(topicPartition.topic(), topicPartition.partition(), topicDir, maxSegmentSize);
 	}
 
-	@Override
-	public void open(Collection<TopicPartition> partitions) {
-		try {
-			for (TopicPartition topicPartition : partitions) {
-				PartitionWriter partition = preparePartition(topicPartition);
-				this.partitionWriters.put(topicPartition, partition);
-			}
-		} catch (IOException | PartitionIndex.IndexException | SegmentIndex.IndexException e) {
-			throw new RuntimeException(e);
-        }
-
-    }
+    private void addPartitionWriter(TopicPartition topicPartition) throws PartitionIndex.IndexException, IOException, SegmentIndex.IndexException {
+		PartitionWriter partition = preparePartition(topicPartition);
+		this.partitionWriters.put(topicPartition, partition);
+	}
 
 	@Override
 	public void put(Collection<SinkRecord> records) {
 		try {
 			for (SinkRecord sinkRecord : records) {
 				TopicPartition topicPartition = new TopicPartition(sinkRecord.topic(), sinkRecord.kafkaPartition());
+				if(!partitionWriters.containsKey(topicPartition)) {
+					addPartitionWriter(topicPartition);
+				}
 				PartitionWriter partition = partitionWriters.get(topicPartition);
 				partition.append(Record.fromSinkRecord(sinkRecord));
 
