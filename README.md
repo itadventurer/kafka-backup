@@ -1,4 +1,4 @@
-# `kafka-backup`
+# Kafka Backup
 
 `kafka-backup` is a tool to backup and restore Kafka Topics **and**
 Conumer Offsets. It is architected as two connectors for Kafka
@@ -7,6 +7,20 @@ Connect: A sink connector (backing data up) and a source connector
 
 Currently `kafka-backup` supports backup and restore to/from the file
 system.
+
+## Maturity of the project
+
+* Very early stage
+* There are some sucessful tests
+* Seems to work overall
+* There will be definitely breaking changes in the near future
+* [ ] Documentation is coming!
+* [ ] More tests are coming!
+
+
+## More Documentation
+
+* [Comparing Kafka Backup Solutions](./docs/Comparing Kafka Backup Solutions.md)
 
 ## The need for `kafka-backup`
 
