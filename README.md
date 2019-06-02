@@ -20,7 +20,7 @@ system.
 
 ## More Documentation
 
-* [Comparing Kafka Backup Solutions](./docs/Comparing Kafka Backup Solutions.md)
+* [Comparing Kafka Backup Solutions](./docs/Comparing_Kafka_Backup_Solutions.md)
 
 ## The need for `kafka-backup`
 
