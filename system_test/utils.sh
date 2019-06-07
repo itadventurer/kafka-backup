@@ -172,3 +172,22 @@ kafka_group_describe() {
     fi
     kafka-consumer-groups --bootstrap-server localhost:9092 --describe --group $GROUP
 }
+
+burry_backup() {
+    TARGET_DIR=$1
+    if [ -z "$TARGET_DIR" ] ; then
+        echo "USAGE: $0 [TARGET_DIR]"
+        return -1
+    fi
+    docker run --network=host -v $TARGET_DIR:/data azapps/burry -e localhost:2181 -t local
+}
+
+burry_restore() {
+    SOURCE_DIR=$1
+    if [ -z "$SOURCE_DIR" ] ; then
+        echo "USAGE: $0 [SOURCE_DIR]"
+        return -1
+    fi
+    SNAPSHOT=$(ls $DATADIR/burry | tail -n 1 | sed 's/.zip//')
+    docker run --network=host -v $SOURCE_DIR:/data azapps/burry --operation=restore --snapshot=$SNAPSHOT -e localhost:2181 -t local
+}
