@@ -1,7 +1,10 @@
 # Kafka Backup
 
-`kafka-backup` is a tool to backup and restore Kafka Topics **and**
-Conumer Offsets.
+Kafka Backup is a tool to back up and restore your Kafka data
+including all (configurable) topic data and especially also consumer
+group offsets. To the best of our knowledge, Kafka Backup is the only
+viable solution to take a cold backup of your Kafka data and restore
+it correctly.
 
 Backing up Kafka is not trivial. Apart from `kafka-backup` there is
 (to the best of our knowledge) no reliable and data-saving way to
