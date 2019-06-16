@@ -20,6 +20,9 @@ kafka_start
 #   * backup-test-1partition
 create_topic backup-test-1partition 1
 produce_messages backup-test-1partition 0 0 300
+consume_messages backup-test-1partition cg-100 100
+consume_messages backup-test-1partition cg-200 200
+consume_messages backup-test-1partition cg-300 300
 
 
 ########################## Backup

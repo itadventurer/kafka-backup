@@ -69,11 +69,10 @@ public class BackupSinkTask extends SinkTask {
 				}
 				PartitionWriter partition = partitionWriters.get(topicPartition);
 				partition.append(Record.fromSinkRecord(sinkRecord));
-
-				// Todo: refactor to own worker. E.g. using the scheduler of MM2
-				offsetSink.syncConsumerGroups();
-				offsetSink.syncOffsets();
 			}
+			// Todo: refactor to own worker. E.g. using the scheduler of MM2
+			offsetSink.syncConsumerGroups();
+			offsetSink.syncOffsets();
 		} catch (IOException | SegmentIndex.IndexException | PartitionIndex.IndexException | SegmentWriter.SegmentException e ) {
 			throw new RuntimeException(e);
         }
