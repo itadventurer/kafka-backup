@@ -30,11 +30,19 @@ public class PartitionIndexCLI {
         cli --validate --partition-index [file] --partition 0 --topic-dir [dir]
          */
         final OptionParser optionParser = new OptionParser();
+        // Commands
         optionParser.accepts(CMD_LIST);
-        optionParser.accepts(ARG_PARTITION_INDEX).requiredIf(CMD_LIST).withRequiredArg().ofType(String.class);
         optionParser.accepts(CMD_RESTORE);
-        optionParser.accepts(ARG_TOPIC_DIR).requiredIf(CMD_RESTORE).withRequiredArg().ofType(String.class);
-        optionParser.accepts(ARG_PARTITION).requiredIf(CMD_RESTORE).withRequiredArg().ofType(Integer.class);
+        // Arguments
+        optionParser.accepts(ARG_PARTITION_INDEX)
+                .requiredIf(CMD_LIST)
+                .withRequiredArg().ofType(String.class);
+        optionParser.accepts(ARG_TOPIC_DIR)
+                .requiredIf(CMD_RESTORE)
+                .withRequiredArg().ofType(String.class);
+        optionParser.accepts(ARG_PARTITION)
+                .requiredIf(CMD_RESTORE)
+                .withRequiredArg().ofType(Integer.class);
 
         OptionSet options;
         try {

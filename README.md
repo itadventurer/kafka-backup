@@ -35,4 +35,6 @@ system.
 * [Usage](./docs/Usage.md)
 * [Comparing Kafka Backup
   Solutions](./docs/Comparing_Kafka_Backup_Solutions.md)
+* [Architecture](./docs/Kafka_Backup_Architecture.md)
+* [Tooling](./docs/Tooling.md)
 * [Build and Run](./docs/Build_and_Run.md)

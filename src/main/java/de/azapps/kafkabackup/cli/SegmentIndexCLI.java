@@ -34,10 +34,16 @@ public class SegmentIndexCLI {
         cli --validate --segment-index [file] --segment [file]
          */
         final OptionParser optionParser = new OptionParser();
+        // Commands
         optionParser.accepts(CMD_LIST, CMD_LIST_HELP);
-        optionParser.accepts(ARG_SEGMENT_INDEX, ARG_SEGMENT_INDEX_HELP).requiredIf(CMD_LIST).withRequiredArg().ofType(String.class);
         optionParser.accepts(CMD_RESTORE, CMD_RESTORE_HELP);
-        optionParser.accepts(ARG_SEGMENT, ARG_SEGMENT_HELP).requiredIf(CMD_RESTORE).withRequiredArg().ofType(String.class);
+        // Arguments
+        optionParser.accepts(ARG_SEGMENT_INDEX, ARG_SEGMENT_INDEX_HELP)
+                .requiredIf(CMD_LIST)
+                .withRequiredArg().ofType(String.class);
+        optionParser.accepts(ARG_SEGMENT, ARG_SEGMENT_HELP)
+                .requiredIf(CMD_RESTORE)
+                .withRequiredArg().ofType(String.class);
 
         OptionSet options;
         try {
@@ -55,18 +61,15 @@ public class SegmentIndexCLI {
         if (options.has(CMD_LIST)) {
             list((String) options.valueOf(ARG_SEGMENT_INDEX));
         } else if (options.has(CMD_RESTORE)) {
-            restore((String) options.valueOf(ARG_SEGMENT), (String) options.valueOf(ARG_SEGMENT_INDEX));
+            restore((String) options.valueOf(ARG_SEGMENT));
         }
     }
 
-    private static void restore(String segmentFileName, String segmentIndexFileName) throws SegmentIndex.IndexException, SegmentIndexRestore.RestoreException, IOException {
+    private static void restore(String segmentFileName) throws SegmentIndex.IndexException, SegmentIndexRestore.RestoreException, IOException {
         if (!segmentFileName.endsWith("_records")) {
             segmentFileName += "_records";
         }
-        if (!segmentIndexFileName.endsWith("_index")) {
-            segmentIndexFileName += "_index";
-        }
-        SegmentIndexRestore restore = new SegmentIndexRestore(Paths.get(segmentFileName), Paths.get(segmentIndexFileName));
+        SegmentIndexRestore restore = new SegmentIndexRestore(Paths.get(segmentFileName));
         restore.restore();
     }
 
