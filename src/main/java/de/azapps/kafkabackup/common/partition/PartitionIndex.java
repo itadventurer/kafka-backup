@@ -4,6 +4,7 @@ import java.io.EOFException;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,12 +17,11 @@ public class PartitionIndex {
     private FileInputStream fileInputStream;
     private int position = 0;
     private long latestStartOffset = -1;
+    private static final byte V1_MAGIC_BYTE = 0x01;
 
     public PartitionIndex(Path indexFile) throws IOException, IndexException {
         this.indexFile = indexFile;
-        this.fileInputStream = new FileInputStream(indexFile.toFile());
-        this.fileOutputStream = new FileOutputStream(indexFile.toFile(), true);
-        fileInputStream.getChannel().position(0);
+        initFile();
         while (true) {
             try {
                 PartitionIndexEntry partitionIndexEntry = PartitionIndexEntry.fromStream(fileInputStream);
@@ -34,6 +34,22 @@ public class PartitionIndex {
                 // reached End of File
                 break;
             }
+        }
+    }
+
+    private void initFile() throws IOException, IndexException {
+        if (!Files.isRegularFile(indexFile)) {
+            Files.createFile(indexFile);
+            fileOutputStream = new FileOutputStream(indexFile.toFile());
+            fileOutputStream.write(V1_MAGIC_BYTE);
+        } else {
+            fileOutputStream = new FileOutputStream(indexFile.toFile(), true);
+        }
+        this.fileInputStream = new FileInputStream(indexFile.toFile());
+        fileInputStream.getChannel().position(0);
+        byte[] v1Validation = new byte[1];
+        if(fileInputStream.read(v1Validation) != 1 || v1Validation[0] != V1_MAGIC_BYTE) {
+            throw new IndexException("Cannot validate Magic Byte in the beginning of the index " + indexFile);
         }
     }
 

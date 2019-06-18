@@ -1,21 +1,26 @@
 package de.azapps.kafkabackup.common.segment;
 
+import de.azapps.kafkabackup.common.partition.PartitionIndex;
+
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 public class SegmentIndex {
+	private Path indexFile;
 	private List<SegmentIndexEntry> index = new ArrayList<>();
 	private long lastValidRecordOffset = -1;
-	private long lastValidIndexPosition = 0;
+	private long lastValidIndexPosition = 1; // mind the magic byte!
 	private FileOutputStream fileOutputStream;
 	private FileInputStream fileInputStream;
+    private static final byte V1_MAGIC_BYTE = 0x01;
 
-	public SegmentIndex(File file) throws IOException, IndexException {
-		this.fileInputStream = new FileInputStream(file);
-		this.fileOutputStream = new FileOutputStream(file, true);
-		fileInputStream.getChannel().position(0);
+	public SegmentIndex(Path indexFile) throws IOException, IndexException {
+		this.indexFile = indexFile;
+		initFile();
 		while (true) {
 			try {
 				SegmentIndexEntry segmentIndexEntry = SegmentIndexEntry.fromStream(fileInputStream);
@@ -29,6 +34,21 @@ public class SegmentIndex {
 				// reached End of File
 				break;
 			}
+		}
+	}
+
+	private void initFile() throws IOException, IndexException {
+		if (!Files.isRegularFile(indexFile)) {
+			Files.createFile(indexFile);
+			fileOutputStream = new FileOutputStream(indexFile.toFile());
+			fileOutputStream.write(V1_MAGIC_BYTE);
+		} else {
+			fileOutputStream = new FileOutputStream(indexFile.toFile(), true);
+		}
+		this.fileInputStream = new FileInputStream(indexFile.toFile());
+		byte[] v1Validation = new byte[1];
+		if(fileInputStream.read(v1Validation) != 1 || v1Validation[0] != V1_MAGIC_BYTE) {
+			throw new IndexException("Cannot validate Magic Byte in the beginning of the index " + indexFile);
 		}
 	}
 

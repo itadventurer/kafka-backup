@@ -17,14 +17,13 @@ public class PartitionIndexRestore {
         this.indexFile = PartitionUtils.indexFile(topicDir, partition);
         this.partition = partition;
 
-        if (Files.exists(indexFile)) {
+        if (Files.isRegularFile(indexFile)) {
             throw new RestoreException("Index file " + indexFile + " must not exist");
         }
-        Files.createFile(indexFile);
+        index = new PartitionIndex(indexFile);
         if (!Files.isDirectory(topicDir)) {
             throw new RuntimeException("Topic directory " + topicDir + " does not exist");
         }
-        index = new PartitionIndex(indexFile);
     }
 
     public void restore() throws IOException {

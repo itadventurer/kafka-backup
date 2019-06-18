@@ -7,6 +7,7 @@ import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,16 +30,17 @@ public class SegmentReader {
         this.partition = partition;
         this.filePrefix = filePrefix;
 
-        File indexFile = SegmentUtils.indexFile(topicDir, filePrefix);
-        File recordFile = SegmentUtils.recordsFile(topicDir, filePrefix);
-        if (!indexFile.exists()) {
+        Path indexFile = SegmentUtils.indexFile(topicDir, filePrefix);
+        Path recordFile = SegmentUtils.recordsFile(topicDir, filePrefix);
+        if (!Files.isRegularFile(indexFile)) {
             throw new RuntimeException("Index for Segment not found: " + indexFile.toString());
         }
-        if (!recordFile.exists()) {
+        if (!Files.isRegularFile(recordFile)) {
             throw new RuntimeException("Segment not found: " + recordFile.toString());
         }
         segmentIndex = new SegmentIndex(indexFile);
-        recordInputStream = new FileInputStream(recordFile);
+        recordInputStream = new FileInputStream(recordFile.toFile());
+        SegmentUtils.ensureValidSegment(recordInputStream);
         lastValidStartPosition = segmentIndex.lastValidStartPosition();
     }
 

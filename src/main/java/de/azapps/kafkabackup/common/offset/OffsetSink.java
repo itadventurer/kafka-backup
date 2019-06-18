@@ -71,7 +71,7 @@ public class OffsetSink {
     }
 
     private boolean validTopic(String topic) {
-        return Files.exists(Paths.get(targetDir.toString(), topic));
+        return Files.isRegularFile(Paths.get(targetDir.toString(), topic));
     }
 
     public void flush() throws IOException {
@@ -101,7 +101,7 @@ public class OffsetSink {
 
         OffsetStoreFile(Path targetDir, TopicPartition topicPartition) throws IOException {
             storeFile = OffsetUtils.offsetStoreFile(targetDir, topicPartition);
-            if (!Files.exists(storeFile)) {
+            if (!Files.isRegularFile(storeFile)) {
                 Files.createFile(storeFile);
             }
             if (Files.size(storeFile) > 0) {

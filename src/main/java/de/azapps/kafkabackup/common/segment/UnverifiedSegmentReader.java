@@ -4,17 +4,18 @@ import de.azapps.kafkabackup.common.record.Record;
 import de.azapps.kafkabackup.common.record.RecordSerde;
 
 import java.io.EOFException;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
 public class UnverifiedSegmentReader {
     private FileInputStream recordInputStream;
 
-    public UnverifiedSegmentReader(File recordFile) throws IOException {
-        recordInputStream = new FileInputStream(recordFile);
+    public UnverifiedSegmentReader(Path recordFile) throws IOException {
+        recordInputStream = new FileInputStream(recordFile.toFile());
+        SegmentUtils.ensureValidSegment(recordInputStream);
     }
 
     public Record read() throws IOException {

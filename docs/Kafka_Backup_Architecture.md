@@ -160,6 +160,10 @@ contains following files:
 The partition Index File is a binary log file that concatenates
 entries without any delimiter.
 
+The file starts with the magic byte `0x01`. If the first byte is not
+equal `0x01` then it is not compatible with the current version of
+Kafka Backup.
+
 Each entry is of the following form
 
 | Length (in bits) | Name             | Data Type             | Comment                                                       |
@@ -179,6 +183,10 @@ Kafka   Backup    records   are    very   similar   to    the   [Kafka
 Record](https://kafka.apache.org/documentation/#recordbatch)      file
 format  but  is  missing  some  optimization  techniques  to  increase
 simplicity and reliability.
+
+The file starts with the magic byte `0x01`. If the first byte is not
+equal `0x01` then it is not compatible with the current version of
+Kafka Backup.
 
 Each entry is of the following form:
 
@@ -206,6 +214,10 @@ Each header is of the following form:
 | `headerValueLength` | `headerValue`       | `byte[]`  | value (not interpreted in any way) |
 
 #### Index File
+
+The file starts with the magic byte `0x01`. If the first byte is not
+equal `0x01` then it is not compatible with the current version of
+Kafka Backup.
 
 Each entry is of the following form
 

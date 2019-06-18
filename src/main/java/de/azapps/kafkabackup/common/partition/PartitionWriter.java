@@ -27,9 +27,6 @@ public class PartitionWriter {
         if (!Files.isDirectory(this.topicDir)) {
             Files.createDirectories(this.topicDir);
         }
-        if (!Files.isRegularFile(indexFile)) {
-            Files.createFile(indexFile);
-        }
         partitionIndex = new PartitionIndex(indexFile);
         Optional<PartitionIndexEntry> optionalPartitionIndexEntry = partitionIndex.latestSegmentFile();
         if (optionalPartitionIndexEntry.isPresent()) {

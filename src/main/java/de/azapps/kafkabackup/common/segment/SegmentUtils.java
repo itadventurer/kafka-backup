@@ -1,33 +1,43 @@
 package de.azapps.kafkabackup.common.segment;
 
-import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Optional;
+import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class SegmentUtils {
 
+    static final byte V1_MAGIC_BYTE = 0x01;
     private static final Pattern SEGMENT_PATTERN = Pattern.compile("^segment_partition_([0-9]+)_from_offset_([0-9]+)_records$");
 
     public static String filePrefix(int partition, long startOffset) {
         return String.format("segment_partition_%03d_from_offset_%010d", partition, startOffset);
     }
 
-    static File indexFile(Path topicDir, int partition, long startOffset) {
+    static void ensureValidSegment(FileInputStream inputStream) throws IOException {
+        inputStream.getChannel().position(0);
+        byte[] v1Validation = new byte[1];
+        if (inputStream.read(v1Validation) != 1 || v1Validation[0] != SegmentUtils.V1_MAGIC_BYTE) {
+            throw new IOException("Cannot validate Magic Byte in the beginning of the Segment");
+        }
+    }
+
+    static Path indexFile(Path topicDir, int partition, long startOffset) {
         return indexFile(topicDir, filePrefix(partition, startOffset));
     }
 
-    static File indexFile(Path topicDir, String filePrefix) {
-        return new File(topicDir.toFile(), filePrefix + "_index");
+    static Path indexFile(Path topicDir, String filePrefix) {
+        return Paths.get(topicDir.toString(), filePrefix + "_index");
     }
 
-    static File recordsFile(Path topicDir, int partition, long startOffset) {
+    static Path recordsFile(Path topicDir, int partition, long startOffset) {
         return recordsFile(topicDir, filePrefix(partition, startOffset));
     }
 
-    static File recordsFile(Path topicDir, String filePrefix) {
-        return new File(topicDir.toFile(), filePrefix + "_records");
+    static Path recordsFile(Path topicDir, String filePrefix) {
+        return Paths.get(topicDir.toString(), filePrefix + "_records");
     }
 
     public static boolean isSegment(Path file) {

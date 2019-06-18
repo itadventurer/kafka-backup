@@ -7,7 +7,6 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import org.apache.kafka.common.utils.Exit;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -77,7 +76,7 @@ public class SegmentIndexCLI {
         if (!segmentIndexFileName.endsWith("_index")) {
             segmentIndexFileName += "_index";
         }
-        SegmentIndex segmentIndex = new SegmentIndex(new File(segmentIndexFileName));
+        SegmentIndex segmentIndex = new SegmentIndex(Paths.get(segmentIndexFileName));
         List<SegmentIndexEntry> index = segmentIndex.index();
         long previousOffset = index.get(0).getOffset() - 1;
         for (SegmentIndexEntry entry : index) {

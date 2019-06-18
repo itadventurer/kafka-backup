@@ -11,6 +11,7 @@ import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
@@ -62,7 +63,7 @@ public class SegmentCLI {
         if (!segmentIndexFileName.endsWith("_records")) {
             segmentIndexFileName += "_records";
         }
-        UnverifiedSegmentReader segmentReader = new UnverifiedSegmentReader(new File(segmentIndexFileName));
+        UnverifiedSegmentReader segmentReader = new UnverifiedSegmentReader(Paths.get(segmentIndexFileName));
 
         ByteFormatter keyFormatter = (ByteFormatter) instanciateClass((String) options.valueOf(ARG_KEY_FORMAT));
         ByteFormatter valueFormatter = (ByteFormatter) instanciateClass((String) options.valueOf(ARG_VALUE_FORMAT));

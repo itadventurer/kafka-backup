@@ -3,9 +3,10 @@ package de.azapps.kafkabackup.common.segment;
 import de.azapps.kafkabackup.common.record.Record;
 import de.azapps.kafkabackup.common.record.RecordSerde;
 
-import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 
@@ -23,18 +24,21 @@ public class SegmentWriter {
         this.topicDir = topicDir;
         this.startOffset = startOffset;
 
-        File indexFile = SegmentUtils.indexFile(topicDir, partition, startOffset);
-        File recordFile = SegmentUtils.recordsFile(topicDir, partition, startOffset);
-        if (!indexFile.exists()) {
-            indexFile.createNewFile();
-        }
-        if (!recordFile.exists()) {
-            recordFile.createNewFile();
-        }
+        Path indexFile = SegmentUtils.indexFile(topicDir, partition, startOffset);
         segmentIndex = new SegmentIndex(indexFile);
-        recordOutputStream = new FileOutputStream(recordFile, true);
-    }
 
+        Path recordFile = SegmentUtils.recordsFile(topicDir, partition, startOffset);
+        if (!Files.isRegularFile(recordFile)) {
+            Files.createFile(recordFile);
+            recordOutputStream = new FileOutputStream(recordFile.toFile());
+            recordOutputStream.write(SegmentUtils.V1_MAGIC_BYTE);
+        } else {
+            recordOutputStream = new FileOutputStream(recordFile.toFile(), true);
+            FileInputStream inputStream = new FileInputStream(recordFile.toFile());
+            SegmentUtils.ensureValidSegment(inputStream);
+            inputStream.close();
+        }
+    }
 
 
     public void append(Record record) throws IOException, SegmentIndex.IndexException, SegmentException {
@@ -55,14 +59,14 @@ public class SegmentWriter {
                 SegmentReader segmentReader = new SegmentReader(topic, partition, topicDir, startOffset);
                 segmentReader.seek(record.kafkaOffset());
                 Record fsRecord = segmentReader.read();
-                if(!record.equals(fsRecord)) {
+                if (!record.equals(fsRecord)) {
                     throw new SegmentException("Trying to override a written record. Records not equal. There is something terribly wrong in your setup! Please check whether you are trying to override an existing backup");
                 }
                 return;
             }
             startPosition = previousSegmentIndexEntry.recordFilePosition() + previousSegmentIndexEntry.recordByteLength();
         } else {
-            startPosition = 0;
+            startPosition = 1; // mind the magic byte!
         }
 
         recordOutputStream.getChannel().position(startPosition);

@@ -3,7 +3,6 @@ package de.azapps.kafkabackup.common.segment;
 import de.azapps.kafkabackup.common.record.Record;
 
 import java.io.EOFException;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,21 +14,20 @@ public class SegmentIndexRestore {
     public SegmentIndexRestore(Path segmentFile) throws IOException, RestoreException, SegmentIndex.IndexException {
         int partition = SegmentUtils.getPartitionFromSegment(segmentFile);
         long startOffset = SegmentUtils.getStartOffsetFromSegment(segmentFile);
-        File indexFile = SegmentUtils.indexFile(segmentFile.toAbsolutePath().getParent(), partition, startOffset);
+        Path indexFile = SegmentUtils.indexFile(segmentFile.toAbsolutePath().getParent(), partition, startOffset);
 
-        if (!Files.exists(segmentFile)) {
+        if (!Files.isRegularFile(segmentFile)) {
             throw new RestoreException("Segment file " + segmentFile + " does not exist");
         }
-        if (indexFile.exists()) {
+        if (Files.isRegularFile(indexFile)) {
             throw new RestoreException("Index file " + indexFile + " must not exist");
         }
-        indexFile.createNewFile();
         segmentIndex = new SegmentIndex(indexFile);
-        reader = new UnverifiedSegmentReader(segmentFile.toFile());
+        reader = new UnverifiedSegmentReader(segmentFile);
     }
 
     public void restore() throws IOException, SegmentIndex.IndexException {
-        long lastPosition = 0;
+        long lastPosition = 1; // mind the magic byte!
         while (true) {
             try {
                 Record record = reader.read();
