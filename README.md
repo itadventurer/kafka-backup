@@ -38,3 +38,8 @@ system.
 * [Architecture](./docs/Kafka_Backup_Architecture.md)
 * [Tooling](./docs/Tooling.md)
 * [Build and Run](./docs/Build_and_Run.md)
+
+## License
+
+This project is licensed under the Apache License Version 2.0 (see
+[LICENSE](./LICENSE)).
