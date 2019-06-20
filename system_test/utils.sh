@@ -75,8 +75,8 @@ produce_messages() {
 verify_messages() {
     PREVIOUS_NUM="-1"
     while read MESSAGE ; do
-        if [ "0" -eq "$(($PREVIOUS_NUM%10))" ] ; then
-            echo -e -n "\rVerified $(($PREVIOUS_NUM)) messages" > /dev/stderr
+        if [ "0" -eq "$((($PREVIOUS_NUM+1)%10))" ] ; then
+            echo -e -n "\rVerified $(($PREVIOUS_NUM+1)) messages" > /dev/stderr
         fi
         KEY=$(echo $MESSAGE | awk '{print $1}')
         KEY_MATCH=$(echo $KEY | sed 's/part_\([0-9]*\)_num_\([0-9]*\)_\(.*\)$/\1\t\2\t\3/')
@@ -100,6 +100,7 @@ verify_messages() {
             return -1
         fi
     done
+    echo -e "\rVerified $(($PREVIOUS_NUM+1)) messages"
 }
 
 consume_verify_messages() {

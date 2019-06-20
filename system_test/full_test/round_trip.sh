@@ -41,7 +41,7 @@ produce_messages backup-test-3partitions 2 $((3 * $NUM_MSG)) $((2 * $NUM_MSG))
 # * Consume all messages with consumer-group `cg-5k`
 consume_messages backup-test-1partition cg-5k $((5 * $NUM_MSG))
 consume_messages backup-test-3partitions cg-5k $((15 * $NUM_MSG))
-# * Produce 1,00 more messages
+# * Produce 100 more messages
 produce_messages backup-test-1partition 0 $((5 * $NUM_MSG)) $((1 * $NUM_MSG))
 # backup-test-3partition
 produce_messages backup-test-3partitions 0 $((5 * $NUM_MSG)) $((1 * $NUM_MSG))
@@ -58,13 +58,14 @@ sleep 10
 # * Create another topic:
 #   * backup-test-10partitions
 
-# TODO: Fix kafka-backup to reload topic list
-
-create_topic backup-test-10partition 10
+create_topic backup-test-10partitions 10
 # * Produce 1,00 messages as above and consume 500 messages as above
-#for i in {0..9} ; do
-#    produce_messages backup-test-10partitions $i 0 100
-#done
+for i in {0..9} ; do
+    produce_messages backup-test-10partitions $i 0 $((5 * $NUM_MSG))
+done
+# To force segmentation rolling
+produce_messages backup-test-1partition 0 $((6 * $NUM_MSG)) $((15 * $NUM_MSG))
+# Consume some messages
 # * Wait a few minutes
 sleep $((60*5))
 # * Stop Kafka
@@ -83,10 +84,14 @@ kafka_connect_start
 kafka_connect_load_connector backup-source $SCRIPT_DIR/connect-backup-source.properties
 # * Wait for restore to finish
 sleep $((60*15))
+kafka_connect_unload_connector backup-source
 # * Read all messages and check that they are the same as the ones that were written.
 # * Subscribe to Kafka using the consumer groups as above (`cg-5k` and `cg-3k`) and check whether they are at the correct position
 
-consume_verify_messages backup-test-1partition 0 $((6 * $NUM_MSG))
-consume_verify_messages backup-test-3partitions 0 $((6 * $NUM_MSG))
-consume_verify_messages backup-test-3partitions 1 $((6 * $NUM_MSG))
-consume_verify_messages backup-test-3partitions 2 $((6 * $NUM_MSG))
+consume_verify_messages backup-test-1partition 0 $((21 * $NUM_MSG))
+for i in {0..2} ; do
+    consume_verify_messages backup-test-3partitions $i $((6 * $NUM_MSG))
+done
+for i in {0..9} ; do
+    consume_verify_messages backup-test-10partitions $i $((5 * $NUM_MSG))
+done
