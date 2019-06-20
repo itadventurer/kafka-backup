@@ -7,7 +7,6 @@ import de.azapps.kafkabackup.common.segment.SegmentWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Optional;
 
 public class PartitionWriter {
@@ -45,6 +44,10 @@ public class PartitionWriter {
             partitionIndex.appendSegment(segment.filePrefix(), startOffset);
         }
         currentSegment = segment;
+    }
+
+    public long lastWrittenOffset() {
+        return currentSegment.lastWrittenOffset();
     }
 
     public void append(Record record) throws IOException, SegmentIndex.IndexException, PartitionIndex.IndexException, SegmentWriter.SegmentException {

@@ -33,43 +33,42 @@ public class SegmentWriter {
             recordOutputStream = new FileOutputStream(recordFile.toFile());
             recordOutputStream.write(SegmentUtils.V1_MAGIC_BYTE);
         } else {
-            recordOutputStream = new FileOutputStream(recordFile.toFile(), true);
+            // Validate Magic Byte
             FileInputStream inputStream = new FileInputStream(recordFile.toFile());
             SegmentUtils.ensureValidSegment(inputStream);
             inputStream.close();
+
+            // move to last committed position of the file
+            recordOutputStream = new FileOutputStream(recordFile.toFile(), true);
+            Optional<SegmentIndexEntry> optionalPreviousIndexEntry = segmentIndex.lastIndexEntry();
+            if (optionalPreviousIndexEntry.isPresent()) {
+                SegmentIndexEntry previousSegmentIndexEntry = optionalPreviousIndexEntry.get();
+                long position = previousSegmentIndexEntry.recordFilePosition() + previousSegmentIndexEntry.recordByteLength();
+                recordOutputStream.getChannel().position(position);
+            } else {
+                recordOutputStream.getChannel().position(1);
+            }
         }
     }
 
+    public long lastWrittenOffset(){
+        return segmentIndex.lastIndexEntry().map(SegmentIndexEntry::getOffset).orElse(-1L);
+    }
 
     public void append(Record record) throws IOException, SegmentIndex.IndexException, SegmentException {
-        if (!record.topic().equals(topic) || record.kafkaPartition() != partition) {
-            throw new RuntimeException("Trying to append to wrong topic or partition!\n" +
-                    "Expected topic: " + topic + " given topic: " + record.topic() + "\n" +
+        if (!record.topic().equals(topic)) {
+            throw new RuntimeException("Trying to append to wrong topic!\n" +
+                    "Expected topic: " + topic + " given topic: " + record.topic());
+        }
+        if(record.kafkaPartition() != partition) {
+            throw new RuntimeException("Trying to append to wrong partition!\n" +
                     "Expected partition: " + partition + " given partition: " + partition);
         }
-        Optional<SegmentIndexEntry> optionalPreviousIndexEntry = segmentIndex.lastIndexEntry();
-        long startPosition;
-        if (optionalPreviousIndexEntry.isPresent()) {
-            SegmentIndexEntry previousSegmentIndexEntry = optionalPreviousIndexEntry.get();
-
-            if (record.kafkaOffset() <= previousSegmentIndexEntry.getOffset()) {
-                // Handle at least once semantics: Read from partition file and verify
-                // that the written data is the same as the one we want to write.
-                // Otherwise we are overwriting some data (maybe from a previous backup) and should throw exceptions!
-                SegmentReader segmentReader = new SegmentReader(topic, partition, topicDir, startOffset);
-                segmentReader.seek(record.kafkaOffset());
-                Record fsRecord = segmentReader.read();
-                if (!record.equals(fsRecord)) {
-                    throw new SegmentException("Trying to override a written record. Records not equal. There is something terribly wrong in your setup! Please check whether you are trying to override an existing backup");
-                }
-                return;
-            }
-            startPosition = previousSegmentIndexEntry.recordFilePosition() + previousSegmentIndexEntry.recordByteLength();
-        } else {
-            startPosition = 1; // mind the magic byte!
+        if (record.kafkaOffset() <= lastWrittenOffset()) {
+            // We are handling the offsets ourselves. This should never happen!
+            throw new SegmentException("Trying to override a written record. There is something terribly wrong in your setup! Please check whether you are trying to override an existing backup");
         }
-
-        recordOutputStream.getChannel().position(startPosition);
+        long startPosition = recordOutputStream.getChannel().position();
         RecordSerde.write(recordOutputStream, record);
         long recordByteLength = recordOutputStream.getChannel().position() - startPosition;
         SegmentIndexEntry segmentIndexEntry = new SegmentIndexEntry(record.kafkaOffset(), startPosition, recordByteLength);
