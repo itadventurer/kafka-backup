@@ -66,4 +66,11 @@ public class PartitionWriter {
         partitionIndex.flush();
         currentSegment.flush();
     }
+    public String topic() {
+        return topic;
+    }
+
+    public int partition() {
+        return partition;
+    }
 }

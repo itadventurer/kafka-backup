@@ -24,6 +24,7 @@ repositories {
 dependencies {
 	// TODO: Remove Jars and add connect-api 2.3.0
 	//compile group: 'org.apache.kafka', name: 'connect-api', version: '2.3.0'
+	compile "org.slf4j:slf4j-api:1.7.26"
 	compile files('libs/connect-api-2.3.0-SNAPSHOT.jar')
 	compile files('libs/kafka-clients-2.3.0-SNAPSHOT.jar')
 	compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.9.9'

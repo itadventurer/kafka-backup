@@ -3,10 +3,8 @@ package de.azapps.kafkabackup.cli;
 import de.azapps.kafkabackup.common.partition.PartitionIndex;
 import de.azapps.kafkabackup.common.partition.PartitionIndexEntry;
 import de.azapps.kafkabackup.common.partition.PartitionIndexRestore;
-import joptsimple.OptionException;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
 import org.apache.kafka.common.utils.Exit;
 
 import java.io.IOException;
