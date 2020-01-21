@@ -1,11 +1,11 @@
 buildscript {
-	repositories {
-		jcenter()
-	}
-	dependencies {
-		classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.2'
-		classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.20.0"
-	}
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.2'
+        classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.20.0"
+    }
 }
 
 apply plugin: 'java'
@@ -18,49 +18,47 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 repositories {
-	maven { url "https://repo.maven.apache.org/maven2" }
+    maven { url "https://repo.maven.apache.org/maven2" }
 }
 
 dependencies {
-	// TODO: Remove Jars and add connect-api 2.3.0
-	//compile group: 'org.apache.kafka', name: 'connect-api', version: '2.3.0'
-	compile "org.slf4j:slf4j-api:1.7.26"
-	compile files('libs/connect-api-2.3.0-SNAPSHOT.jar')
-	compile files('libs/kafka-clients-2.3.0-SNAPSHOT.jar')
-	compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.9.9'
-	compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.9'
-	compile group: 'net.sf.jopt-simple',name: 'jopt-simple', version: '6.0-alpha-3'
-	testCompile group: 'junit', name: 'junit', version: '4.12'
+    compile "org.slf4j:slf4j-api:1.7.26"
+    compile group: 'org.apache.kafka', name: 'connect-api', version: '2.4.0'
+    compile group: 'org.apache.kafka', name: 'kafka-clients', version: '2.4.0'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.10.1'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.10.1'
+    compile group: 'net.sf.jopt-simple', name: 'jopt-simple', version: '6.0-alpha-3'
+    testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 
 apply plugin: "com.github.johnrengelman.shadow"
 
 shadowJar {
-	dependencies {
-		// provided in the connect classpath
-		exclude(dependency('org.apache.kafka:connect-api:2.3.0-SNAPSHOT'))
-		exclude(dependency('org.apache.kafka:kafka-clients:2.3.0-SNAPSHOT'))
-		exclude(dependency('net.jpountz.lz4:.*:.*'))
-		exclude(dependency('org.xerial.snappy:.*:.*'))
-		exclude(dependency('org.slf4j:.*:.*'))
-	}
+    dependencies {
+        // provided in the connect classpath
+        exclude(dependency('org.apache.kafka:connect-api:2.4.0'))
+        exclude(dependency('org.apache.kafka:kafka-clients:2.4.0'))
+        exclude(dependency('net.jpountz.lz4:.*:.*'))
+        exclude(dependency('org.xerial.snappy:.*:.*'))
+        exclude(dependency('org.slf4j:.*:.*'))
+    }
 }
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
-	classifier = 'javadoc'
-	from subprojects*.tasks.javadoc.destinationDir
+    classifier = 'javadoc'
+    from subprojects*.tasks.javadoc.destinationDir
 }
 
 task sourcesJar(type: Jar) {
-	from subprojects*.sourceSets.main.allSource
-	classifier = 'sources'
+    from subprojects*.sourceSets.main.allSource
+    classifier = 'sources'
 }
 
 artifacts {
-	archives javadocJar, sourcesJar
+    archives javadocJar, sourcesJar
 }
 
 ext {
-	pomHumanName = 'Kafka Backup'
-	pomDesc = 'Kafka Backup Connector'
+    pomHumanName = 'Kafka Backup'
+    pomDesc = 'Kafka Backup Connector'
 }
