@@ -71,7 +71,7 @@ public class OffsetSink {
     }
 
     private boolean validTopic(String topic) {
-        return Files.isRegularFile(Paths.get(targetDir.toString(), topic));
+        return Files.isDirectory(Paths.get(targetDir.toString(), topic));
     }
 
     public void flush() throws IOException {
@@ -93,7 +93,7 @@ public class OffsetSink {
         flush();
     }
 
-    private class OffsetStoreFile {
+    private static class OffsetStoreFile {
         private Map<String, Long> groupOffsets = new HashMap<>();
 
         private ObjectMapper mapper = new ObjectMapper();

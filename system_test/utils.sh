@@ -161,7 +161,6 @@ kafka_connect_load_connector() {
     return 255
   fi
   cp "$PROPS" /tmp/connect.properties
-  echo "confluent local load "$NAME" -d /tmp/connect.properties"
   confluent local load "$NAME" -- -d /tmp/connect.properties
   rm /tmp/connect.properties
 }
