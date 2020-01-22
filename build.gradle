@@ -14,8 +14,10 @@ apply plugin: 'idea'
 description = "kafka-backup"
 group = 'de.azapps.kafkabackup'
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+allprojects {
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+}
 
 repositories {
     maven { url "https://repo.maven.apache.org/maven2" }
@@ -35,12 +37,6 @@ apply plugin: "com.github.johnrengelman.shadow"
 
 shadowJar {
     dependencies {
-        // provided in the connect classpath
-        exclude(dependency('org.apache.kafka:connect-api:2.4.0'))
-        exclude(dependency('org.apache.kafka:kafka-clients:2.4.0'))
-        exclude(dependency('net.jpountz.lz4:.*:.*'))
-        exclude(dependency('org.xerial.snappy:.*:.*'))
-        exclude(dependency('org.slf4j:.*:.*'))
     }
 }
 
