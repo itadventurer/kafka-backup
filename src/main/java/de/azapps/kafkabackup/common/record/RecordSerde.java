@@ -103,8 +103,14 @@ public class RecordSerde {
         } else {
             dataStream.writeInt(0);
         }
-        dataStream.writeInt(record.value().length);
-        dataStream.write(record.value());
+
+        if (record.value() != null) {
+            dataStream.writeInt(record.value().length);
+            dataStream.write(record.value());
+        }
+        else {
+            dataStream.writeInt(0);
+        }
         dataStream.writeInt(record.headers().size());
         for (Header header : record.headers()) {
             byte[] headerKeyBytes = header.key().getBytes(StandardCharsets.UTF_8);
