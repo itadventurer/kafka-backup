@@ -46,8 +46,8 @@ public class SegmentReader {
 
     public void seek(long offset) throws IndexOutOfBoundsException, IOException {
         Optional<Long> optionalPosition = segmentIndex.findByOffset(offset);
-        if (optionalPosition.isEmpty()) {
-            throw new IndexOutOfBoundsException("Could not find offset " + offset + " in topic " + topic + ", segment " + filePrefix);
+        if (!optionalPosition.isPresent()) {
+            throw new IndexOutOfBoundsException("Could not find offset " + offset + " in topic " + topic + ", segment " + filePrefix + " ok " + optionalPosition);
         }
         recordInputStream.getChannel().position(optionalPosition.get());
     }
