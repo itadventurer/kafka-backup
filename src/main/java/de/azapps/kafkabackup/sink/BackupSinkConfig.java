@@ -12,6 +12,9 @@ class BackupSinkConfig extends AbstractConfig {
     private static final String ADMIN_CLIENT_PREFIX = "admin.";
     private static final String TARGET_DIR_CONFIG = "target.dir";
     private static final String MAX_SEGMENT_SIZE = "max.segment.size.bytes";
+    private static final String AWS_S3_REGION = "aws.s3.region";
+    private static final String AWS_S3_ENDPOINT = "aws.s3.endpoint";
+    private static final String AWS_S3_PATH_STYLE_ACCESS_ENABLED = "aws.s3.PathStyleAccessEnabled";
 
     static final ConfigDef CONFIG_DEF = new ConfigDef()
             .define(TARGET_DIR_CONFIG, ConfigDef.Type.STRING,
