@@ -1,8 +1,8 @@
 package de.azapps.kafkabackup.cli;
 
-import de.azapps.kafkabackup.common.partition.PartitionIndex;
-import de.azapps.kafkabackup.common.partition.PartitionIndexEntry;
-import de.azapps.kafkabackup.common.partition.PartitionIndexRestore;
+import de.azapps.kafkabackup.common.partition.disk.PartitionIndex;
+import de.azapps.kafkabackup.common.partition.disk.PartitionIndexEntry;
+import de.azapps.kafkabackup.common.partition.disk.PartitionIndexRestore;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import org.apache.kafka.common.utils.Exit;

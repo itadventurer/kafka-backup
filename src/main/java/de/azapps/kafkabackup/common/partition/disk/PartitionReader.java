@@ -1,4 +1,4 @@
-package de.azapps.kafkabackup.common.partition;
+package de.azapps.kafkabackup.common.partition.disk;
 
 import de.azapps.kafkabackup.common.record.Record;
 import de.azapps.kafkabackup.common.segment.SegmentIndex;
@@ -7,7 +7,6 @@ import de.azapps.kafkabackup.common.segment.SegmentReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 

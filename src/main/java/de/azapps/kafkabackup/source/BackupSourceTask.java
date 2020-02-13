@@ -1,9 +1,9 @@
 package de.azapps.kafkabackup.source;
 
 import de.azapps.kafkabackup.common.offset.OffsetSource;
-import de.azapps.kafkabackup.common.partition.PartitionIndex;
-import de.azapps.kafkabackup.common.partition.PartitionReader;
-import de.azapps.kafkabackup.common.partition.PartitionUtils;
+import de.azapps.kafkabackup.common.partition.disk.PartitionIndex;
+import de.azapps.kafkabackup.common.partition.disk.PartitionReader;
+import de.azapps.kafkabackup.common.partition.disk.PartitionUtils;
 import de.azapps.kafkabackup.common.record.Record;
 import de.azapps.kafkabackup.common.segment.SegmentIndex;
 import org.apache.kafka.clients.producer.RecordMetadata;

@@ -1,8 +1,10 @@
 package de.azapps.kafkabackup.sink;
 
 import de.azapps.kafkabackup.common.offset.OffsetSink;
-import de.azapps.kafkabackup.common.partition.PartitionIndex;
+import de.azapps.kafkabackup.common.partition.PartitionException;
 import de.azapps.kafkabackup.common.partition.PartitionWriter;
+import de.azapps.kafkabackup.common.partition.disk.PartitionIndex;
+import de.azapps.kafkabackup.common.partition.disk.DiskPartitionWriter;
 import de.azapps.kafkabackup.common.record.Record;
 import de.azapps.kafkabackup.common.segment.SegmentIndex;
 import de.azapps.kafkabackup.common.segment.SegmentWriter;
@@ -25,7 +27,7 @@ import java.util.Map;
 public class BackupSinkTask extends SinkTask {
     private static final Logger log = LoggerFactory.getLogger(BackupSinkTask.class);
     private Path targetDir;
-    private Map<TopicPartition, PartitionWriter> partitionWriters = new HashMap<>();
+    private Map<TopicPartition, DiskPartitionWriter> partitionWriters = new HashMap<>();
     private long maxSegmentSize;
     private OffsetSink offsetSink;
 
@@ -56,7 +58,7 @@ public class BackupSinkTask extends SinkTask {
         try {
             for (SinkRecord sinkRecord : records) {
                 TopicPartition topicPartition = new TopicPartition(sinkRecord.topic(), sinkRecord.kafkaPartition());
-                PartitionWriter partition = partitionWriters.get(topicPartition);
+                DiskPartitionWriter partition = partitionWriters.get(topicPartition);
                 partition.append(Record.fromSinkRecord(sinkRecord));
                 if(sinkRecord.kafkaOffset() % 100 == 0) {
                     log.debug("Backed up Topic %s, Partition %d, up to offset %d", sinkRecord.topic(), sinkRecord.kafkaPartition(), sinkRecord.kafkaOffset());
@@ -65,7 +67,7 @@ public class BackupSinkTask extends SinkTask {
             // Todo: refactor to own worker. E.g. using the scheduler of MM2
             offsetSink.syncConsumerGroups();
             offsetSink.syncOffsets();
-        } catch (IOException | SegmentIndex.IndexException | PartitionIndex.IndexException | SegmentWriter.SegmentException e) {
+        } catch (IOException | PartitionException e) {
             throw new RuntimeException(e);
         }
     }
@@ -76,7 +78,7 @@ public class BackupSinkTask extends SinkTask {
             for (TopicPartition topicPartition : partitions) {
                 Path topicDir = Paths.get(targetDir.toString(), topicPartition.topic());
                 Files.createDirectories(topicDir);
-                PartitionWriter partitionWriter = new PartitionWriter(topicPartition.topic(), topicPartition.partition(), topicDir, maxSegmentSize);
+                DiskPartitionWriter partitionWriter = new DiskPartitionWriter(topicPartition.topic(), topicPartition.partition(), topicDir, maxSegmentSize);
                 long lastWrittenOffset = partitionWriter.lastWrittenOffset();
 
                 // Note that we must *always* request that we seek to an offset here. Currently the
@@ -110,13 +112,13 @@ public class BackupSinkTask extends SinkTask {
         super.close(partitions);
         try {
             for (TopicPartition topicPartition : partitions) {
-                PartitionWriter partitionWriter = partitionWriters.get(topicPartition);
+                DiskPartitionWriter partitionWriter = partitionWriters.get(topicPartition);
                 partitionWriter.close();
                 partitionWriters.remove(topicPartition);
                 log.debug("Closed BackupSinkTask for Topic {}, Partition {}"
                         , topicPartition.topic(), topicPartition.partition());
             }
-        } catch (IOException e) {
+        } catch (PartitionException e) {
             throw new RuntimeException(e);
         }
     }
@@ -124,12 +126,12 @@ public class BackupSinkTask extends SinkTask {
     @Override
     public void stop() {
         try {
-            for (PartitionWriter partition : partitionWriters.values()) {
+            for (DiskPartitionWriter partition : partitionWriters.values()) {
                 partition.close();
             }
             offsetSink.close();
             log.info("Stopped BackupSinkTask");
-        } catch (IOException e) {
+        } catch (IOException | PartitionException e) {
             throw new RuntimeException(e);
         }
     }
@@ -137,13 +139,13 @@ public class BackupSinkTask extends SinkTask {
     @Override
     public void flush(Map<TopicPartition, OffsetAndMetadata> currentOffsets) {
         try {
-            for (PartitionWriter partitionWriter : partitionWriters.values()) {
+            for (DiskPartitionWriter partitionWriter : partitionWriters.values()) {
                 partitionWriter.flush();
                 log.debug("Flushed Topic {}, Partition {}"
                         , partitionWriter.topic(), partitionWriter.partition());
             }
             offsetSink.flush();
-        } catch (IOException e) {
+        } catch (IOException | PartitionException e) {
             throw new RuntimeException(e);
         }
     }

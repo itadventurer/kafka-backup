@@ -1,4 +1,4 @@
-package de.azapps.kafkabackup.common.partition;
+package de.azapps.kafkabackup.common.partition.disk;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
