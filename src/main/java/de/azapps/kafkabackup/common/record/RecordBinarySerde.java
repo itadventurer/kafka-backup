@@ -30,7 +30,7 @@ import java.nio.charset.StandardCharsets;
  * headerValueLength: int32
  * headerValue: byte[headerValueLength]
  */
-public class RecordSerde {
+public class RecordBinarySerde {
     public static Record read(String topic, int partition, InputStream inputStream) throws IOException {
         DataInputStream dataStream = new DataInputStream(inputStream);
         long offset = dataStream.readLong();

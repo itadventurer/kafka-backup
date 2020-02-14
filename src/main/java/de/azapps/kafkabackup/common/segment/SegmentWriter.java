@@ -1,7 +1,7 @@
 package de.azapps.kafkabackup.common.segment;
 
 import de.azapps.kafkabackup.common.record.Record;
-import de.azapps.kafkabackup.common.record.RecordSerde;
+import de.azapps.kafkabackup.common.record.RecordBinarySerde;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -69,7 +69,7 @@ public class SegmentWriter {
             throw new SegmentException("Trying to override a written record. There is something terribly wrong in your setup! Please check whether you are trying to override an existing backup");
         }
         long startPosition = recordOutputStream.getChannel().position();
-        RecordSerde.write(recordOutputStream, record);
+        RecordBinarySerde.write(recordOutputStream, record);
         long recordByteLength = recordOutputStream.getChannel().position() - startPosition;
         SegmentIndexEntry segmentIndexEntry = new SegmentIndexEntry(record.kafkaOffset(), startPosition, recordByteLength);
         segmentIndex.addEntry(segmentIndexEntry);
