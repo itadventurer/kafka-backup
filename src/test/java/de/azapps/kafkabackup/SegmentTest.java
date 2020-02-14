@@ -1,8 +1,17 @@
 package de.azapps.kafkabackup;
 
-import static org.junit.Assert.assertEquals;
+import de.azapps.kafkabackup.common.record.Record;
 
-public class SegmentTest {/*
+import static org.junit.Assert.assertEquals;
+import org.junit.Before;
+import org.junit.Test;
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.Files;
+import java.util.Comparator;
+
+public class SegmentTest {
 
 	private String tmpDirPrefix = "SegmentTest";
 	private Path tmpDir;
@@ -33,7 +42,7 @@ public class SegmentTest {/*
 
 	@Test
 	public void simpleTest() throws Exception {
-		String topic = "foo";
+		/*String topic = "foo";
 		int partition = 0;
 		Segment segment = new Segment(topic, partition, 0, tmpDir);
 		SegmentIndex segmentIndex = segment.getSegmentIndex();
@@ -56,6 +65,6 @@ public class SegmentTest {/*
 
 		List<Record> readRecords = segment.readAll();
 		assertEquals(writtenRecords, readRecords);
+		 */
 	}
-*/
 }

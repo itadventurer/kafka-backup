@@ -1,10 +1,9 @@
 package de.azapps.kafkabackup.common.segment;
 
 import de.azapps.kafkabackup.common.record.Record;
-import de.azapps.kafkabackup.common.record.RecordSerde;
+import de.azapps.kafkabackup.common.record.RecordBinarySerde;
 
 import java.io.EOFException;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -60,7 +59,7 @@ public class SegmentReader {
         if (!hasMoreData()) {
             throw new EOFException("Already read the last valid record in topic " + topic + ", segment " + filePrefix);
         }
-        return RecordSerde.read(topic, partition, recordInputStream);
+        return RecordBinarySerde.read(topic, partition, recordInputStream);
     }
 
     public List<Record> readN(int n) throws IOException {

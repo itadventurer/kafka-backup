@@ -1,7 +1,7 @@
 package de.azapps.kafkabackup.common.segment;
 
 import de.azapps.kafkabackup.common.record.Record;
-import de.azapps.kafkabackup.common.record.RecordSerde;
+import de.azapps.kafkabackup.common.record.RecordBinarySerde;
 
 import java.io.EOFException;
 import java.io.FileInputStream;
@@ -19,7 +19,7 @@ public class UnverifiedSegmentReader {
     }
 
     public Record read() throws IOException {
-        return RecordSerde.read("topic", 0, recordInputStream);
+        return RecordBinarySerde.read("topic", 0, recordInputStream);
     }
 
     public List<Record> readN(int n) throws IOException {
