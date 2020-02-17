@@ -21,7 +21,7 @@ public class RecordJSONSerdeTest {
 
     @Test
     public void readTest() throws Exception {
-        // Prepare input
+        // GIVEN
         String topic = "test-topic";
         int partition = 42;
         long offset = 123;
@@ -35,19 +35,18 @@ public class RecordJSONSerdeTest {
         byte[] json = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"key\":\"%s\",\"value\":\"%s\"}", topic, partition, offset, keyBase64, valueBase64).getBytes("UTF-8");
         InputStream inputStream = new ByteArrayInputStream(json);
 
-        // Prepare expectations
+        // WHEN
+        RecordJSONSerde serde = new RecordJSONSerde();
+        Record actual = serde.read(inputStream);
+
+        // THEN
         Record expected = new Record(topic, partition, key, value, offset);
-
-        // Test
-        Record actual = RecordJSONSerde.read(inputStream);
-
-        // Do assertions
         assertEquals(expected, actual);
     }
 
     @Test
     public void writeTest() throws Exception {
-        // Prepare input
+        // GIVEN
         String topic = "test-topic";
         int partition = 42;
         long offset = 123;
@@ -56,7 +55,12 @@ public class RecordJSONSerdeTest {
         byte[] value = "test-value".getBytes("UTF-8");
         Record record = new Record(topic, partition, key, value, offset);
 
-        // Prepare expectations
+        // WHEN
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        RecordJSONSerde serde = new RecordJSONSerde();
+        serde.write(outputStream, record);
+
+        // THEN
         // using Base64 as encoding here is part of our Record serialization format:
         String keyBase64 = Base64.getEncoder().encodeToString(key);
         String valueBase64 = Base64.getEncoder().encodeToString(value);
@@ -65,13 +69,66 @@ public class RecordJSONSerdeTest {
         // - deterministic key ordering, and
         // - compact formatting without white-space
         byte[] expected = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"key\":\"%s\",\"value\":\"%s\"}", topic, partition, offset, keyBase64, valueBase64).getBytes("UTF-8");
-
-        // Test
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        RecordJSONSerde.write(outputStream, record);
         byte[] actual = outputStream.toByteArray();
+        Assert.assertArrayEquals(expected, actual);
+    }
 
-        // Do assertions
+    @Test
+    public void deserializeTest() throws Exception {
+        // GIVEN
+        String topic = "test-topic";
+        int partition = 42;
+        long offset = 123;
+        // encoding here is not really important, we just want some bytes
+        byte[] key = "test-key".getBytes("UTF-8");
+        byte[] value = "test-value".getBytes("UTF-8");
+        // using Base64 as encoding here is part of our Record serialization format however:
+        String keyBase64 = Base64.getEncoder().encodeToString(key);
+        String valueBase64 = Base64.getEncoder().encodeToString(value);
+        // TODO: add timestamp, timestampType, and headers
+        byte[] json = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"key\":\"%s\",\"value\":\"%s\"}", topic, partition, offset, keyBase64, valueBase64).getBytes("UTF-8");
+        InputStream inputStream = new ByteArrayInputStream(json);
+
+        // WHEN
+        ObjectMapper mapper = new ObjectMapper();
+        SimpleModule module = new SimpleModule();
+        module.addDeserializer(Record.class, new RecordJSONSerde.Deserializer());
+        mapper.registerModule(module);
+        Record actual = mapper.readValue(inputStream, Record.class);
+
+        // THEN
+        Record expected = new Record(topic, partition, key, value, offset);
+        assertEquals(expected, actual);
+    }
+
+
+    @Test
+    public void serializeTest() throws Exception {
+        // GIVEN
+        String topic = "test-topic";
+        int partition = 42;
+        long offset = 123;
+        // encoding here is not really important, we just want some bytes
+        byte[] key = "test-key".getBytes("UTF-8");
+        byte[] value = "test-value".getBytes("UTF-8");
+        Record record = new Record(topic, partition, key, value, offset);
+
+        // WHEN
+        ObjectMapper mapper = new ObjectMapper();
+        SimpleModule module = new SimpleModule();
+        module.addSerializer(Record.class, new RecordJSONSerde.Serializer());
+        mapper.registerModule(module);
+
+        // THEN
+        // using Base64 as encoding here is part of our Record serialization format:
+        String keyBase64 = Base64.getEncoder().encodeToString(key);
+        String valueBase64 = Base64.getEncoder().encodeToString(value);
+        // TODO: add timestamp, timestampType, and headers
+        // NOTE: here we make some (semi-dangerous) assumptions regarding
+        // - deterministic key ordering, and
+        // - compact formatting without white-space
+        byte[] expected = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"key\":\"%s\",\"value\":\"%s\"}", topic, partition, offset, keyBase64, valueBase64).getBytes("UTF-8");
+        byte[] actual = mapper.writeValueAsBytes(record);
         Assert.assertArrayEquals(expected, actual);
     }
 }
