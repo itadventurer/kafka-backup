@@ -10,7 +10,6 @@ import de.azapps.kafkabackup.common.partition.disk.PartitionIndex;
 import de.azapps.kafkabackup.common.partition.disk.DiskPartitionWriter;
 import de.azapps.kafkabackup.common.record.Record;
 import de.azapps.kafkabackup.common.segment.SegmentIndex;
-import de.azapps.kafkabackup.sink.BackupSinkConfig.StorageMode;
 import de.azapps.kafkabackup.storage.s3.AwsS3Service;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
@@ -31,6 +30,7 @@ import java.util.Map;
 public class BackupSinkTask extends SinkTask {
     private static final Logger log = LoggerFactory.getLogger(BackupSinkTask.class);
     private Path targetDir;
+    private String bucketName;
     private Map<TopicPartition, PartitionWriter> partitionWriters = new HashMap<>();
     private long maxSegmentSize;
     private OffsetSink offsetSink;
@@ -52,8 +52,8 @@ public class BackupSinkTask extends SinkTask {
         switch (config.storageMode()) {
             case S3:
                 offsetSink = new S3OffsetSink(config.bucketName(), adminClient);
-                // TODO improve reading config
-                awsS3Service = new AwsS3Service(config.region(), null, false);
+                bucketName = config.bucketName();
+                awsS3Service = new AwsS3Service(config.region(), config.endpoint(), config.pathStyleAccessEnabled());
                 break;
             case DISK:
                 targetDir = Paths.get(config.targetDir());
@@ -111,7 +111,7 @@ public class BackupSinkTask extends SinkTask {
                         break;
                     case S3:
                         partitionWriter = S3PartitionWriter.builder()
-                            .bucketName("bucketName")
+                            .bucketName(bucketName)
                             .partition(topicPartition.partition())
                             .topicName(topicPartition.topic())
                             .awsS3Service(awsS3Service)

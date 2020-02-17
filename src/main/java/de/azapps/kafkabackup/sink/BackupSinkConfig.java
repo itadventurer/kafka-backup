@@ -58,14 +58,14 @@ class BackupSinkConfig extends AbstractConfig {
     String bucketName() {
         return getString(AWS_S3_BUCKET_NAME);
     }
+
+    String endpoint() {
+        return getString(AWS_S3_ENDPOINT);
+    }
+    Boolean pathStyleAccessEnabled() {
+        return getBoolean(AWS_S3_PATH_STYLE_ACCESS_ENABLED);
+    }
     String region() {
         return getString(AWS_S3_REGION);
     }
-
-
-
-    enum StorageMode {
-        DISK, S3
-    }
-
 }

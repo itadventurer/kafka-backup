@@ -43,9 +43,9 @@ public class AwsS3Service {
     return getObject(new GetObjectRequest(bucketName, fileName));
   }
 
-  public PutObjectResult saveFile(String bucketName, String fileName, InputStream inputStream,
+  public PutObjectResult saveFile(String bucketName, String fileKey, InputStream inputStream,
       ObjectMetadata metadata) {
-    return putObject(new PutObjectRequest(bucketName, fileName, inputStream, metadata));
+    return putObject(new PutObjectRequest(bucketName, fileKey, inputStream, metadata));
   }
 
   private S3Object getObject(GetObjectRequest getObjectRequest) {

@@ -31,7 +31,7 @@ public class S3PartitionWriter implements PartitionWriter {
   @Override
   public void append(Record record) throws PartitionException {
 
-    String fileName = buildFileNameForRecord(record);
+    String fileName = buildFileKeyForRecord(topicName, partition, record);
     try {
       byte[] jsonRecord = recordJSONSerde.writeValueAsString(record).getBytes();
 
@@ -44,8 +44,9 @@ public class S3PartitionWriter implements PartitionWriter {
     }
   }
 
-  private String buildFileNameForRecord(Record record) {
-    return Arrays.toString(Base64.decodeBase64(record.key())) + "_" + record.kafkaOffset();
+  private String buildFileKeyForRecord(String topicName, int partition, Record record) {
+    return topicName + "/" + partition + "/"
+        + Arrays.toString(Base64.decodeBase64(record.key())) + "_" + record.kafkaOffset();
   }
 
   @Override
