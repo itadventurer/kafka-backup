@@ -17,11 +17,11 @@ import java.io.*;
 
 public class RecordJSONSerde {
     private ObjectMapper mapper;
-    private static String TOPIC_PROPERTY = "topic";
-    private static String PARTITION_PROPERTY = "partition";
-    private static String OFFSET_PROPERTY = "offset";
-    private static String KEY_PROPERTY = "key";
-    private static String VALUE_PROPERTY = "value";
+    private static final String TOPIC_PROPERTY = "topic";
+    private static final String PARTITION_PROPERTY = "partition";
+    private static final String OFFSET_PROPERTY = "offset";
+    private static final String KEY_PROPERTY = "key";
+    private static final String VALUE_PROPERTY = "value";
 
     public RecordJSONSerde() {
         this.mapper = new ObjectMapper();
