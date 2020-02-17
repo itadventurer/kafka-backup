@@ -1,7 +1,7 @@
 package de.azapps.kafkabackup.common.partition;
 
 
-public class PartitionException extends Exception {
+public class PartitionException extends RuntimeException {
     public PartitionException(String message) {
         super(message);
     }

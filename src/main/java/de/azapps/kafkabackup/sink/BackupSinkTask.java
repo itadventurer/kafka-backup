@@ -7,7 +7,6 @@ import de.azapps.kafkabackup.common.partition.disk.PartitionIndex;
 import de.azapps.kafkabackup.common.partition.disk.DiskPartitionWriter;
 import de.azapps.kafkabackup.common.record.Record;
 import de.azapps.kafkabackup.common.segment.SegmentIndex;
-import de.azapps.kafkabackup.common.segment.SegmentWriter;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -27,7 +26,7 @@ import java.util.Map;
 public class BackupSinkTask extends SinkTask {
     private static final Logger log = LoggerFactory.getLogger(BackupSinkTask.class);
     private Path targetDir;
-    private Map<TopicPartition, DiskPartitionWriter> partitionWriters = new HashMap<>();
+    private Map<TopicPartition, PartitionWriter> partitionWriters = new HashMap<>();
     private long maxSegmentSize;
     private OffsetSink offsetSink;
 
@@ -58,7 +57,7 @@ public class BackupSinkTask extends SinkTask {
         try {
             for (SinkRecord sinkRecord : records) {
                 TopicPartition topicPartition = new TopicPartition(sinkRecord.topic(), sinkRecord.kafkaPartition());
-                DiskPartitionWriter partition = partitionWriters.get(topicPartition);
+                PartitionWriter partition = partitionWriters.get(topicPartition);
                 partition.append(Record.fromSinkRecord(sinkRecord));
                 if(sinkRecord.kafkaOffset() % 100 == 0) {
                     log.debug("Backed up Topic %s, Partition %d, up to offset %d", sinkRecord.topic(), sinkRecord.kafkaPartition(), sinkRecord.kafkaOffset());
@@ -78,7 +77,7 @@ public class BackupSinkTask extends SinkTask {
             for (TopicPartition topicPartition : partitions) {
                 Path topicDir = Paths.get(targetDir.toString(), topicPartition.topic());
                 Files.createDirectories(topicDir);
-                DiskPartitionWriter partitionWriter = new DiskPartitionWriter(topicPartition.topic(), topicPartition.partition(), topicDir, maxSegmentSize);
+                PartitionWriter partitionWriter = new DiskPartitionWriter(topicPartition.topic(), topicPartition.partition(), topicDir, maxSegmentSize);
                 long lastWrittenOffset = partitionWriter.lastWrittenOffset();
 
                 // Note that we must *always* request that we seek to an offset here. Currently the
@@ -112,7 +111,7 @@ public class BackupSinkTask extends SinkTask {
         super.close(partitions);
         try {
             for (TopicPartition topicPartition : partitions) {
-                DiskPartitionWriter partitionWriter = partitionWriters.get(topicPartition);
+                PartitionWriter partitionWriter = partitionWriters.get(topicPartition);
                 partitionWriter.close();
                 partitionWriters.remove(topicPartition);
                 log.debug("Closed BackupSinkTask for Topic {}, Partition {}"
@@ -126,7 +125,7 @@ public class BackupSinkTask extends SinkTask {
     @Override
     public void stop() {
         try {
-            for (DiskPartitionWriter partition : partitionWriters.values()) {
+            for (PartitionWriter partition : partitionWriters.values()) {
                 partition.close();
             }
             offsetSink.close();
@@ -139,7 +138,7 @@ public class BackupSinkTask extends SinkTask {
     @Override
     public void flush(Map<TopicPartition, OffsetAndMetadata> currentOffsets) {
         try {
-            for (DiskPartitionWriter partitionWriter : partitionWriters.values()) {
+            for (PartitionWriter partitionWriter : partitionWriters.values()) {
                 partitionWriter.flush();
                 log.debug("Flushed Topic {}, Partition {}"
                         , partitionWriter.topic(), partitionWriter.partition());
@@ -149,5 +148,4 @@ public class BackupSinkTask extends SinkTask {
             throw new RuntimeException(e);
         }
     }
-
 }
