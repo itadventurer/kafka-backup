@@ -1,4 +1,4 @@
-package de.azapps.kafkabackup.common.partition;
+package de.azapps.kafkabackup.common.partition.disk;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;

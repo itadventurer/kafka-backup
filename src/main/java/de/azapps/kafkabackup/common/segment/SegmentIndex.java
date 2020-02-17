@@ -1,7 +1,5 @@
 package de.azapps.kafkabackup.common.segment;
 
-import de.azapps.kafkabackup.common.partition.PartitionIndex;
-
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
