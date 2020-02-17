@@ -1,10 +1,9 @@
 package de.azapps.kafkabackup.sink;
 
-import org.apache.kafka.common.config.AbstractConfig;
-import org.apache.kafka.common.config.ConfigDef;
-
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.kafka.common.config.AbstractConfig;
+import org.apache.kafka.common.config.ConfigDef;
 
 class BackupSinkConfig extends AbstractConfig {
     private static final String CLUSTER_PREFIX = "cluster.";
@@ -15,6 +14,8 @@ class BackupSinkConfig extends AbstractConfig {
     private static final String AWS_S3_REGION = "aws.s3.region";
     private static final String AWS_S3_ENDPOINT = "aws.s3.endpoint";
     private static final String AWS_S3_PATH_STYLE_ACCESS_ENABLED = "aws.s3.PathStyleAccessEnabled";
+    private static final String AWS_S3_BUCKET_NAME = "aws.s3.bucketName";
+    private static final String STORAGE_MODE = "storage.mode";
 
     static final ConfigDef CONFIG_DEF = new ConfigDef()
             .define(TARGET_DIR_CONFIG, ConfigDef.Type.STRING,
@@ -50,5 +51,21 @@ class BackupSinkConfig extends AbstractConfig {
         return getInt(MAX_SEGMENT_SIZE);
     }
 
+    StorageMode storageMode() {
+        return StorageMode.valueOf(getString(STORAGE_MODE));
+    }
+
+    String bucketName() {
+        return getString(AWS_S3_BUCKET_NAME);
+    }
+    String region() {
+        return getString(AWS_S3_REGION);
+    }
+
+
+
+    enum StorageMode {
+        DISK, S3
+    }
 
 }

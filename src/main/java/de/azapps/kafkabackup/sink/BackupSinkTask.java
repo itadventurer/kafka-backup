@@ -1,12 +1,17 @@
 package de.azapps.kafkabackup.sink;
 
+import de.azapps.kafkabackup.common.offset.DiskOffsetSink;
 import de.azapps.kafkabackup.common.offset.OffsetSink;
+import de.azapps.kafkabackup.common.offset.S3OffsetSink;
 import de.azapps.kafkabackup.common.partition.PartitionException;
 import de.azapps.kafkabackup.common.partition.PartitionWriter;
+import de.azapps.kafkabackup.common.partition.cloud.S3PartitionWriter;
 import de.azapps.kafkabackup.common.partition.disk.PartitionIndex;
 import de.azapps.kafkabackup.common.partition.disk.DiskPartitionWriter;
 import de.azapps.kafkabackup.common.record.Record;
 import de.azapps.kafkabackup.common.segment.SegmentIndex;
+import de.azapps.kafkabackup.sink.BackupSinkConfig.StorageMode;
+import de.azapps.kafkabackup.storage.s3.AwsS3Service;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -29,6 +34,8 @@ public class BackupSinkTask extends SinkTask {
     private Map<TopicPartition, PartitionWriter> partitionWriters = new HashMap<>();
     private long maxSegmentSize;
     private OffsetSink offsetSink;
+    private StorageMode storageMode;
+    private AwsS3Service awsS3Service;
 
     @Override
     public String version() {
@@ -38,15 +45,30 @@ public class BackupSinkTask extends SinkTask {
     @Override
     public void start(Map<String, String> props) {
         BackupSinkConfig config = new BackupSinkConfig(props);
-        try {
-            targetDir = Paths.get(config.targetDir());
-            maxSegmentSize = config.maxSegmentSize();
-            Files.createDirectories(targetDir);
+        AdminClient adminClient = AdminClient.create(config.adminConfig());
 
-            // Setup OffsetSink
-            AdminClient adminClient = AdminClient.create(config.adminConfig());
-            offsetSink = new OffsetSink(adminClient, targetDir);
-            log.debug("Initialized BackupSinkTask with target dir {}", targetDir);
+        storageMode = config.storageMode();
+
+        switch (config.storageMode()) {
+            case S3:
+                offsetSink = new S3OffsetSink(config.bucketName(), adminClient);
+                // TODO improve reading config
+                awsS3Service = new AwsS3Service(config.region(), null, false);
+                break;
+            case DISK:
+                targetDir = Paths.get(config.targetDir());
+                maxSegmentSize = config.maxSegmentSize();
+                createDirectories(Paths.get(config.targetDir()));
+                offsetSink = new DiskOffsetSink(adminClient, targetDir);
+                break;
+        }
+
+        log.debug("Initialized BackupSinkTask");
+    }
+
+    private void createDirectories(Path targetDir) {
+        try {
+            Files.createDirectories(targetDir);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -66,7 +88,7 @@ public class BackupSinkTask extends SinkTask {
             // Todo: refactor to own worker. E.g. using the scheduler of MM2
             offsetSink.syncConsumerGroups();
             offsetSink.syncOffsets();
-        } catch (IOException | PartitionException e) {
+        } catch (PartitionException e) {
             throw new RuntimeException(e);
         }
     }
@@ -75,9 +97,29 @@ public class BackupSinkTask extends SinkTask {
         super.open(partitions);
         try {
             for (TopicPartition topicPartition : partitions) {
-                Path topicDir = Paths.get(targetDir.toString(), topicPartition.topic());
-                Files.createDirectories(topicDir);
-                PartitionWriter partitionWriter = new DiskPartitionWriter(topicPartition.topic(), topicPartition.partition(), topicDir, maxSegmentSize);
+                PartitionWriter partitionWriter;
+                switch (storageMode) {
+                    case DISK:
+                        Path topicDir = Paths.get(targetDir.toString(), topicPartition.topic());
+                        Files.createDirectories(topicDir);
+                        partitionWriter = new DiskPartitionWriter(
+                            topicPartition.topic(),
+                            topicPartition.partition(),
+                            topicDir,
+                            maxSegmentSize
+                        );
+                        break;
+                    case S3:
+                        partitionWriter = S3PartitionWriter.builder()
+                            .bucketName("bucketName")
+                            .partition(topicPartition.partition())
+                            .topicName(topicPartition.topic())
+                            .awsS3Service(awsS3Service)
+                            .build();
+                    default:
+                        throw new RuntimeException();
+                }
+
                 long lastWrittenOffset = partitionWriter.lastWrittenOffset();
 
                 // Note that we must *always* request that we seek to an offset here. Currently the
@@ -109,43 +151,32 @@ public class BackupSinkTask extends SinkTask {
 
     public void close(Collection<TopicPartition> partitions) {
         super.close(partitions);
-        try {
-            for (TopicPartition topicPartition : partitions) {
-                PartitionWriter partitionWriter = partitionWriters.get(topicPartition);
-                partitionWriter.close();
-                partitionWriters.remove(topicPartition);
-                log.debug("Closed BackupSinkTask for Topic {}, Partition {}"
-                        , topicPartition.topic(), topicPartition.partition());
-            }
-        } catch (PartitionException e) {
-            throw new RuntimeException(e);
+
+        for (TopicPartition topicPartition : partitions) {
+            PartitionWriter partitionWriter = partitionWriters.get(topicPartition);
+            partitionWriter.close();
+            partitionWriters.remove(topicPartition);
+            log.debug("Closed BackupSinkTask for Topic {}, Partition {}"
+                    , topicPartition.topic(), topicPartition.partition());
         }
+
     }
 
     @Override
     public void stop() {
-        try {
-            for (PartitionWriter partition : partitionWriters.values()) {
-                partition.close();
-            }
-            offsetSink.close();
-            log.info("Stopped BackupSinkTask");
-        } catch (IOException | PartitionException e) {
-            throw new RuntimeException(e);
-        }
+        partitionWriters.values().forEach(PartitionWriter::close);
+        offsetSink.close();
+        log.info("Stopped BackupSinkTask");
+
     }
 
     @Override
     public void flush(Map<TopicPartition, OffsetAndMetadata> currentOffsets) {
-        try {
-            for (PartitionWriter partitionWriter : partitionWriters.values()) {
-                partitionWriter.flush();
-                log.debug("Flushed Topic {}, Partition {}"
-                        , partitionWriter.topic(), partitionWriter.partition());
-            }
-            offsetSink.flush();
-        } catch (IOException | PartitionException e) {
-            throw new RuntimeException(e);
+        for (PartitionWriter partitionWriter : partitionWriters.values()) {
+            partitionWriter.flush();
+            log.debug("Flushed Topic {}, Partition {}"
+                    , partitionWriter.topic(), partitionWriter.partition());
         }
+        offsetSink.flush();
     }
 }

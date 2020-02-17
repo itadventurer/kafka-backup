@@ -39,6 +39,10 @@ public class RecordJSONSerde {
         mapper.writeValue(outputStream, record);
     }
 
+    public String writeValueAsString(Record record) throws JsonProcessingException {
+        return mapper.writeValueAsString(record);
+    }
+
     public static class Deserializer extends StdDeserializer<Record> {
         public Deserializer() {
             super(Record.class);
