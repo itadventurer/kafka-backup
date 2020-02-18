@@ -101,6 +101,27 @@ public class RecordJSONSerdeTest {
         assertEquals(expected, actual);
     }
 
+    @Test
+    public void deserializeTestNullKeyAndValue() throws Exception {
+        // GIVEN
+        String topic = "test-topic";
+        int partition = 42;
+        long offset = 123;
+        // TODO: add timestamp, timestampType, and headers
+        byte[] json = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"key\":null,\"value\":null}", topic, partition, offset).getBytes("UTF-8");
+        InputStream inputStream = new ByteArrayInputStream(json);
+
+        // WHEN
+        ObjectMapper mapper = new ObjectMapper();
+        SimpleModule module = new SimpleModule();
+        module.addDeserializer(Record.class, new RecordJSONSerde.Deserializer());
+        mapper.registerModule(module);
+        Record actual = mapper.readValue(inputStream, Record.class);
+
+        // THEN
+        Record expected = new Record(topic, partition, null, null, offset);
+        Assert.assertEquals(expected, actual);
+    }
 
     @Test
     public void serializeTest() throws Exception {
@@ -128,6 +149,30 @@ public class RecordJSONSerdeTest {
         // - deterministic key ordering, and
         // - compact formatting without white-space
         byte[] expected = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"key\":\"%s\",\"value\":\"%s\"}", topic, partition, offset, keyBase64, valueBase64).getBytes("UTF-8");
+        byte[] actual = mapper.writeValueAsBytes(record);
+        Assert.assertArrayEquals(expected, actual);
+    }
+
+    @Test
+    public void serializeTestNullKeyAndValue() throws Exception {
+        // GIVEN
+        String topic = "test-topic";
+        int partition = 42;
+        long offset = 123;
+        Record record = new Record(topic, partition, null, null, offset);
+
+        // WHEN
+        ObjectMapper mapper = new ObjectMapper();
+        SimpleModule module = new SimpleModule();
+        module.addSerializer(Record.class, new RecordJSONSerde.Serializer());
+        mapper.registerModule(module);
+
+        // THEN
+        // TODO: add timestamp, timestampType, and headers
+        // NOTE: here we make some (semi-dangerous) assumptions regarding
+        // - deterministic key ordering, and
+        // - compact formatting without white-space
+        byte[] expected = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"key\":null,\"value\":null}", topic, partition, offset).getBytes("UTF-8");
         byte[] actual = mapper.writeValueAsBytes(record);
         Assert.assertArrayEquals(expected, actual);
     }

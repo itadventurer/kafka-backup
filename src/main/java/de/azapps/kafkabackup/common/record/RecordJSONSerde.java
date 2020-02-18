@@ -54,15 +54,13 @@ public class RecordJSONSerde {
             String topic = node.get(TOPIC_PROPERTY).asText();
             int partition = node.get(PARTITION_PROPERTY).asInt();
             long offset = node.get(OFFSET_PROPERTY).asLong();
-            String keyBase64 = node.get(KEY_PROPERTY).asText();
-            String valueBase64 = node.get(VALUE_PROPERTY).asText();
-
-            // TODO: initialize in constructor instead?
-            Base64.Decoder decoder = Base64.getDecoder();
-            byte[] key = decoder.decode(keyBase64);
-            byte[] value = decoder.decode(valueBase64);
-
+            String keyBase64 = node.get(KEY_PROPERTY).asText(null); // Default seems to be the string "null", which is not wanted here
+            String valueBase64 = node.get(VALUE_PROPERTY).asText(null);
             // TODO: parse timestamp, timstampType and headers as well
+            // TODO: is getting a decoder expensive?
+            byte[] key = (keyBase64 == null) ? null : Base64.getDecoder().decode(keyBase64);
+            byte[] value = (valueBase64 == null) ? null : Base64.getDecoder().decode(valueBase64);
+
             return new Record(topic, partition, key, value, offset);
         }
     }
@@ -78,10 +76,19 @@ public class RecordJSONSerde {
             jgen.writeStringField(TOPIC_PROPERTY, record.topic());
             jgen.writeNumberField(PARTITION_PROPERTY, record.kafkaPartition());
             jgen.writeNumberField(OFFSET_PROPERTY, record.kafkaOffset());
-            // key and value should be base64-encoded, and jackson provides this convenience helper.
+            // key and value should be base64-encoded, and jackson provides the `writeBinaryField` convenience helper.
             // see: https://javadoc.io/doc/com.fasterxml.jackson.core/jackson-core/2.10.1/index.html
-            jgen.writeBinaryField(KEY_PROPERTY, record.key());
-            jgen.writeBinaryField(VALUE_PROPERTY, record.value());
+            // Furthermore, its ok if they are null.
+            if (record.key() == null) {
+                jgen.writeNullField(KEY_PROPERTY);
+            } else {
+                jgen.writeBinaryField(KEY_PROPERTY, record.key());
+            }
+            if (record.value() == null) {
+                jgen.writeNullField(VALUE_PROPERTY);
+            } else {
+                jgen.writeBinaryField(VALUE_PROPERTY, record.value());
+            }
             // TODO: add timestamp, timestampType and headers
             jgen.writeEndObject();
         }

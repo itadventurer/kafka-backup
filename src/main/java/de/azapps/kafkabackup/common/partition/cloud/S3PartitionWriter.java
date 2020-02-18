@@ -7,6 +7,7 @@ import de.azapps.kafkabackup.common.record.Record;
 import de.azapps.kafkabackup.common.record.RecordJSONSerde;
 import de.azapps.kafkabackup.storage.s3.AwsS3Service;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import lombok.Builder;
@@ -30,15 +31,17 @@ public class S3PartitionWriter implements PartitionWriter {
 
   @Override
   public void append(Record record) throws PartitionException {
-
     String fileName = buildFileKeyForRecord(topicName, partition, record);
     try {
-      byte[] jsonRecord = recordJSONSerde.writeValueAsString(record).getBytes();
+      ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+      recordJSONSerde.write(outputStream, record);
+      byte[] jsonRecord = outputStream.toByteArray();
+      ByteArrayInputStream jsonStream = new ByteArrayInputStream(jsonRecord);
 
       ObjectMetadata objectMetadata = new ObjectMetadata();
       objectMetadata.setContentLength(jsonRecord.length);
 
-      awsS3Service.saveFile(bucketName, fileName, new ByteArrayInputStream(jsonRecord), objectMetadata);
+      awsS3Service.saveFile(bucketName, fileName, jsonStream, objectMetadata);
     } catch (IOException e) {
       e.printStackTrace();
     }

@@ -101,6 +101,12 @@ public class Record {
 			&& Objects.equals(headers(), that.headers())
 			&& Objects.equals(kafkaOffset(), that.kafkaOffset())
 			&& Objects.equals(timestampType(), that.timestampType());
+	}
 
+	@Override
+	public String toString() {
+		String keyLength = (key == null) ? "null" : String.valueOf(key.length);
+		String valueLength = (value == null) ? "null" : String.valueOf(value.length);
+		return String.format("Record(%s, %d, %d, %s, %s)", topic, kafkaPartition, kafkaOffset, keyLength, valueLength);
 	}
 }
