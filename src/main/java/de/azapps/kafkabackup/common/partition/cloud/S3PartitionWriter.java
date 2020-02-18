@@ -47,9 +47,8 @@ public class S3PartitionWriter implements PartitionWriter {
     }
   }
 
-  private String buildFileKeyForRecord(String topicName, int partition, Record record) {
-    return topicName + "/" + partition + "/"
-        + Arrays.toString(Base64.decodeBase64(record.key())) + "_" + record.kafkaOffset();
+  private String buildFileKeyForRecord(String topic, int partition, Record record) {
+    return String.format("%s/%03d/msg_%020d.json", topic, partition, record.kafkaOffset());
   }
 
   @Override
