@@ -63,6 +63,8 @@ public class BackupSinkTask extends SinkTask {
                 createDirectories(Paths.get(config.targetDir()));
                 offsetSink = new DiskOffsetSink(adminClient, targetDir);
                 break;
+            default:
+                throw new RuntimeException(String.format("Invalid Storage Mode %s. Supported values are %s or %s", config.storageMode(), StorageMode.DISK, StorageMode.S3));
         }
 
         log.debug("Initialized BackupSinkTask");
@@ -118,8 +120,9 @@ public class BackupSinkTask extends SinkTask {
                             .topicName(topicPartition.topic())
                             .awsS3Service(awsS3Service)
                             .build();
+                        break;
                     default:
-                        throw new RuntimeException();
+                        throw new RuntimeException(String.format("Invalid Storage Mode. Supported values are %s or %s", StorageMode.DISK, StorageMode.S3));
                 }
 
                 long lastWrittenOffset = partitionWriter.lastWrittenOffset();
