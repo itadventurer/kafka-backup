@@ -44,6 +44,8 @@ public class BackupSinkTask extends SinkTask {
 
     @Override
     public void start(Map<String, String> props) {
+        log.info("Log: Starting BackupSinkTask. Props: {}", props);
+
         BackupSinkConfig config = new BackupSinkConfig(props);
         AdminClient adminClient = AdminClient.create(config.adminConfig());
 
@@ -164,10 +166,10 @@ public class BackupSinkTask extends SinkTask {
 
     @Override
     public void stop() {
+        // TODO: if an exception is thrown during start(), stop will be called before these are initialized. Need to to null check!
         partitionWriters.values().forEach(PartitionWriter::close);
         offsetSink.close();
         log.info("Stopped BackupSinkTask");
-
     }
 
     @Override

@@ -18,10 +18,20 @@ class BackupSinkConfig extends AbstractConfig {
     private static final String STORAGE_MODE = "storage.mode";
 
     static final ConfigDef CONFIG_DEF = new ConfigDef()
+            .define(STORAGE_MODE, ConfigDef.Type.STRING,
+                    ConfigDef.Importance.HIGH, "Where to store the backups. DISK or S3")
             .define(TARGET_DIR_CONFIG, ConfigDef.Type.STRING,
                     ConfigDef.Importance.HIGH, "TargetDir")
             .define(MAX_SEGMENT_SIZE, ConfigDef.Type.INT, 1024 ^ 3, // 1 GiB
-                    ConfigDef.Importance.LOW, "Maximum segment size");
+                    ConfigDef.Importance.LOW, "Maximum segment size")
+            .define(AWS_S3_REGION, ConfigDef.Type.STRING,
+                    ConfigDef.Importance.MEDIUM, "AWS S3 Bucket region")
+            .define(AWS_S3_ENDPOINT, ConfigDef.Type.STRING,
+                    ConfigDef.Importance.MEDIUM, "AWS S3 Bucket endpoint")
+            .define(AWS_S3_PATH_STYLE_ACCESS_ENABLED, ConfigDef.Type.BOOLEAN,
+                    ConfigDef.Importance.MEDIUM, "AWS S3 Bucket path style access")
+            .define(AWS_S3_BUCKET_NAME, ConfigDef.Type.STRING,
+                    ConfigDef.Importance.MEDIUM, "AWS S3 Bucket name");
 
     BackupSinkConfig(Map<?, ?> props) {
         super(CONFIG_DEF, props);
