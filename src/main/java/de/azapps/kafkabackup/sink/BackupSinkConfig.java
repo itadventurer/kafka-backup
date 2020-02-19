@@ -1,10 +1,9 @@
 package de.azapps.kafkabackup.sink;
 
-import org.apache.kafka.common.config.AbstractConfig;
-import org.apache.kafka.common.config.ConfigDef;
-
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.kafka.common.config.AbstractConfig;
+import org.apache.kafka.common.config.ConfigDef;
 
 class BackupSinkConfig extends AbstractConfig {
     private static final String CLUSTER_PREFIX = "cluster.";
@@ -15,12 +14,24 @@ class BackupSinkConfig extends AbstractConfig {
     private static final String AWS_S3_REGION = "aws.s3.region";
     private static final String AWS_S3_ENDPOINT = "aws.s3.endpoint";
     private static final String AWS_S3_PATH_STYLE_ACCESS_ENABLED = "aws.s3.PathStyleAccessEnabled";
+    private static final String AWS_S3_BUCKET_NAME = "aws.s3.bucketName";
+    private static final String STORAGE_MODE = "storage.mode";
 
     static final ConfigDef CONFIG_DEF = new ConfigDef()
+            .define(STORAGE_MODE, ConfigDef.Type.STRING,
+                    ConfigDef.Importance.HIGH, "Where to store the backups. DISK or S3")
             .define(TARGET_DIR_CONFIG, ConfigDef.Type.STRING,
                     ConfigDef.Importance.HIGH, "TargetDir")
             .define(MAX_SEGMENT_SIZE, ConfigDef.Type.INT, 1024 ^ 3, // 1 GiB
-                    ConfigDef.Importance.LOW, "Maximum segment size");
+                    ConfigDef.Importance.LOW, "Maximum segment size")
+            .define(AWS_S3_REGION, ConfigDef.Type.STRING,
+                    ConfigDef.Importance.MEDIUM, "AWS S3 Bucket region")
+            .define(AWS_S3_ENDPOINT, ConfigDef.Type.STRING,
+                    ConfigDef.Importance.MEDIUM, "AWS S3 Bucket endpoint")
+            .define(AWS_S3_PATH_STYLE_ACCESS_ENABLED, ConfigDef.Type.BOOLEAN,
+                    ConfigDef.Importance.MEDIUM, "AWS S3 Bucket path style access")
+            .define(AWS_S3_BUCKET_NAME, ConfigDef.Type.STRING,
+                    ConfigDef.Importance.MEDIUM, "AWS S3 Bucket name");
 
     BackupSinkConfig(Map<?, ?> props) {
         super(CONFIG_DEF, props);
@@ -50,5 +61,21 @@ class BackupSinkConfig extends AbstractConfig {
         return getInt(MAX_SEGMENT_SIZE);
     }
 
+    StorageMode storageMode() {
+        return StorageMode.valueOf(getString(STORAGE_MODE));
+    }
 
+    String bucketName() {
+        return getString(AWS_S3_BUCKET_NAME);
+    }
+
+    String endpoint() {
+        return getString(AWS_S3_ENDPOINT);
+    }
+    Boolean pathStyleAccessEnabled() {
+        return getBoolean(AWS_S3_PATH_STYLE_ACCESS_ENABLED);
+    }
+    String region() {
+        return getString(AWS_S3_REGION);
+    }
 }
