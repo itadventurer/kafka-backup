@@ -7,6 +7,7 @@ import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -45,14 +46,22 @@ public class SegmentReader {
     }
 
     public void seek(long offset) throws IndexOutOfBoundsException, IOException {
+        // TODO: replace this with findEarliestWithHigherOrEqualOffset(offset)
         Optional<Long> optionalPosition = segmentIndex.findByOffset(offset);
-        if (!optionalPosition.isPresent()) {
-            throw new IndexOutOfBoundsException("Could not find offset " + offset + " in topic " + topic + ", segment " + filePrefix + " ok " + optionalPosition);
+        if (optionalPosition.isPresent()) {
+            recordInputStream.getChannel().position(optionalPosition.get());
+        } else {
+            System.out.printf("Could not find position in index with offset %d\n", offset);
+            // If we couldn't find such a record, skip to EOF. This will make sure that hasMoreData() return false.
+            FileChannel fileChannel = recordInputStream.getChannel();
+            System.out.printf("Channel size: %d\n", fileChannel.size());
+            System.out.printf("lastValidStartPosition: %d\n", lastValidStartPosition);
+            fileChannel.position(fileChannel.size());
         }
-        recordInputStream.getChannel().position(optionalPosition.get());
     }
 
     public boolean hasMoreData() throws IOException {
+        System.out.printf("hasMoreData? %d <=? %d\n", recordInputStream.getChannel().position(), lastValidStartPosition);
         return recordInputStream.getChannel().position() <= lastValidStartPosition;
     }
 
