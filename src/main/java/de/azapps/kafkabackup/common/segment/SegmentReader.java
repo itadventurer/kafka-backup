@@ -46,22 +46,17 @@ public class SegmentReader {
     }
 
     public void seek(long offset) throws IndexOutOfBoundsException, IOException {
-        // TODO: replace this with findEarliestWithHigherOrEqualOffset(offset)
-        Optional<Long> optionalPosition = segmentIndex.findByOffset(offset);
+        Optional<Long> optionalPosition = segmentIndex.findEarliestWithHigherOrEqualOffset(offset);
         if (optionalPosition.isPresent()) {
             recordInputStream.getChannel().position(optionalPosition.get());
         } else {
-            System.out.printf("Could not find position in index with offset %d\n", offset);
-            // If we couldn't find such a record, skip to EOF. This will make sure that hasMoreData() return false.
+            // If we couldn't find such a record, skip to EOF. This will make sure that hasMoreData() returns false.
             FileChannel fileChannel = recordInputStream.getChannel();
-            System.out.printf("Channel size: %d\n", fileChannel.size());
-            System.out.printf("lastValidStartPosition: %d\n", lastValidStartPosition);
             fileChannel.position(fileChannel.size());
         }
     }
 
     public boolean hasMoreData() throws IOException {
-        System.out.printf("hasMoreData? %d <=? %d\n", recordInputStream.getChannel().position(), lastValidStartPosition);
         return recordInputStream.getChannel().position() <= lastValidStartPosition;
     }
 

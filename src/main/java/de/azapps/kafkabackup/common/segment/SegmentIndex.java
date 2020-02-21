@@ -97,6 +97,15 @@ public class SegmentIndex {
 		return Optional.empty();
 	}
 
+	Optional<Long> findEarliestWithHigherOrEqualOffset(long offset) {
+		for(SegmentIndexEntry current : index) {
+			if(current.getOffset() >= offset) {
+				return Optional.of(current.recordFilePosition());
+			}
+		}
+		return Optional.empty();
+	}
+
 	int size() {
 		return index.size();
 	}
