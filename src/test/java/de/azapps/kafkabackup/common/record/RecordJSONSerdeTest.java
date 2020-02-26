@@ -14,7 +14,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.sql.Time;
 import java.util.Base64;
 
 import org.apache.kafka.common.record.TimestampType;
@@ -31,8 +30,9 @@ public class RecordJSONSerdeTest {
     private static byte[] valueBytes;
     private static String valueBase64;
     private static final String JSON_ENCODING = "UTF-8";
-    private static ObjectMapper mapper;
-    private static RecordJSONSerde serde;
+    // Services under test:
+    private static ObjectMapper sutMapper;
+    private static RecordJSONSerde sutSerde;
 
     @BeforeAll
     public static void beforeAll() throws Exception {
@@ -46,13 +46,13 @@ public class RecordJSONSerdeTest {
 
     @BeforeEach
     public void beforeEach() throws Exception {
-        mapper = new ObjectMapper();
+        sutMapper = new ObjectMapper();
         SimpleModule module = new SimpleModule();
         module.addDeserializer(Record.class, new RecordJSONSerde.Deserializer());
         module.addSerializer(Record.class, new RecordJSONSerde.Serializer());
-        mapper.registerModule(module);
+        sutMapper.registerModule(module);
 
-        serde = new RecordJSONSerde();
+        sutSerde = new RecordJSONSerde();
     }
 
     private byte[] jsonWithAllFields() throws UnsupportedEncodingException {
@@ -74,7 +74,7 @@ public class RecordJSONSerdeTest {
         InputStream inputStream = new ByteArrayInputStream(jsonWithAllFields());
 
         // WHEN
-        Record actual = serde.read(inputStream);
+        Record actual = sutSerde.read(inputStream);
 
         // THEN
         Record expected = new Record(topic, partition, keyBytes, valueBytes, offset, timestamp, timestampType);
@@ -89,7 +89,7 @@ public class RecordJSONSerdeTest {
 
         // WHEN
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        serde.write(outputStream, record);
+        sutSerde.write(outputStream, record);
         byte[] actual = outputStream.toByteArray();
 
         // THEN
@@ -107,7 +107,7 @@ public class RecordJSONSerdeTest {
         InputStream inputStream = new ByteArrayInputStream(jsonWithAllFields());
 
         // WHEN
-        Record actual = mapper.readValue(inputStream, Record.class);
+        Record actual = sutMapper.readValue(inputStream, Record.class);
 
         // THEN
         Record expected = new Record(topic, partition, keyBytes, valueBytes, offset, timestamp, timestampType);
@@ -121,7 +121,7 @@ public class RecordJSONSerdeTest {
         InputStream inputStream = new ByteArrayInputStream(jsonWithNullKeyAndValue());
 
         // WHEN
-        Record actual = mapper.readValue(inputStream, Record.class);
+        Record actual = sutMapper.readValue(inputStream, Record.class);
 
         // THEN
         Record expected = new Record(topic, partition, null, null, offset, timestamp, timestampType);
@@ -135,7 +135,7 @@ public class RecordJSONSerdeTest {
         InputStream inputStream = new ByteArrayInputStream(jsonWithNoTimestampType());
 
         // WHEN
-        Record actual = mapper.readValue(inputStream, Record.class);
+        Record actual = sutMapper.readValue(inputStream, Record.class);
 
         // THEN
         Record expected = new Record(topic, partition, keyBytes, valueBytes, offset, null, TimestampType.NO_TIMESTAMP_TYPE);
@@ -149,7 +149,7 @@ public class RecordJSONSerdeTest {
         Record record = new Record(topic, partition, keyBytes, valueBytes, offset, timestamp, timestampType);
 
         // WHEN
-        byte[] actual = mapper.writeValueAsBytes(record);
+        byte[] actual = sutMapper.writeValueAsBytes(record);
 
         // THEN
         // NOTE: here we make some (semi-dangerous) assumptions regarding
@@ -166,7 +166,7 @@ public class RecordJSONSerdeTest {
         Record record = new Record(topic, partition, null, null, offset, timestamp, timestampType);
 
         // WHEN
-        byte[] actual = mapper.writeValueAsBytes(record);
+        byte[] actual = sutMapper.writeValueAsBytes(record);
 
         // THEN
         // NOTE: here we make some (semi-dangerous) assumptions regarding
@@ -183,7 +183,7 @@ public class RecordJSONSerdeTest {
         Record record = new Record(topic, partition, keyBytes, valueBytes, offset, null, TimestampType.NO_TIMESTAMP_TYPE);
 
         // WHEN
-        byte[] actual = mapper.writeValueAsBytes(record);
+        byte[] actual = sutMapper.writeValueAsBytes(record);
 
         // THEN
         // NOTE: here we make some (semi-dangerous) assumptions regarding
