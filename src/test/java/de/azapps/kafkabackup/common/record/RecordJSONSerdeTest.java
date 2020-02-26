@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -24,9 +25,11 @@ public class RecordJSONSerdeTest {
     private static byte[] valueBytes;
     private static String valueBase64;
     private static final String JSON_ENCODING = "UTF-8";
+    private static ObjectMapper mapper;
+    private static RecordJSONSerde serde;
 
     @BeforeClass
-    public static void setUp() throws Exception {
+    public static void beforeAll() throws Exception {
         // encoding here is not really important, we just want some bytes
         keyBytes = "test-key".getBytes("UTF-8");
         valueBytes = "test-value".getBytes("UTF-8");
@@ -35,14 +38,25 @@ public class RecordJSONSerdeTest {
         valueBase64 = Base64.getEncoder().encodeToString(valueBytes);
     }
 
+    @Before
+    public void beforeEach() throws Exception {
+        mapper = new ObjectMapper();
+        SimpleModule module = new SimpleModule();
+        module.addDeserializer(Record.class, new RecordJSONSerde.Deserializer());
+        module.addSerializer(Record.class, new RecordJSONSerde.Serializer());
+        mapper.registerModule(module);
+
+        serde = new RecordJSONSerde();
+    }
+
     @Test
     public void readTest() throws Exception {
+        // GIVEN
         // TODO: add timestamp, timestampType, and headers
         byte[] json = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"key\":\"%s\",\"value\":\"%s\"}", topic, partition, offset, keyBase64, valueBase64).getBytes(JSON_ENCODING);
         InputStream inputStream = new ByteArrayInputStream(json);
 
         // WHEN
-        RecordJSONSerde serde = new RecordJSONSerde();
         Record actual = serde.read(inputStream);
 
         // THEN
@@ -57,7 +71,6 @@ public class RecordJSONSerdeTest {
 
         // WHEN
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        RecordJSONSerde serde = new RecordJSONSerde();
         serde.write(outputStream, record);
 
         // THEN
@@ -78,10 +91,6 @@ public class RecordJSONSerdeTest {
         InputStream inputStream = new ByteArrayInputStream(json);
 
         // WHEN
-        ObjectMapper mapper = new ObjectMapper();
-        SimpleModule module = new SimpleModule();
-        module.addDeserializer(Record.class, new RecordJSONSerde.Deserializer());
-        mapper.registerModule(module);
         Record actual = mapper.readValue(inputStream, Record.class);
 
         // THEN
@@ -97,10 +106,6 @@ public class RecordJSONSerdeTest {
         InputStream inputStream = new ByteArrayInputStream(json);
 
         // WHEN
-        ObjectMapper mapper = new ObjectMapper();
-        SimpleModule module = new SimpleModule();
-        module.addDeserializer(Record.class, new RecordJSONSerde.Deserializer());
-        mapper.registerModule(module);
         Record actual = mapper.readValue(inputStream, Record.class);
 
         // THEN
@@ -114,21 +119,14 @@ public class RecordJSONSerdeTest {
         Record record = new Record(topic, partition, keyBytes, valueBytes, offset);
 
         // WHEN
-        ObjectMapper mapper = new ObjectMapper();
-        SimpleModule module = new SimpleModule();
-        module.addSerializer(Record.class, new RecordJSONSerde.Serializer());
-        mapper.registerModule(module);
+        byte[] actual = mapper.writeValueAsBytes(record);
 
         // THEN
-        // using Base64 as encoding here is part of our Record serialization format:
-        String keyBase64 = Base64.getEncoder().encodeToString(keyBytes);
-        String valueBase64 = Base64.getEncoder().encodeToString(valueBytes);
         // TODO: add timestamp, timestampType, and headers
         // NOTE: here we make some (semi-dangerous) assumptions regarding
         // - deterministic key ordering, and
         // - compact formatting without white-space
         byte[] expected = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"key\":\"%s\",\"value\":\"%s\"}", topic, partition, offset, keyBase64, valueBase64).getBytes(JSON_ENCODING);
-        byte[] actual = mapper.writeValueAsBytes(record);
         Assert.assertArrayEquals(expected, actual);
     }
 
@@ -138,10 +136,7 @@ public class RecordJSONSerdeTest {
         Record record = new Record(topic, partition, null, null, offset);
 
         // WHEN
-        ObjectMapper mapper = new ObjectMapper();
-        SimpleModule module = new SimpleModule();
-        module.addSerializer(Record.class, new RecordJSONSerde.Serializer());
-        mapper.registerModule(module);
+        byte[] actual = mapper.writeValueAsBytes(record);
 
         // THEN
         // TODO: add timestamp, timestampType, and headers
@@ -149,9 +144,7 @@ public class RecordJSONSerdeTest {
         // - deterministic key ordering, and
         // - compact formatting without white-space
         byte[] expected = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"key\":null,\"value\":null}", topic, partition, offset).getBytes(JSON_ENCODING);
-        byte[] actual = mapper.writeValueAsBytes(record);
         Assert.assertArrayEquals(expected, actual);
     }
-
 }
 
