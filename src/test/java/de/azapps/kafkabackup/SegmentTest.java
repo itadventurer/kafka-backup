@@ -1,6 +1,6 @@
 package de.azapps.kafkabackup;
 
-import static org.junit.Assert.assertEquals;
+// import static org.junit.Assert.assertEquals;
 
 public class SegmentTest {/*
 
