@@ -107,6 +107,8 @@ public class Record {
 	public String toString() {
 		String keyLength = (key == null) ? "null" : String.valueOf(key.length);
 		String valueLength = (value == null) ? "null" : String.valueOf(value.length);
-		return String.format("Record(%s, %d, %d, %s, %s)", topic, kafkaPartition, kafkaOffset, keyLength, valueLength);
+		String timestampTypeStr = timestampType.toString();
+		String timestampStr = (timestamp == null) ? "null" : String.valueOf(timestamp);
+		return String.format("Record{topic: %s, partition: %d, offset: %d, key: byte[%s], value: byte[%s], timestampType: %s, timestamp: %s}", topic, kafkaPartition, kafkaOffset, keyLength, valueLength, timestampTypeStr, timestampStr);
 	}
 }

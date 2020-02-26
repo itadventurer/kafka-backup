@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import org.apache.kafka.common.record.TimestampType;
 
 import java.util.Base64;
 import java.io.*;
@@ -20,6 +21,8 @@ public class RecordJSONSerde {
     private static final String TOPIC_PROPERTY = "topic";
     private static final String PARTITION_PROPERTY = "partition";
     private static final String OFFSET_PROPERTY = "offset";
+    private static final String TIMESTAMP_TYPE_PROPERTY = "timestamp_type";
+    private static final String TIMESTAMP_PROPERTY = "timestamp";
     private static final String KEY_PROPERTY = "key";
     private static final String VALUE_PROPERTY = "value";
 
@@ -54,6 +57,19 @@ public class RecordJSONSerde {
             String topic = node.get(TOPIC_PROPERTY).asText();
             int partition = node.get(PARTITION_PROPERTY).asInt();
             long offset = node.get(OFFSET_PROPERTY).asLong();
+            String timestampTypeStr = node.get(TIMESTAMP_TYPE_PROPERTY).asText(null); // Default seems to be the string "null", which is not wanted here
+            TimestampType timestampType;
+            if (timestampTypeStr != null) {
+                timestampType = TimestampType.forName(timestampTypeStr);
+            } else {
+                timestampType = TimestampType.NO_TIMESTAMP_TYPE;
+            }
+            Long timestamp; // used instead of primitive long to use it as an Optional with null as a legal value
+            if (node.hasNonNull(TIMESTAMP_PROPERTY)) {
+                timestamp = node.get(TIMESTAMP_PROPERTY).asLong();
+            } else {
+                timestamp = null;
+            }
             String keyBase64 = node.get(KEY_PROPERTY).asText(null); // Default seems to be the string "null", which is not wanted here
             String valueBase64 = node.get(VALUE_PROPERTY).asText(null);
             // TODO: parse timestamp, timstampType and headers as well
@@ -61,7 +77,7 @@ public class RecordJSONSerde {
             byte[] key = (keyBase64 == null) ? null : Base64.getDecoder().decode(keyBase64);
             byte[] value = (valueBase64 == null) ? null : Base64.getDecoder().decode(valueBase64);
 
-            return new Record(topic, partition, key, value, offset);
+            return new Record(topic, partition, key, value, offset, timestamp, timestampType);
         }
     }
 
@@ -76,6 +92,12 @@ public class RecordJSONSerde {
             jgen.writeStringField(TOPIC_PROPERTY, record.topic());
             jgen.writeNumberField(PARTITION_PROPERTY, record.kafkaPartition());
             jgen.writeNumberField(OFFSET_PROPERTY, record.kafkaOffset());
+            jgen.writeStringField(TIMESTAMP_TYPE_PROPERTY, record.timestampType().toString());
+            if (record.timestamp() != null) {
+                jgen.writeNumberField(TIMESTAMP_PROPERTY, record.timestamp());
+            } else {
+                jgen.writeNullField(TIMESTAMP_PROPERTY);
+            }
             // key and value should be base64-encoded, and jackson provides the `writeBinaryField` convenience helper.
             // see: https://javadoc.io/doc/com.fasterxml.jackson.core/jackson-core/2.10.1/index.html
             // Furthermore, its ok if they are null.

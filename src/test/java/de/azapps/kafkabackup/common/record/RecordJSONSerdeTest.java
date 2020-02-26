@@ -13,13 +13,18 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.sql.Time;
 import java.util.Base64;
+
+import org.apache.kafka.common.record.TimestampType;
 
 public class RecordJSONSerdeTest {
 
     private static final String topic = "test-topic";
     private static final int partition = 42;
     private static final long offset = 123;
+    private static final TimestampType timestampType = TimestampType.LOG_APPEND_TIME;
+    private static final Long timestamp = 573831430000L;
     private static byte[] keyBytes;
     private static String keyBase64;
     private static byte[] valueBytes;
@@ -52,98 +57,131 @@ public class RecordJSONSerdeTest {
     @Test
     public void readTest() throws Exception {
         // GIVEN
-        // TODO: add timestamp, timestampType, and headers
-        byte[] json = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"key\":\"%s\",\"value\":\"%s\"}", topic, partition, offset, keyBase64, valueBase64).getBytes(JSON_ENCODING);
+        // TODO: add headers
+        byte[] json = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"timestamp_type\":\"%s\",\"timestamp\":%d,\"key\":\"%s\",\"value\":\"%s\"}", topic, partition, offset, timestampType, timestamp, keyBase64, valueBase64).getBytes(JSON_ENCODING);
         InputStream inputStream = new ByteArrayInputStream(json);
 
         // WHEN
         Record actual = serde.read(inputStream);
 
         // THEN
-        Record expected = new Record(topic, partition, keyBytes, valueBytes, offset);
+        Record expected = new Record(topic, partition, keyBytes, valueBytes, offset, timestamp, timestampType);
         assertEquals(expected, actual);
     }
 
     @Test
     public void writeTest() throws Exception {
         // GIVEN
-        Record record = new Record(topic, partition, keyBytes, valueBytes, offset);
+        // TODO: add headers
+        Record record = new Record(topic, partition, keyBytes, valueBytes, offset, timestamp, timestampType);
 
         // WHEN
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         serde.write(outputStream, record);
+        byte[] actual = outputStream.toByteArray();
 
         // THEN
         // NOTE: here we make some (semi-dangerous) assumptions regarding
         // - deterministic key ordering, and
         // - compact formatting without white-space
-        // TODO: add timestamp, timestampType, and headers
-        byte[] expected = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"key\":\"%s\",\"value\":\"%s\"}", topic, partition, offset, keyBase64, valueBase64).getBytes(JSON_ENCODING);
-        byte[] actual = outputStream.toByteArray();
+        byte[] expected = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"timestamp_type\":\"%s\",\"timestamp\":%d,\"key\":\"%s\",\"value\":\"%s\"}", topic, partition, offset, timestampType, timestamp, keyBase64, valueBase64).getBytes(JSON_ENCODING);
         assertArrayEquals(expected, actual);
     }
 
     @Test
     public void deserializeTest() throws Exception {
         // GIVEN
-        // TODO: add timestamp, timestampType, and headers
-        byte[] json = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"key\":\"%s\",\"value\":\"%s\"}", topic, partition, offset, keyBase64, valueBase64).getBytes(JSON_ENCODING);
+        // TODO: add headers
+        byte[] json = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"timestamp_type\":\"%s\",\"timestamp\":%d,\"key\":\"%s\",\"value\":\"%s\"}", topic, partition, offset, timestampType, timestamp, keyBase64, valueBase64).getBytes(JSON_ENCODING);
         InputStream inputStream = new ByteArrayInputStream(json);
 
         // WHEN
         Record actual = mapper.readValue(inputStream, Record.class);
 
         // THEN
-        Record expected = new Record(topic, partition, keyBytes, valueBytes, offset);
+        Record expected = new Record(topic, partition, keyBytes, valueBytes, offset, timestamp, timestampType);
         assertEquals(expected, actual);
     }
 
     @Test
     public void deserializeTestNullKeyAndValue() throws Exception {
         // GIVEN
-        // TODO: add timestamp, timestampType, and headers
-        byte[] json = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"key\":null,\"value\":null}", topic, partition, offset).getBytes(JSON_ENCODING);
+        // TODO: add headers
+        byte[] json = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"timestamp_type\":\"%s\",\"timestamp\":%d,\"key\":null,\"value\":null}", topic, partition, offset, timestampType, timestamp).getBytes(JSON_ENCODING);
         InputStream inputStream = new ByteArrayInputStream(json);
 
         // WHEN
         Record actual = mapper.readValue(inputStream, Record.class);
 
         // THEN
-        Record expected = new Record(topic, partition, null, null, offset);
+        Record expected = new Record(topic, partition, null, null, offset, timestamp, timestampType);
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    public void deserializeTestNoTimestampType() throws Exception {
+        // GIVEN
+        // TODO: add headers
+        TimestampType noTimestampType = TimestampType.NO_TIMESTAMP_TYPE;
+        byte[] json = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"timestamp_type\":\"%s\",\"timestamp\":null,\"key\":null,\"value\":null}", topic, partition, offset, noTimestampType).getBytes(JSON_ENCODING);
+        InputStream inputStream = new ByteArrayInputStream(json);
+
+        // WHEN
+        Record actual = mapper.readValue(inputStream, Record.class);
+
+        // THEN
+        Record expected = new Record(topic, partition, null, null, offset, null, noTimestampType);
         assertEquals(expected, actual);
     }
 
     @Test
     public void serializeTest() throws Exception {
         // GIVEN
-        Record record = new Record(topic, partition, keyBytes, valueBytes, offset);
+        // TODO: add headers
+        Record record = new Record(topic, partition, keyBytes, valueBytes, offset, timestamp, timestampType);
 
         // WHEN
         byte[] actual = mapper.writeValueAsBytes(record);
 
         // THEN
-        // TODO: add timestamp, timestampType, and headers
         // NOTE: here we make some (semi-dangerous) assumptions regarding
         // - deterministic key ordering, and
         // - compact formatting without white-space
-        byte[] expected = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"key\":\"%s\",\"value\":\"%s\"}", topic, partition, offset, keyBase64, valueBase64).getBytes(JSON_ENCODING);
+        byte[] expected = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"timestamp_type\":\"%s\",\"timestamp\":%d,\"key\":\"%s\",\"value\":\"%s\"}", topic, partition, offset, timestampType, timestamp, keyBase64, valueBase64).getBytes(JSON_ENCODING);
         assertArrayEquals(expected, actual);
     }
 
     @Test
     public void serializeTestNullKeyAndValue() throws Exception {
         // GIVEN
+        // TODO: add headers
+        Record record = new Record(topic, partition, null, null, offset, timestamp, timestampType);
+
+        // WHEN
+        byte[] actual = mapper.writeValueAsBytes(record);
+
+        // THEN
+        // NOTE: here we make some (semi-dangerous) assumptions regarding
+        // - deterministic key ordering, and
+        // - compact formatting without white-space
+        byte[] expected = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"timestamp_type\":\"%s\",\"timestamp\":%d,\"key\":null,\"value\":null}", topic, partition, offset, timestampType, timestamp).getBytes(JSON_ENCODING);
+        assertArrayEquals(expected, actual);
+    }
+
+    @Test
+    public void serializeTestNoTimestampType() throws Exception {
+        // GIVEN
+        // TODO: add headers
         Record record = new Record(topic, partition, null, null, offset);
 
         // WHEN
         byte[] actual = mapper.writeValueAsBytes(record);
 
         // THEN
-        // TODO: add timestamp, timestampType, and headers
         // NOTE: here we make some (semi-dangerous) assumptions regarding
         // - deterministic key ordering, and
         // - compact formatting without white-space
-        byte[] expected = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"key\":null,\"value\":null}", topic, partition, offset).getBytes(JSON_ENCODING);
+        byte[] expected = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"timestamp_type\":\"%s\",\"timestamp\":null,\"key\":null,\"value\":null}", topic, partition, offset, TimestampType.NO_TIMESTAMP_TYPE).getBytes(JSON_ENCODING);
         assertArrayEquals(expected, actual);
     }
 }
