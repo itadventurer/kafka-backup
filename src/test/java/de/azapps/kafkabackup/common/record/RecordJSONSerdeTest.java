@@ -3,12 +3,12 @@ package de.azapps.kafkabackup.common.record;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -28,7 +28,7 @@ public class RecordJSONSerdeTest {
     private static ObjectMapper mapper;
     private static RecordJSONSerde serde;
 
-    @BeforeClass
+    @BeforeAll
     public static void beforeAll() throws Exception {
         // encoding here is not really important, we just want some bytes
         keyBytes = "test-key".getBytes("UTF-8");
@@ -38,7 +38,7 @@ public class RecordJSONSerdeTest {
         valueBase64 = Base64.getEncoder().encodeToString(valueBytes);
     }
 
-    @Before
+    @BeforeEach
     public void beforeEach() throws Exception {
         mapper = new ObjectMapper();
         SimpleModule module = new SimpleModule();
@@ -80,7 +80,7 @@ public class RecordJSONSerdeTest {
         // TODO: add timestamp, timestampType, and headers
         byte[] expected = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"key\":\"%s\",\"value\":\"%s\"}", topic, partition, offset, keyBase64, valueBase64).getBytes(JSON_ENCODING);
         byte[] actual = outputStream.toByteArray();
-        Assert.assertArrayEquals(expected, actual);
+        assertArrayEquals(expected, actual);
     }
 
     @Test
@@ -110,7 +110,7 @@ public class RecordJSONSerdeTest {
 
         // THEN
         Record expected = new Record(topic, partition, null, null, offset);
-        Assert.assertEquals(expected, actual);
+        assertEquals(expected, actual);
     }
 
     @Test
@@ -127,7 +127,7 @@ public class RecordJSONSerdeTest {
         // - deterministic key ordering, and
         // - compact formatting without white-space
         byte[] expected = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"key\":\"%s\",\"value\":\"%s\"}", topic, partition, offset, keyBase64, valueBase64).getBytes(JSON_ENCODING);
-        Assert.assertArrayEquals(expected, actual);
+        assertArrayEquals(expected, actual);
     }
 
     @Test
@@ -144,7 +144,7 @@ public class RecordJSONSerdeTest {
         // - deterministic key ordering, and
         // - compact formatting without white-space
         byte[] expected = String.format("{\"topic\":\"%s\",\"partition\":%d,\"offset\":%d,\"key\":null,\"value\":null}", topic, partition, offset).getBytes(JSON_ENCODING);
-        Assert.assertArrayEquals(expected, actual);
+        assertArrayEquals(expected, actual);
     }
 }
 
