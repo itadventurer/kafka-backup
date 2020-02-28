@@ -46,7 +46,9 @@ public class PartitionReader {
         partitionIndex.seek(offset);
         String segmentFilePrefix = partitionIndex.readFileName();
         currentSegment = new SegmentReader(topic, partition, topicDir, segmentFilePrefix);
-        currentSegment.seek(offset);
+        if (new java.io.File(topicDir.toFile(), segmentFilePrefix).length() != 0) {
+        	currentSegment.seek(offset);
+        }
     }
 
     public boolean hasMoreData() throws IOException {
