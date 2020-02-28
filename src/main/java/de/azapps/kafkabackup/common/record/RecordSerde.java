@@ -56,34 +56,36 @@ public class RecordSerde {
             timestamp = null;
         }
         int keyLength = dataStream.readInt();
-        byte[] key;
-        if (keyLength == 0) {
-            key = null;
-        } else {
+        byte[] key = null;
+        if (keyLength >= 0) {
             key = new byte[keyLength];
             dataStream.read(key);
         }
 
         int valueLength = dataStream.readInt();
-        byte[] value;
-        if (valueLength == -1) {
-            value = null;
-        } else if (valueLength == 0) {
-            value = new byte[0];
-        } else {
+        byte[] value = null;
+        if (valueLength >= 0) {
             value = new byte[valueLength];
             dataStream.read(value);
         }
         int headerCount = dataStream.readInt();
         Headers headers = new ConnectHeaders();
         for (int i = 0; i < headerCount; i++) {
+            // Key
             int headerKeyLength = dataStream.readInt();
+            if (headerKeyLength < 0) {
+                throw new RuntimeException("Invalid negative header key size " + headerKeyLength);
+            }
             byte[] headerKeyBytes = new byte[headerKeyLength];
             dataStream.read(headerKeyBytes);
             String headerKey = new String(headerKeyBytes, StandardCharsets.UTF_8);
+            // Value
             int headerValueLength = dataStream.readInt();
-            byte[] headerValue = new byte[headerValueLength];
-            dataStream.read(headerValue);
+            byte[] headerValue = null;
+            if (headerValueLength > 0) {
+                headerValue = new byte[headerValueLength];
+                dataStream.read(headerValue);
+            }
             Header header = new ConnectHeader(headerKey, new SchemaAndValue(Schema.BYTES_SCHEMA, headerValue));
             headers.add(header);
         }
@@ -103,24 +105,26 @@ public class RecordSerde {
             dataStream.writeInt(record.key().length);
             dataStream.write(record.key());
         } else {
-            dataStream.writeInt(0);
-        }
-        if (record.value() == null) {
             dataStream.writeInt(-1);
-        } else if (record.value().length == 0) {
-            dataStream.writeInt(0);
-        } else {
+        }
+        if (record.value() != null) {
             dataStream.writeInt(record.value().length);
             dataStream.write(record.value());
+        } else {
+            dataStream.writeInt(-1);
         }
         dataStream.writeInt(record.headers().size());
         for (Header header : record.headers()) {
             byte[] headerKeyBytes = header.key().getBytes(StandardCharsets.UTF_8);
             dataStream.writeInt(headerKeyBytes.length);
             dataStream.write(headerKeyBytes);
-            byte[] headerValueBytes = converter.fromConnectData(record.topic(), header.schema(), header.value());
-            dataStream.writeInt(headerValueBytes.length);
-            dataStream.write(headerValueBytes);
+            if (header.value() != null) {
+                byte[] headerValueBytes = converter.fromConnectData(record.topic(), header.schema(), header.value());
+                dataStream.writeInt(headerValueBytes.length);
+                dataStream.write(headerValueBytes);
+            } else {
+                dataStream.writeInt(-1);
+            }
         }
     }
 }
