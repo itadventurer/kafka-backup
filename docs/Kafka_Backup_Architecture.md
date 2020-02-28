@@ -195,9 +195,9 @@ Each entry is of the following form:
 | 64               | `offset`        | `int64`           | The offset of the record in the source Kafka cluster                           |
 | 32               | `timestampType` | `int32`           | Type of the timestamp: `-1`: no timestamp, `0`: CreateTime, `1`: LogAppendTime |
 | 0 or 64          | `timestamp`     | `optional<int64>` | Timestamp if exists                                                            |
-| 32               | `keyLength`     | `int32`           | bit-length of the record key                                                   |
+| 32               | `keyLength`     | `int32`           | byte-length of the record key  `-1` if the key is `null`                       |
 | `keyLength`      | `key`           | `byte[]`          | key (not interpreted in any way)                                               |
-| 32               | `valueLength`   | `int32`           | bit-length of the record value                                                 |
+| 32               | `valueLength`   | `int32`           | byte-length of the record value. `-1` if the value is `null`                   |
 | `valueLength`    | `value`         | `byte[]`          | value (not interpreted in any way)                                             |
 | 32               | `headerSize`    | `int32`           | number of headers of the record                                                |
 | calculated       | `headers`       | `Header[]`        | Concatenated headers of the record                                             |
@@ -206,12 +206,12 @@ Each entry is of the following form:
 
 Each header is of the following form:
 
-| Length (in bits)    | Name                | Data Type | Comment                            |
-|---------------------|---------------------|-----------|------------------------------------|
-| 32                  | `headerKeyLength`   | `int32`   | bit-length of the header key       |
-| `headerKeyLength`   | `headerKey`         | `byte[]`  | key (not interpreted in any way)   |
-| 32                  | `headerValueLength` | `int32`   | bit-length of the header value     |
-| `headerValueLength` | `headerValue`       | `byte[]`  | value (not interpreted in any way) |
+| Length (in bits)    | Name                | Data Type | Comment                                                                               |
+|---------------------|---------------------|-----------|---------------------------------------------------------------------------------------|
+| 32                  | `headerKeyLength`   | `int32`   | byte-length of the header key. A key must not be `null`. (Althought, it can be empty) |
+| `headerKeyLength`   | `headerKey`         | `byte[]`  | key (not interpreted in any way)                                                      |
+| 32                  | `headerValueLength` | `int32`   | byte-length of the header value. `-1` if the value is `null`                          |
+| `headerValueLength` | `headerValue`       | `byte[]`  | value (not interpreted in any way)                                                    |
 
 #### Index File
 
