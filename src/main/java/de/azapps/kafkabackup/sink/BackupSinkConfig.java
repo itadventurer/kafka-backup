@@ -6,6 +6,13 @@ import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 
 class BackupSinkConfig extends AbstractConfig {
+    // Standard Kafka Connect Task configs
+    private static final String KEY_CONVERTER = "key.converter";
+    private static final String VALUE_CONVERTER = "value.converter";
+    private static final String HEADER_CONVERTER = "header.converter";
+    private static final String KAFKA_BYTE_ARRAY_CONVERTER_CLASS = "org.apache.kafka.connect.converters.ByteArrayConverter";
+
+    // Custom kafka-backup sink task configs:
     private static final String CLUSTER_PREFIX = "cluster.";
     private static final String CLUSTER_BOOTSTRAP_SERVERS = CLUSTER_PREFIX + "bootstrap.servers";
     private static final String ADMIN_CLIENT_PREFIX = "admin.";
@@ -18,6 +25,12 @@ class BackupSinkConfig extends AbstractConfig {
     private static final String STORAGE_MODE = "storage.mode";
 
     static final ConfigDef CONFIG_DEF = new ConfigDef()
+            .define(KEY_CONVERTER, ConfigDef.Type.STRING,
+                    ConfigDef.Importance.HIGH, "Standard Kafka Connect Task config, overriding the Worker default")
+            .define(VALUE_CONVERTER, ConfigDef.Type.STRING,
+                    ConfigDef.Importance.HIGH, "Standard Kafka Connect Task config, overriding the Worker default")
+            .define(HEADER_CONVERTER, ConfigDef.Type.STRING,
+                    ConfigDef.Importance.HIGH, "Standard Kafka Connect Task config, overriding the Worker default")
             .define(STORAGE_MODE, ConfigDef.Type.STRING,
                     ConfigDef.Importance.HIGH, "Where to store the backups. DISK or S3")
             .define(TARGET_DIR_CONFIG, ConfigDef.Type.STRING,
@@ -35,6 +48,18 @@ class BackupSinkConfig extends AbstractConfig {
 
     BackupSinkConfig(Map<?, ?> props) {
         super(CONFIG_DEF, props);
+        if (!(props.containsKey(KEY_CONVERTER) && getString(KEY_CONVERTER) == KAFKA_BYTE_ARRAY_CONVERTER_CLASS)) {
+            // We NEED the key to be a byte array, so don't even start if task is using some other deserializer
+            throw new RuntimeException(String.format("Configuration Variable `%s` needs to be set explicitly to `%s`", KEY_CONVERTER, KAFKA_BYTE_ARRAY_CONVERTER_CLASS));
+        }
+        if (!(props.containsKey(VALUE_CONVERTER) && getString(VALUE_CONVERTER) == KAFKA_BYTE_ARRAY_CONVERTER_CLASS)) {
+            // We NEED the value to be a byte array, so don't even start if task is using some other deserializer
+            throw new RuntimeException(String.format("Configuration Variable `%s` needs to be set explicitly to `%s`", VALUE_CONVERTER, KAFKA_BYTE_ARRAY_CONVERTER_CLASS));
+        }
+        if (!(props.containsKey(HEADER_CONVERTER) && getString(HEADER_CONVERTER) == KAFKA_BYTE_ARRAY_CONVERTER_CLASS)) {
+            // We NEED the header to be a byte array, so don't even start if task is using some other deserializer
+            throw new RuntimeException(String.format("Configuration Variable `%s` needs to be set explicitly to `%s`", HEADER_CONVERTER, KAFKA_BYTE_ARRAY_CONVERTER_CLASS));
+        }
         if (!props.containsKey(TARGET_DIR_CONFIG)) {
             throw new RuntimeException("Missing Configuration Variable: " + TARGET_DIR_CONFIG);
         }

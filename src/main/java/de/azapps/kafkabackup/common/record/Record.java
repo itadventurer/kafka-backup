@@ -9,6 +9,7 @@ import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.storage.Converter;
 
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.Objects;
 
 public class Record {
@@ -92,15 +93,53 @@ public class Record {
 
 		Record that = (Record) o;
 
-		// copy of ConnectRecord.equals
+		// alternative implementation of ConnectRecord.equals that use Headers equality by value
 		return Objects.equals(kafkaPartition(), that.kafkaPartition())
 			&& Objects.equals(topic(), that.topic())
 			&& Arrays.equals(key(), that.key())
 			&& Arrays.equals(value(), that.value())
 			&& Objects.equals(timestamp(), that.timestamp())
-			&& Objects.equals(headers(), that.headers())
+			&& headersEqualityByValue(headers(), that.headers())
 			&& Objects.equals(kafkaOffset(), that.kafkaOffset())
 			&& Objects.equals(timestampType(), that.timestampType());
+	}
+
+	private boolean headersEqualityByValue(Headers a, Headers b) {
+		// This is an alternative implementation of ConnectHeaders::equals that use proper Header equality by value
+		if (a == b) {
+			return true;
+		}
+		// Note, similar to ConnectHeaders::equals, it requires headers to have the same order
+		// (although, that is probably not what we want in most cases)
+		Iterator<Header> aIter = a.iterator();
+		Iterator<Header> bIter = b.iterator();
+		while (aIter.hasNext() && bIter.hasNext()) {
+			if (!headerEqualityByValue(aIter.next(), bIter.next()))
+				return false;
+		}
+		return !aIter.hasNext() && !bIter.hasNext();
+	}
+
+	private boolean headerEqualityByValue(Header a, Header b) {
+		// This is an alternative implementation of ConnectHeader::equals that use proper Value equality by value
+		// (even if they are byte arrays)
+		if (a == b) {
+			return true;
+		}
+		if (!Objects.equals(a.key(), b.key())) {
+			return false;
+		}
+		if (!Objects.equals(a.schema(), b.schema())) {
+			return false;
+		}
+		try {
+			// This particular case is not handled by ConnectHeader::equals
+			byte[] aBytes = (byte[]) a.value();
+			byte[] bBytes = (byte[]) b.value();
+			return Arrays.equals(aBytes, bBytes);
+		} catch (ClassCastException e) {
+			return Objects.equals(a.value(), b.value());
+		}
 	}
 
 	@Override
@@ -109,6 +148,6 @@ public class Record {
 		String valueLength = (value == null) ? "null" : String.valueOf(value.length);
 		String timestampTypeStr = timestampType.toString();
 		String timestampStr = (timestamp == null) ? "null" : String.valueOf(timestamp);
-		return String.format("Record{topic: %s, partition: %d, offset: %d, key: byte[%s], value: byte[%s], timestampType: %s, timestamp: %s}", topic, kafkaPartition, kafkaOffset, keyLength, valueLength, timestampTypeStr, timestampStr);
+		return String.format("Record{topic: %s, partition: %d, offset: %d, key: byte[%s], value: byte[%s], timestampType: %s, timestamp: %s, headers: %s}", topic, kafkaPartition, kafkaOffset, keyLength, valueLength, timestampTypeStr, timestampStr, headers);
 	}
 }
