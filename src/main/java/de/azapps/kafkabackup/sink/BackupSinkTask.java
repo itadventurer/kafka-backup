@@ -6,8 +6,8 @@ import de.azapps.kafkabackup.common.offset.S3OffsetSink;
 import de.azapps.kafkabackup.common.partition.PartitionException;
 import de.azapps.kafkabackup.common.partition.PartitionWriter;
 import de.azapps.kafkabackup.common.partition.cloud.S3PartitionWriter;
-import de.azapps.kafkabackup.common.partition.disk.PartitionIndex;
 import de.azapps.kafkabackup.common.partition.disk.DiskPartitionWriter;
+import de.azapps.kafkabackup.common.partition.disk.PartitionIndex;
 import de.azapps.kafkabackup.common.record.Record;
 import de.azapps.kafkabackup.common.segment.SegmentIndex;
 import de.azapps.kafkabackup.storage.s3.AwsS3Service;
@@ -53,7 +53,7 @@ public class BackupSinkTask extends SinkTask {
 
         switch (config.storageMode()) {
             case S3:
-                offsetSink = new S3OffsetSink(config.bucketName(), adminClient);
+                offsetSink = new S3OffsetSink(config.bucketName(), adminClient, awsS3Service);
                 bucketName = config.bucketName();
                 awsS3Service = new AwsS3Service(config.region(), config.endpoint(), config.pathStyleAccessEnabled());
                 break;

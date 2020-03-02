@@ -48,6 +48,10 @@ public class AwsS3Service {
     return putObject(new PutObjectRequest(bucketName, fileKey, inputStream, metadata));
   }
 
+  public boolean checkIfObjectExists(String bucketName, String objectName) {
+    return s3Client.doesObjectExist(bucketName, objectName);
+  }
+
   private S3Object getObject(GetObjectRequest getObjectRequest) {
     try {
       return s3Client.getObject(getObjectRequest);
