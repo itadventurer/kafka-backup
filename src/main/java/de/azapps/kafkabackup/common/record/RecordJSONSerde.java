@@ -15,6 +15,7 @@ import org.apache.kafka.common.record.TimestampType;
 
 import java.util.Base64;
 import java.io.*;
+import java.util.Optional;
 
 public class RecordJSONSerde {
     private ObjectMapper mapper;
@@ -42,10 +43,6 @@ public class RecordJSONSerde {
         mapper.writeValue(outputStream, record);
     }
 
-    public String writeValueAsString(Record record) throws JsonProcessingException {
-        return mapper.writeValueAsString(record);
-    }
-
     public static class Deserializer extends StdDeserializer<Record> {
         public Deserializer() {
             super(Record.class);
@@ -57,22 +54,17 @@ public class RecordJSONSerde {
             String topic = node.get(TOPIC_PROPERTY).asText();
             int partition = node.get(PARTITION_PROPERTY).asInt();
             long offset = node.get(OFFSET_PROPERTY).asLong();
-            String timestampTypeStr = node.get(TIMESTAMP_TYPE_PROPERTY).asText(null); // Default seems to be the string "null", which is not wanted here
-            TimestampType timestampType;
-            if (timestampTypeStr != null) {
-                timestampType = TimestampType.forName(timestampTypeStr);
-            } else {
-                timestampType = TimestampType.NO_TIMESTAMP_TYPE;
-            }
-            Long timestamp; // used instead of primitive long to use it as an Optional with null as a legal value
-            if (node.hasNonNull(TIMESTAMP_PROPERTY)) {
-                timestamp = node.get(TIMESTAMP_PROPERTY).asLong();
-            } else {
-                timestamp = null;
-            }
+            String timestampTypeNullableString = node.get(TIMESTAMP_TYPE_PROPERTY).asText(null); // Default seems to be the string "null", which is not wanted here
+            TimestampType timestampType = Optional.ofNullable(timestampTypeNullableString)
+                    .map(TimestampType::forName)
+                    .orElse(TimestampType.NO_TIMESTAMP_TYPE);
+
+            // `Long` used instead of primitive `long` to use it as a kind of "optional" with null as a legal value
+            Long timestamp = (node.hasNonNull(TIMESTAMP_PROPERTY)) ? (Long) node.get(TIMESTAMP_PROPERTY).asLong() : null;
+
             String keyBase64 = node.get(KEY_PROPERTY).asText(null); // Default seems to be the string "null", which is not wanted here
             String valueBase64 = node.get(VALUE_PROPERTY).asText(null);
-            // TODO: parse timestamp, timstampType and headers as well
+            // TODO: parse headers as well
             // TODO: is getting a decoder expensive?
             byte[] key = (keyBase64 == null) ? null : Base64.getDecoder().decode(keyBase64);
             byte[] value = (valueBase64 == null) ? null : Base64.getDecoder().decode(valueBase64);
