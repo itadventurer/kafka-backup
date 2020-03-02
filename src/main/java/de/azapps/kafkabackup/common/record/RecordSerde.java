@@ -15,12 +15,12 @@ import java.nio.charset.StandardCharsets;
 /**
  * Record Format:
  * offset: int64
- * timestamp: int64
  * timestampType: int32
+ * [timestamp: int64] if timestampType != NO_TIMESTAMP_TYPE
  * keyLength: int32
- * key: byte[keyLength]
+ * [key: byte[keyLength]] if keyLength >= 0
  * valueLength: int32
- * value: byte[valueLength]
+ * [value: byte[valueLength]] if valueLength >= 0
  * headerCount: int32
  * headers: Header[headerCount]
  * <p>
@@ -28,7 +28,7 @@ import java.nio.charset.StandardCharsets;
  * headerKeyLength: int32
  * headerKey: byte[headerKeyLength]
  * headerValueLength: int32
- * headerValue: byte[headerValueLength]
+ * [headerValue: byte[headerValueLength]] if headerValueLength >= 0
  */
 public class RecordSerde {
     public static Record read(String topic, int partition, InputStream inputStream) throws IOException {
