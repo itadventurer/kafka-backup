@@ -1,58 +1,30 @@
 package de.azapps.kafkabackup.common.offset;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.ConsumerGroupListing;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.connect.errors.RetriableException;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.connect.errors.RetriableException;
 
-public class DiskOffsetSink implements OffsetSink {
+public class DiskOffsetSink extends OffsetSink {
     private final Path targetDir;
     private Map<TopicPartition, OffsetStoreFile> topicOffsets = new HashMap<>();
-    private List<String> consumerGroups = new ArrayList<>();
     private AdminClient adminClient;
 
     public DiskOffsetSink(AdminClient adminClient, Path targetDir) {
+        super(adminClient);
         this.adminClient = adminClient;
         this.targetDir = targetDir;
     }
 
-    public void syncConsumerGroups() {
-        try {
-            consumerGroups = adminClient.listConsumerGroups().all().get().stream().map(ConsumerGroupListing::groupId).collect(Collectors.toList());
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RetriableException(e);
-        }
-    }
-
-    public void syncOffsets() {
-        boolean error = false;
-        for (String consumerGroup : consumerGroups) {
-            try {
-                syncOffsetsForGroup(consumerGroup);
-            } catch (IOException e) {
-                e.printStackTrace();
-                error = true;
-            }
-        }
-        if (error) {
-            throw new RuntimeException("syncOffsets() threw an IOException");
-        }
-    }
-
-    private void syncOffsetsForGroup(String consumerGroup) throws IOException {
+    public void syncOffsetsForGroup(String consumerGroup) throws IOException {
         Map<TopicPartition, OffsetAndMetadata> topicOffsetsAndMetadata;
         try {
             topicOffsetsAndMetadata = adminClient.listConsumerGroupOffsets(consumerGroup).partitionsToOffsetAndMetadata().get();

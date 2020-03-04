@@ -7,58 +7,28 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.ConsumerGroupListing;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.errors.RetriableException;
 
-@RequiredArgsConstructor
-public class S3OffsetSink implements OffsetSink {
+public class S3OffsetSink extends OffsetSink {
     private final String bucketName;
     private final AdminClient adminClient;
     private final AwsS3Service awsS3Service;
 
     private Map<TopicPartition, OffsetStoreS3File> topicOffsets = new HashMap<>();
-    private List<String> consumerGroups;
 
-    public void syncConsumerGroups() {
-        try {
-            consumerGroups = adminClient.listConsumerGroups()
-                .all().get().stream()
-                .map(ConsumerGroupListing::groupId)
-                .collect(Collectors.toList());
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RetriableException(e);
-        }
+    public S3OffsetSink(AdminClient adminClient, String bucketName, AwsS3Service awsS3Service) {
+        super(adminClient);
+        this.bucketName = bucketName;
+        this.adminClient = adminClient;
+        this.awsS3Service = awsS3Service;
     }
 
-    public void syncOffsets() {
-        List<String> listOfExecutionExceptions = consumerGroups.stream()
-            .flatMap(consumerGroup -> {
-                try {
-                    syncOffsetsForGroup(consumerGroup);
-                    return Stream.empty();
-                } catch (IOException e) {
-                    return Stream.of(e);
-                }
-            })
-            .map(Throwable::getMessage)
-            .collect(Collectors.toList());
-
-        if(!listOfExecutionExceptions.isEmpty()) {
-            throw new RuntimeException("At least one exception was caught when trying to sync consumer groups offsets: "
-                + String.join("; ", listOfExecutionExceptions));
-        }
-    }
-
-    private void syncOffsetsForGroup(String consumerGroup) throws IOException {
+    public void syncOffsetsForGroup(String consumerGroup) throws IOException {
         Map<TopicPartition, OffsetAndMetadata> topicOffsetsAndMetadata;
         try {
             topicOffsetsAndMetadata = adminClient

@@ -53,9 +53,9 @@ public class BackupSinkTask extends SinkTask {
 
         switch (config.storageMode()) {
             case S3:
-                offsetSink = new S3OffsetSink(config.bucketName(), adminClient, awsS3Service);
-                bucketName = config.bucketName();
                 awsS3Service = new AwsS3Service(config.region(), config.endpoint(), config.pathStyleAccessEnabled());
+                bucketName = config.bucketName();
+                offsetSink = new S3OffsetSink(adminClient, bucketName, awsS3Service);
                 break;
             case DISK:
                 targetDir = Paths.get(config.targetDir());
