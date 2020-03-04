@@ -15,12 +15,12 @@ import java.nio.charset.StandardCharsets;
 /**
  * Record Format:
  * offset: int64
- * timestamp: int64
  * timestampType: int32
+ * [timestamp: int64] if timestampType != NO_TIMESTAMP_TYPE
  * keyLength: int32
- * key: byte[keyLength]
+ * [key: byte[keyLength]] if keyLength >= 0
  * valueLength: int32
- * value: byte[valueLength]
+ * [value: byte[valueLength]] if valueLength >= 0
  * headerCount: int32
  * headers: Header[headerCount]
  * <p>
@@ -28,7 +28,7 @@ import java.nio.charset.StandardCharsets;
  * headerKeyLength: int32
  * headerKey: byte[headerKeyLength]
  * headerValueLength: int32
- * headerValue: byte[headerValueLength]
+ * [headerValue: byte[headerValueLength]] if headerValueLength >= 0
  */
 public class RecordSerde {
     public static Record read(String topic, int partition, InputStream inputStream) throws IOException {
@@ -56,32 +56,36 @@ public class RecordSerde {
             timestamp = null;
         }
         int keyLength = dataStream.readInt();
-        byte[] key;
-        if (keyLength == 0) {
-            key = null;
-        } else {
+        byte[] key = null;
+        if (keyLength >= 0) {
             key = new byte[keyLength];
             dataStream.read(key);
         }
 
         int valueLength = dataStream.readInt();
-        byte[] value;
-        if (valueLength == 0) {
-            value = null;
-        } else {
+        byte[] value = null;
+        if (valueLength >= 0) {
             value = new byte[valueLength];
             dataStream.read(value);
         }
         int headerCount = dataStream.readInt();
         Headers headers = new ConnectHeaders();
         for (int i = 0; i < headerCount; i++) {
+            // Key
             int headerKeyLength = dataStream.readInt();
+            if (headerKeyLength < 0) {
+                throw new RuntimeException("Invalid negative header key size " + headerKeyLength);
+            }
             byte[] headerKeyBytes = new byte[headerKeyLength];
             dataStream.read(headerKeyBytes);
             String headerKey = new String(headerKeyBytes, StandardCharsets.UTF_8);
+            // Value
             int headerValueLength = dataStream.readInt();
-            byte[] headerValue = new byte[headerValueLength];
-            dataStream.read(headerValue);
+            byte[] headerValue = null;
+            if (headerValueLength >= 0) {
+                headerValue = new byte[headerValueLength];
+                dataStream.read(headerValue);
+            }
             Header header = new ConnectHeader(headerKey, new SchemaAndValue(Schema.BYTES_SCHEMA, headerValue));
             headers.add(header);
         }
@@ -101,24 +105,26 @@ public class RecordSerde {
             dataStream.writeInt(record.key().length);
             dataStream.write(record.key());
         } else {
-            dataStream.writeInt(0);
+            dataStream.writeInt(-1);
         }
-
         if (record.value() != null) {
             dataStream.writeInt(record.value().length);
             dataStream.write(record.value());
-        }
-        else {
-            dataStream.writeInt(0);
+        } else {
+            dataStream.writeInt(-1);
         }
         dataStream.writeInt(record.headers().size());
         for (Header header : record.headers()) {
             byte[] headerKeyBytes = header.key().getBytes(StandardCharsets.UTF_8);
             dataStream.writeInt(headerKeyBytes.length);
             dataStream.write(headerKeyBytes);
-            byte[] headerValueBytes = converter.fromConnectData(record.topic(), header.schema(), header.value());
-            dataStream.writeInt(headerValueBytes.length);
-            dataStream.write(headerValueBytes);
+            if (header.value() != null) {
+                byte[] headerValueBytes = converter.fromConnectData(record.topic(), header.schema(), header.value());
+                dataStream.writeInt(headerValueBytes.length);
+                dataStream.write(headerValueBytes);
+            } else {
+                dataStream.writeInt(-1);
+            }
         }
     }
 }
