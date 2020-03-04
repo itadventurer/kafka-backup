@@ -82,7 +82,7 @@ public class RecordSerde {
             // Value
             int headerValueLength = dataStream.readInt();
             byte[] headerValue = null;
-            if (headerValueLength > 0) {
+            if (headerValueLength >= 0) {
                 headerValue = new byte[headerValueLength];
                 dataStream.read(headerValue);
             }
