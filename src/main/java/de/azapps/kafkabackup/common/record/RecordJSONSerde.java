@@ -77,13 +77,15 @@ public class RecordJSONSerde {
             byte[] value = (valueBase64 == null) ? null : Base64.getDecoder().decode(valueBase64);
 
             // Parse headers using registered deserializer
-            JsonNode headersNode = node.findValue(HEADERS_PROPERTY);
-            ConnectHeaders headers;
-            if (headersNode != null) {
-                headers = headersNode.traverse(jp.getCodec()).readValueAs(ConnectHeaders.class);
-            } else {
-                headers = new ConnectHeaders();
-            }
+            ConnectHeaders headers = Optional.ofNullable(node.findValue(HEADERS_PROPERTY))
+                    .map(n -> {
+                        try {
+                            return n.traverse(jp.getCodec()).readValueAs(ConnectHeaders.class);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    })
+                    .orElseGet(ConnectHeaders::new);
 
             return new Record(topic, partition, key, value, offset, timestamp, timestampType, headers);
         }
