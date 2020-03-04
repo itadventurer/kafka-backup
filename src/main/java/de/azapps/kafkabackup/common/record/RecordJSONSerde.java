@@ -80,7 +80,7 @@ public class RecordJSONSerde {
             JsonNode headersNode = node.findValue(HEADERS_PROPERTY);
             ConnectHeaders headers;
             if (headersNode != null) {
-                headers = node.findValue(HEADERS_PROPERTY).traverse(jp.getCodec()).readValueAs(ConnectHeaders.class);
+                headers = headersNode.traverse(jp.getCodec()).readValueAs(ConnectHeaders.class);
             } else {
                 headers = new ConnectHeaders();
             }

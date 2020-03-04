@@ -48,15 +48,15 @@ class BackupSinkConfig extends AbstractConfig {
 
     BackupSinkConfig(Map<?, ?> props) {
         super(CONFIG_DEF, props);
-        if (!(props.containsKey(KEY_CONVERTER) && getString(KEY_CONVERTER) == KAFKA_BYTE_ARRAY_CONVERTER_CLASS)) {
+        if (!(props.containsKey(KEY_CONVERTER) && getString(KEY_CONVERTER).equals(KAFKA_BYTE_ARRAY_CONVERTER_CLASS))) {
             // We NEED the key to be a byte array, so don't even start if task is using some other deserializer
             throw new RuntimeException(String.format("Configuration Variable `%s` needs to be set explicitly to `%s`", KEY_CONVERTER, KAFKA_BYTE_ARRAY_CONVERTER_CLASS));
         }
-        if (!(props.containsKey(VALUE_CONVERTER) && getString(VALUE_CONVERTER) == KAFKA_BYTE_ARRAY_CONVERTER_CLASS)) {
+        if (!(props.containsKey(VALUE_CONVERTER) && getString(VALUE_CONVERTER).equals(KAFKA_BYTE_ARRAY_CONVERTER_CLASS))) {
             // We NEED the value to be a byte array, so don't even start if task is using some other deserializer
             throw new RuntimeException(String.format("Configuration Variable `%s` needs to be set explicitly to `%s`", VALUE_CONVERTER, KAFKA_BYTE_ARRAY_CONVERTER_CLASS));
         }
-        if (!(props.containsKey(HEADER_CONVERTER) && getString(HEADER_CONVERTER) == KAFKA_BYTE_ARRAY_CONVERTER_CLASS)) {
+        if (!(props.containsKey(HEADER_CONVERTER) && getString(HEADER_CONVERTER).equals(KAFKA_BYTE_ARRAY_CONVERTER_CLASS))) {
             // We NEED the header to be a byte array, so don't even start if task is using some other deserializer
             throw new RuntimeException(String.format("Configuration Variable `%s` needs to be set explicitly to `%s`", HEADER_CONVERTER, KAFKA_BYTE_ARRAY_CONVERTER_CLASS));
         }
