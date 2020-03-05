@@ -24,10 +24,8 @@ public class RecordJSONSerde {
         SimpleModule module = new SimpleModule();
         module.addDeserializer(Record.class, new RecordJSONDeserializer());
         module.addDeserializer(ConnectHeaders.class, new ConnectHeadersJSONDeserializer());
-        module.addDeserializer(ConnectHeader.class, new ConnectHeaderJSONDeserializer());
         module.addSerializer(Record.class, new RecordJSONSerializer());
         module.addSerializer(ConnectHeaders.class, new ConnectHeadersJSONSerializer());
-        module.addSerializer(ConnectHeader.class, new ConnectHeaderJSONSerializer());
         mapper.registerModule(module);
     }
 
