@@ -32,10 +32,12 @@ public class JSONTest {
     protected static final String header0ValueBase64 = Base64.getEncoder().encodeToString(header0ValueBytes);
     protected static final String header1ValueBase64 = Base64.getEncoder().encodeToString(header1ValueBytes);
     // header2Value has no base64 encoding
-    protected static final ConnectHeader header0 = new ConnectHeader(header0Key, new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, header0ValueBytes));
-    protected static final ConnectHeader header1 = new ConnectHeader(header1Key, new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, header1ValueBytes));
-    protected static final ConnectHeader header2 = new ConnectHeader(header2Key, new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, header2ValueBytes));
-    protected static final ConnectHeaders headers = new ConnectHeaders(Arrays.asList((new ConnectHeader[]{header0, header1, header2})));
+    protected static final ConnectHeaders headers = new ConnectHeaders();
+    static {
+        headers.add(header0Key, new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, header0ValueBytes));
+        headers.add(header1Key, new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, header1ValueBytes));
+        headers.add(header2Key, new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, header2ValueBytes));
+    }
 
     protected static final Charset JSON_ENCODING = StandardCharsets.UTF_8;
 

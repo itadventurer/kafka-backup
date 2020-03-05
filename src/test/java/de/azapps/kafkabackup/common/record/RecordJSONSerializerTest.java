@@ -19,7 +19,6 @@ public class RecordJSONSerializerTest extends JSONTest {
         SimpleModule module = new SimpleModule();
         module.addSerializer(Record.class, new RecordJSONSerializer());
         module.addSerializer(ConnectHeaders.class, new ConnectHeadersJSONSerializer());
-        module.addSerializer(ConnectHeader.class, new ConnectHeaderJSONSerializer());
         sutMapper.registerModule(module);
     }
 

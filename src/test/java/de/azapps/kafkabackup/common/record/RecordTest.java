@@ -29,10 +29,12 @@ public class RecordTest {
     private static final byte[] header0ValueBytes = "header0-value".getBytes(StandardCharsets.UTF_8);
     private static final byte[] header1ValueBytes = "header1-value".getBytes(StandardCharsets.UTF_8);
     private static final byte[] header2ValueBytes = null;
-    private static final ConnectHeader header0 = new ConnectHeader(header0Key, new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, header0ValueBytes));
-    private static final ConnectHeader header1 = new ConnectHeader(header1Key, new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, header1ValueBytes));
-    private static final ConnectHeader header2 = new ConnectHeader(header2Key, new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, header2ValueBytes));
-    private static final ConnectHeaders headers = new ConnectHeaders(Arrays.asList((new ConnectHeader[]{header0, header1, header2})));
+    private static final ConnectHeaders headers = new ConnectHeaders();
+    static {
+        headers.add(header0Key, new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, header0ValueBytes));
+        headers.add(header1Key, new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, header1ValueBytes));
+        headers.add(header2Key, new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, header2ValueBytes));
+    }
 
     @Test
     public void equalsIdentityTrueTest() {
@@ -46,16 +48,16 @@ public class RecordTest {
     @Test
     public void equalsValueTrueTest() {
         // GIVEN
-        ConnectHeader aHeader0 = new ConnectHeader("header0-key", new SchemaAndValue(Schema.BYTES_SCHEMA, Arrays.copyOf(header0ValueBytes, header0ValueBytes.length)));
-        ConnectHeader aHeader1 = new ConnectHeader("header1-key", new SchemaAndValue(Schema.BYTES_SCHEMA, Arrays.copyOf(header1ValueBytes, header1ValueBytes.length)));
-        ConnectHeader aHeader2 = new ConnectHeader("header2-key", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, null));
-        ConnectHeaders aHeaders = new ConnectHeaders(Arrays.asList((new ConnectHeader[]{aHeader0, aHeader1, aHeader2})));
+        ConnectHeaders aHeaders = new ConnectHeaders();
+        aHeaders.add("header0-key", new SchemaAndValue(Schema.BYTES_SCHEMA, Arrays.copyOf(header0ValueBytes, header0ValueBytes.length)));
+        aHeaders.add("header1-key", new SchemaAndValue(Schema.BYTES_SCHEMA, Arrays.copyOf(header1ValueBytes, header1ValueBytes.length)));
+        aHeaders.add("header2-key", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, null));
         Record a = new Record(topic, partition, keyBytes, valueBytes, offset, timestamp, timestampType, aHeaders);
 
-        ConnectHeader bHeader0 = new ConnectHeader("header0-key", new SchemaAndValue(Schema.BYTES_SCHEMA, Arrays.copyOf(header0ValueBytes, header0ValueBytes.length)));
-        ConnectHeader bHeader1 = new ConnectHeader("header1-key", new SchemaAndValue(Schema.BYTES_SCHEMA, Arrays.copyOf(header1ValueBytes, header1ValueBytes.length)));
-        ConnectHeader bHeader2 = new ConnectHeader("header2-key", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, null));
-        ConnectHeaders bHeaders = new ConnectHeaders(Arrays.asList((new ConnectHeader[]{bHeader0, bHeader1, bHeader2})));
+        ConnectHeaders bHeaders = new ConnectHeaders();
+        bHeaders.add("header0-key", new SchemaAndValue(Schema.BYTES_SCHEMA, Arrays.copyOf(header0ValueBytes, header0ValueBytes.length)));
+        bHeaders.add("header1-key", new SchemaAndValue(Schema.BYTES_SCHEMA, Arrays.copyOf(header1ValueBytes, header1ValueBytes.length)));
+        bHeaders.add("header2-key", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, null));
         Record b = new Record(topic, partition, keyBytes, valueBytes, offset, timestamp, timestampType, bHeaders);
 
         // THEN
@@ -77,9 +79,13 @@ public class RecordTest {
     @Test
     public void equalsFalseBecauseHeadersStrictSubsetTest() {
         // GIVEN
-        Record a = new Record(topic, partition, keyBytes, valueBytes, offset, timestamp, timestampType, headers);
+        ConnectHeaders aHeaders = new ConnectHeaders();
+        aHeaders.add("header0-key", new SchemaAndValue(Schema.BYTES_SCHEMA, Arrays.copyOf(header0ValueBytes, header0ValueBytes.length)));
+        aHeaders.add("header1-key", new SchemaAndValue(Schema.BYTES_SCHEMA, Arrays.copyOf(header1ValueBytes, header1ValueBytes.length)));
+        Record a = new Record(topic, partition, keyBytes, valueBytes, offset, timestamp, timestampType, aHeaders);
 
-        ConnectHeaders bHeaders = new ConnectHeaders(Arrays.asList((new ConnectHeader[]{header0, header1})));
+        ConnectHeaders bHeaders = new ConnectHeaders();
+        bHeaders.add("header0-key", new SchemaAndValue(Schema.BYTES_SCHEMA, Arrays.copyOf(header0ValueBytes, header0ValueBytes.length)));
         Record b = new Record(topic, partition, keyBytes, valueBytes, offset, timestamp, timestampType, bHeaders);
 
         // THEN
