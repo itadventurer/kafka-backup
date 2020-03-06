@@ -30,9 +30,7 @@ public class RecordSerdeTest {
     // Example records
     private static Record SIMPLE_RECORD, NULL_RECORD, EMPTY_RECORD, HEADER_RECORD;
 
-
-    @BeforeAll
-    public static void init() throws Exception {
+    static {
         SIMPLE_RECORD = new Record(TOPIC, PARTITION, KEY_BYTES, VALUE_BYTES, OFFSET);
         NULL_RECORD = new Record(TOPIC, PARTITION, null, null, OFFSET);
         EMPTY_RECORD = new Record(TOPIC, PARTITION, new byte[0], new byte[0], OFFSET);
