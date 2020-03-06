@@ -11,6 +11,8 @@ import de.azapps.kafkabackup.common.partition.disk.PartitionIndex;
 import de.azapps.kafkabackup.common.record.Record;
 import de.azapps.kafkabackup.common.segment.SegmentIndex;
 import de.azapps.kafkabackup.storage.s3.AwsS3Service;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -55,7 +57,7 @@ public class BackupSinkTask extends SinkTask {
             case S3:
                 awsS3Service = new AwsS3Service(config.region(), config.endpoint(), config.pathStyleAccessEnabled());
                 bucketName = config.bucketName();
-                offsetSink = new S3OffsetSink(adminClient, bucketName, awsS3Service);
+                offsetSink = new S3OffsetSink(adminClient, bucketName, awsS3Service, config.consumerGroupsSyncInterval());
                 break;
             case DISK:
                 targetDir = Paths.get(config.targetDir());
@@ -81,20 +83,27 @@ public class BackupSinkTask extends SinkTask {
     @Override
     public void put(Collection<SinkRecord> records) {
         try {
-            for (SinkRecord sinkRecord : records) {
-                log.info("SinkRecord: {}", sinkRecord);
-                TopicPartition topicPartition = new TopicPartition(sinkRecord.topic(), sinkRecord.kafkaPartition());
-                PartitionWriter partition = partitionWriters.get(topicPartition);
-                Record record = Record.fromSinkRecord(sinkRecord);
-                log.info("Record: {}", record);
-                partition.append(record);
-                if(sinkRecord.kafkaOffset() % 100 == 0) {
-                    log.debug("Backed up Topic %s, Partition %d, up to offset %d", sinkRecord.topic(), sinkRecord.kafkaPartition(), sinkRecord.kafkaOffset());
-                }
-            }
-            // Todo: refactor to own worker. E.g. using the scheduler of MM2
+            List<TopicPartition> partitionsToSyncOffsets = records.stream()
+                .map(sinkRecord -> {
+                    log.info("SinkRecord: {}", sinkRecord);
+                    TopicPartition topicPartition = new TopicPartition(sinkRecord.topic(), sinkRecord.kafkaPartition());
+                    PartitionWriter partition = partitionWriters.get(topicPartition);
+                    Record record = Record.fromSinkRecord(sinkRecord);
+                    log.info("Record: {}", record);
+                    partition.append(record);
+                    if (sinkRecord.kafkaOffset() % 100 == 0) {
+                        log.debug("Backed up Topic %s, Partition %d, up to offset %d", sinkRecord.topic(),
+                            sinkRecord.kafkaPartition(), sinkRecord.kafkaOffset());
+                    }
+
+                    return topicPartition;
+                })
+                .distinct()
+                .collect(Collectors.toList());
+
             offsetSink.syncConsumerGroups();
-            offsetSink.syncOffsets();
+
+            offsetSink.syncOffsets(partitionsToSyncOffsets);
         } catch (PartitionException e) {
             throw new RuntimeException(e);
         }

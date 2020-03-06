@@ -4,25 +4,27 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigDef.Type;
 
 class BackupSinkConfig extends AbstractConfig {
     // Standard Kafka Connect Task configs
-    private static final String KEY_CONVERTER = "key.converter";
-    private static final String VALUE_CONVERTER = "value.converter";
-    private static final String HEADER_CONVERTER = "header.converter";
-    private static final String KAFKA_BYTE_ARRAY_CONVERTER_CLASS = "org.apache.kafka.connect.converters.ByteArrayConverter";
+    public static final String KEY_CONVERTER = "key.converter";
+    public static final String VALUE_CONVERTER = "value.converter";
+    public static final String HEADER_CONVERTER = "header.converter";
+    public static final String KAFKA_BYTE_ARRAY_CONVERTER_CLASS = "org.apache.kafka.connect.converters.ByteArrayConverter";
 
     // Custom kafka-backup sink task configs:
-    private static final String CLUSTER_PREFIX = "cluster.";
-    private static final String CLUSTER_BOOTSTRAP_SERVERS = CLUSTER_PREFIX + "bootstrap.servers";
-    private static final String ADMIN_CLIENT_PREFIX = "admin.";
-    private static final String TARGET_DIR_CONFIG = "target.dir";
-    private static final String MAX_SEGMENT_SIZE = "max.segment.size.bytes";
-    private static final String AWS_S3_REGION = "aws.s3.region";
-    private static final String AWS_S3_ENDPOINT = "aws.s3.endpoint";
-    private static final String AWS_S3_PATH_STYLE_ACCESS_ENABLED = "aws.s3.PathStyleAccessEnabled";
-    private static final String AWS_S3_BUCKET_NAME = "aws.s3.bucketName";
-    private static final String STORAGE_MODE = "storage.mode";
+    public static final String CLUSTER_PREFIX = "cluster.";
+    public static final String CLUSTER_BOOTSTRAP_SERVERS = CLUSTER_PREFIX + "bootstrap.servers";
+    public static final String ADMIN_CLIENT_PREFIX = "admin.";
+    public static final String TARGET_DIR_CONFIG = "target.dir";
+    public static final String MAX_SEGMENT_SIZE = "max.segment.size.bytes";
+    public static final String AWS_S3_REGION = "aws.s3.region";
+    public static final String AWS_S3_ENDPOINT = "aws.s3.endpoint";
+    public static final String AWS_S3_PATH_STYLE_ACCESS_ENABLED = "aws.s3.PathStyleAccessEnabled";
+    public static final String AWS_S3_BUCKET_NAME = "aws.s3.bucketName";
+    public static final String STORAGE_MODE = "storage.mode";
+    public static final String CONSUMER_GROUPS_SYNC_INTERVAL = "consumerGroups.sync.interval";
 
     static final ConfigDef CONFIG_DEF = new ConfigDef()
             .define(KEY_CONVERTER, ConfigDef.Type.STRING,
@@ -44,7 +46,9 @@ class BackupSinkConfig extends AbstractConfig {
             .define(AWS_S3_PATH_STYLE_ACCESS_ENABLED, ConfigDef.Type.BOOLEAN,
                     ConfigDef.Importance.MEDIUM, "AWS S3 Bucket path style access")
             .define(AWS_S3_BUCKET_NAME, ConfigDef.Type.STRING,
-                    ConfigDef.Importance.MEDIUM, "AWS S3 Bucket name");
+                    ConfigDef.Importance.MEDIUM, "AWS S3 Bucket name")
+            .define(CONSUMER_GROUPS_SYNC_INTERVAL, Type.LONG,
+                    ConfigDef.Importance.MEDIUM, "Interval for consumer groups sync");
 
     BackupSinkConfig(Map<?, ?> props) {
         super(CONFIG_DEF, props);
@@ -102,5 +106,8 @@ class BackupSinkConfig extends AbstractConfig {
     }
     String region() {
         return getString(AWS_S3_REGION);
+    }
+    Long consumerGroupsSyncInterval() {
+        return getLong(CONSUMER_GROUPS_SYNC_INTERVAL);
     }
 }
