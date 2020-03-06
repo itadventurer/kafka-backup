@@ -45,7 +45,7 @@ public class SegmentReader {
         lastValidStartPosition = segmentIndex.lastValidStartPosition();
     }
 
-    public void seek(long offset) throws IndexOutOfBoundsException, IOException {
+    public void seek(long offset) throws IOException {
         Optional<Long> optionalPosition = segmentIndex.findEarliestWithHigherOrEqualOffset(offset);
         if (optionalPosition.isPresent()) {
             recordInputStream.getChannel().position(optionalPosition.get());
