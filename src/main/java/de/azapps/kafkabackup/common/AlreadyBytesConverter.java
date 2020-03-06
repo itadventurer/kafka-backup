@@ -26,6 +26,6 @@ public class AlreadyBytesConverter implements Converter {
 
 	@Override
 	public SchemaAndValue toConnectData(String topic, byte[] value) {
-		return new SchemaAndValue(Schema.BYTES_SCHEMA, value);
+		return new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, value);
 	}
 }

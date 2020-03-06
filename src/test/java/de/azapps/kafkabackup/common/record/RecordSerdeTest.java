@@ -3,14 +3,13 @@ package de.azapps.kafkabackup.common.record;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
-import org.apache.kafka.connect.header.Header;
+import org.apache.kafka.connect.header.ConnectHeaders;
+import org.apache.kafka.connect.header.Headers;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -38,10 +37,10 @@ public class RecordSerdeTest {
         NULL_RECORD = new Record(TOPIC, PARTITION, null, null, OFFSET);
         EMPTY_RECORD = new Record(TOPIC, PARTITION, new byte[0], new byte[0], OFFSET);
         // Build multiple headers that might cause problems
-        List<Header> headers = new ArrayList<>();
-        headers.add(new ConnectHeader("", new SchemaAndValue(Schema.BYTES_SCHEMA, new byte[0])));
-        headers.add(new ConnectHeader("null", new SchemaAndValue(Schema.BYTES_SCHEMA, null)));
-        headers.add(new ConnectHeader("value", new SchemaAndValue(Schema.BYTES_SCHEMA, VALUE_BYTES)));
+        Headers headers = new ConnectHeaders();
+        headers.add("", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, new byte[0]));
+        headers.add("null", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, null));
+        headers.add("value", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, VALUE_BYTES));
         HEADER_RECORD = new Record(TOPIC, PARTITION, KEY_BYTES, VALUE_BYTES, OFFSET, null, TimestampType.NO_TIMESTAMP_TYPE, headers);
     }
 
