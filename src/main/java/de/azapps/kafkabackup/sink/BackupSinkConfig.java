@@ -24,7 +24,7 @@ class BackupSinkConfig extends AbstractConfig {
     public static final String AWS_S3_PATH_STYLE_ACCESS_ENABLED = "aws.s3.PathStyleAccessEnabled";
     public static final String AWS_S3_BUCKET_NAME = "aws.s3.bucketName";
     public static final String STORAGE_MODE = "storage.mode";
-    public static final String CONSUMER_GROUPS_SYNC_INTERVAL = "consumerGroups.sync.interval";
+    public static final String CONSUMER_GROUPS_SYNC_MAX_AGE = "offsets.consumer.list.max.age.ms";
 
     static final ConfigDef CONFIG_DEF = new ConfigDef()
             .define(KEY_CONVERTER, ConfigDef.Type.STRING,
@@ -47,7 +47,7 @@ class BackupSinkConfig extends AbstractConfig {
                     ConfigDef.Importance.MEDIUM, "AWS S3 Bucket path style access")
             .define(AWS_S3_BUCKET_NAME, ConfigDef.Type.STRING,
                     ConfigDef.Importance.MEDIUM, "AWS S3 Bucket name")
-            .define(CONSUMER_GROUPS_SYNC_INTERVAL, Type.LONG,
+            .define(CONSUMER_GROUPS_SYNC_MAX_AGE, Type.LONG,
                     ConfigDef.Importance.MEDIUM, "Interval for consumer groups sync");
 
     BackupSinkConfig(Map<?, ?> props) {
@@ -108,6 +108,6 @@ class BackupSinkConfig extends AbstractConfig {
         return getString(AWS_S3_REGION);
     }
     Long consumerGroupsSyncInterval() {
-        return getLong(CONSUMER_GROUPS_SYNC_INTERVAL);
+        return getLong(CONSUMER_GROUPS_SYNC_MAX_AGE);
     }
 }

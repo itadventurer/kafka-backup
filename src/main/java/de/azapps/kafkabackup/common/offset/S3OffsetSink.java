@@ -2,13 +2,14 @@ package de.azapps.kafkabackup.common.offset;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Lists;
 import de.azapps.kafkabackup.storage.s3.AwsS3Service;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsOptions;
@@ -35,10 +36,10 @@ public class S3OffsetSink extends OffsetSink {
         this.awsS3Service = awsS3Service;
     }
 
-    public void syncOffsetsForGroup(String consumerGroup, List<TopicPartition> topicPartitions) throws IOException {
+    public void syncOffsetsForGroup(String consumerGroup, Set<TopicPartition> topicPartitions) throws IOException {
         Map<TopicPartition, OffsetAndMetadata> topicOffsetsAndMetadata;
         ListConsumerGroupOffsetsOptions listConsumerGroupOffsetsOptions = new ListConsumerGroupOffsetsOptions();
-        listConsumerGroupOffsetsOptions.topicPartitions(topicPartitions);
+        listConsumerGroupOffsetsOptions.topicPartitions(Lists.newArrayList(topicPartitions));
 
         try {
             topicOffsetsAndMetadata = adminClient

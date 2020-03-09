@@ -3,6 +3,7 @@ package de.azapps.kafkabackup.common.offset;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -44,7 +45,7 @@ public abstract class OffsetSink {
     }
   }
 
-  public void syncOffsets(List<TopicPartition> topicPartitions) {
+  public void syncOffsets(Set<TopicPartition> topicPartitions) {
     List<String> listOfExecutionExceptions = consumerGroups.stream()
         .flatMap(consumerGroup -> {
           try {
@@ -63,7 +64,7 @@ public abstract class OffsetSink {
     }
   }
 
-  public abstract void syncOffsetsForGroup(String consumerGroup, List<TopicPartition> topicPartition) throws IOException;
+  public abstract void syncOffsetsForGroup(String consumerGroup, Set<TopicPartition> topicPartition) throws IOException;
   public abstract void flush();
   public abstract void close();
 

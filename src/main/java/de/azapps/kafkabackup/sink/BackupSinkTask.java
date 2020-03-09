@@ -83,27 +83,22 @@ public class BackupSinkTask extends SinkTask {
     @Override
     public void put(Collection<SinkRecord> records) {
         try {
-            List<TopicPartition> partitionsToSyncOffsets = records.stream()
-                .map(sinkRecord -> {
-                    log.info("SinkRecord: {}", sinkRecord);
-                    TopicPartition topicPartition = new TopicPartition(sinkRecord.topic(), sinkRecord.kafkaPartition());
-                    PartitionWriter partition = partitionWriters.get(topicPartition);
-                    Record record = Record.fromSinkRecord(sinkRecord);
-                    log.info("Record: {}", record);
-                    partition.append(record);
-                    if (sinkRecord.kafkaOffset() % 100 == 0) {
-                        log.debug("Backed up Topic %s, Partition %d, up to offset %d", sinkRecord.topic(),
-                            sinkRecord.kafkaPartition(), sinkRecord.kafkaOffset());
-                    }
-
-                    return topicPartition;
-                })
-                .distinct()
-                .collect(Collectors.toList());
+            records.forEach(sinkRecord -> {
+                log.info("SinkRecord: {}", sinkRecord);
+                TopicPartition topicPartition = new TopicPartition(sinkRecord.topic(), sinkRecord.kafkaPartition());
+                PartitionWriter partition = partitionWriters.get(topicPartition);
+                Record record = Record.fromSinkRecord(sinkRecord);
+                log.info("Record: {}", record);
+                partition.append(record);
+                if (sinkRecord.kafkaOffset() % 100 == 0) {
+                    log.debug("Backed up Topic %s, Partition %d, up to offset %d", sinkRecord.topic(),
+                        sinkRecord.kafkaPartition(), sinkRecord.kafkaOffset());
+                }
+            });
 
             offsetSink.syncConsumerGroups();
 
-            offsetSink.syncOffsets(partitionsToSyncOffsets);
+            offsetSink.syncOffsets(partitionWriters.keySet());
         } catch (PartitionException e) {
             throw new RuntimeException(e);
         }

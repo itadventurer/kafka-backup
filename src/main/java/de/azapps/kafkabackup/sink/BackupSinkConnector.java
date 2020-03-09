@@ -25,7 +25,8 @@ public class BackupSinkConnector extends SinkConnector {
 	@Override
 	public List<Map<String, String>> taskConfigs(int maxTasks) {
 		if(maxTasks > 1 && config.get(BackupSinkConfig.STORAGE_MODE).equals(StorageMode.DISK.name())) {
-			throw new ConnectException("kafka-backup can currently handle only one task using storage mode: disk");
+			throw new ConnectException("kafka-backup can currently handle only one task using storage mode: "
+					+ StorageMode.DISK.name());
 		}
 		List<Map<String, String>> configs = new ArrayList<>();
 		configs.add(config);
