@@ -55,7 +55,7 @@ public class BackupSinkTask extends SinkTask {
             case S3:
                 awsS3Service = new AwsS3Service(config.region(), config.endpoint(), config.pathStyleAccessEnabled());
                 bucketName = config.bucketName();
-                offsetSink = new S3OffsetSink(adminClient, bucketName, awsS3Service);
+                offsetSink = new S3OffsetSink(adminClient, bucketName, awsS3Service, config.consumerGroupsSyncMaxAgeMs());
                 break;
             case DISK:
                 targetDir = Paths.get(config.targetDir());
@@ -81,20 +81,22 @@ public class BackupSinkTask extends SinkTask {
     @Override
     public void put(Collection<SinkRecord> records) {
         try {
-            for (SinkRecord sinkRecord : records) {
+            records.forEach(sinkRecord -> {
                 log.info("SinkRecord: {}", sinkRecord);
                 TopicPartition topicPartition = new TopicPartition(sinkRecord.topic(), sinkRecord.kafkaPartition());
                 PartitionWriter partition = partitionWriters.get(topicPartition);
                 Record record = Record.fromSinkRecord(sinkRecord);
                 log.info("Record: {}", record);
                 partition.append(record);
-                if(sinkRecord.kafkaOffset() % 100 == 0) {
-                    log.debug("Backed up Topic %s, Partition %d, up to offset %d", sinkRecord.topic(), sinkRecord.kafkaPartition(), sinkRecord.kafkaOffset());
+                if (sinkRecord.kafkaOffset() % 100 == 0) {
+                    log.debug("Backed up Topic %s, Partition %d, up to offset %d", sinkRecord.topic(),
+                        sinkRecord.kafkaPartition(), sinkRecord.kafkaOffset());
                 }
-            }
-            // Todo: refactor to own worker. E.g. using the scheduler of MM2
+            });
+
             offsetSink.syncConsumerGroups();
-            offsetSink.syncOffsets();
+
+            offsetSink.syncOffsets(partitionWriters.keySet());
         } catch (PartitionException e) {
             throw new RuntimeException(e);
         }

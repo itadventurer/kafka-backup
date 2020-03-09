@@ -6,7 +6,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
@@ -24,7 +26,7 @@ public class DiskOffsetSink extends OffsetSink {
         this.targetDir = targetDir;
     }
 
-    public void syncOffsetsForGroup(String consumerGroup) throws IOException {
+    public void syncOffsetsForGroup(String consumerGroup, Set<TopicPartition> topicPartition) throws IOException {
         Map<TopicPartition, OffsetAndMetadata> topicOffsetsAndMetadata;
         try {
             topicOffsetsAndMetadata = adminClient.listConsumerGroupOffsets(consumerGroup).partitionsToOffsetAndMetadata().get();
