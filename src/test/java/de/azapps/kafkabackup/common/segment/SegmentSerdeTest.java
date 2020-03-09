@@ -1,5 +1,6 @@
 package de.azapps.kafkabackup.common.segment;
 
+import de.azapps.kafkabackup.common.TestUtils;
 import de.azapps.kafkabackup.common.record.Record;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
@@ -24,19 +25,13 @@ public class SegmentSerdeTest {
     private static final byte[] KEY_BYTES = "test-key".getBytes(StandardCharsets.UTF_8);
     private static final byte[] VALUE_BYTES = "test-value".getBytes(StandardCharsets.UTF_8);
 
-    private static Path TEMP_DIR;
+    private static Path TEMP_DIR = TestUtils.getTestDir("SegmentSerdeTest");
     private static final Headers HEADERS = new ConnectHeaders();
 
     static {
         HEADERS.add("", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, new byte[0]));
         HEADERS.add("null", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, null));
         HEADERS.add("value", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, VALUE_BYTES));
-
-        try {
-            TEMP_DIR = Files.createTempDirectory("kafka_backup_segment_serde_test");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     @Test

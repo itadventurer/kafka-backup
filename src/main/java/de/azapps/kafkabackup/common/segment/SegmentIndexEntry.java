@@ -1,6 +1,7 @@
 package de.azapps.kafkabackup.common.segment;
 
 import java.io.*;
+import java.util.Objects;
 
 /**
  * Format:
@@ -46,4 +47,24 @@ public class SegmentIndexEntry {
 		stream.writeLong(recordByteLength);
 	}
 
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+
+        SegmentIndexEntry that = (SegmentIndexEntry) o;
+
+        return Objects.equals(getOffset(), that.getOffset())
+                && Objects.equals(recordFilePosition(), that.recordFilePosition())
+                && Objects.equals(recordByteLength(), that.recordByteLength());
+    }
+
+    @Override
+    public String toString() {
+        return String.format("SegmentIndexEntry{offset: %d, recordFilePosition: %d, recordByteLength: %d}",
+                offset, recordFilePosition, recordByteLength);
+    }
 }
