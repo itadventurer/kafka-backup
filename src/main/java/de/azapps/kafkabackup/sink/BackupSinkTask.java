@@ -11,8 +11,6 @@ import de.azapps.kafkabackup.common.partition.disk.PartitionIndex;
 import de.azapps.kafkabackup.common.record.Record;
 import de.azapps.kafkabackup.common.segment.SegmentIndex;
 import de.azapps.kafkabackup.storage.s3.AwsS3Service;
-import java.util.List;
-import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -57,7 +55,7 @@ public class BackupSinkTask extends SinkTask {
             case S3:
                 awsS3Service = new AwsS3Service(config.region(), config.endpoint(), config.pathStyleAccessEnabled());
                 bucketName = config.bucketName();
-                offsetSink = new S3OffsetSink(adminClient, bucketName, awsS3Service, config.consumerGroupsSyncInterval());
+                offsetSink = new S3OffsetSink(adminClient, bucketName, awsS3Service, config.consumerGroupsSyncMaxAgeMs());
                 break;
             case DISK:
                 targetDir = Paths.get(config.targetDir());
