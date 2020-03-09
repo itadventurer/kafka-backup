@@ -2,11 +2,11 @@ package de.azapps.kafkabackup.common.offset;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Lists;
 import de.azapps.kafkabackup.storage.s3.AwsS3Service;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -16,11 +16,14 @@ import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsOptions;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.errors.RetriableException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class S3OffsetSink extends OffsetSink {
     private final String bucketName;
     private final AdminClient adminClient;
     private final AwsS3Service awsS3Service;
+    private static final Logger log = LoggerFactory.getLogger(OffsetSink.class);
 
     private Map<TopicPartition, OffsetStoreS3File> topicOffsets = new HashMap<>();
 
@@ -37,17 +40,24 @@ public class S3OffsetSink extends OffsetSink {
     }
 
     public void syncOffsetsForGroup(String consumerGroup, Set<TopicPartition> topicPartitions) throws IOException {
-        Map<TopicPartition, OffsetAndMetadata> topicOffsetsAndMetadata;
-        ListConsumerGroupOffsetsOptions listConsumerGroupOffsetsOptions = new ListConsumerGroupOffsetsOptions();
-        listConsumerGroupOffsetsOptions.topicPartitions(Lists.newArrayList(topicPartitions));
-
-        try {
-            topicOffsetsAndMetadata = adminClient
-                .listConsumerGroupOffsets(consumerGroup, listConsumerGroupOffsetsOptions)
-                .partitionsToOffsetAndMetadata()
-                .get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RetriableException(e);
+        Map<TopicPartition, OffsetAndMetadata> topicOffsetsAndMetadata = new HashMap<>();
+        // Due to https://issues.apache.org/jira/browse/KAFKA-9507, we need to fetch offsets one TopicPartition at a time
+        // and catch the exception that occurs if the consumer group is missing from the TopicPartition's committed offsets.
+        // TODO: fix when 2.4.1 is released!
+        for (TopicPartition tp: topicPartitions) {
+            ListConsumerGroupOffsetsOptions listConsumerGroupOffsetsOptions = new ListConsumerGroupOffsetsOptions();
+            listConsumerGroupOffsetsOptions.topicPartitions(Collections.singletonList(tp));
+            try {
+                Map<TopicPartition, OffsetAndMetadata> offsetsAndMetadata = adminClient
+                    .listConsumerGroupOffsets(consumerGroup, listConsumerGroupOffsetsOptions)
+                    .partitionsToOffsetAndMetadata()
+                    .get();
+                topicOffsetsAndMetadata.put(tp, offsetsAndMetadata.get(tp));
+            } catch (ExecutionException e) {
+                log.debug("No committed offsets for consumer group {} on topic {} partition {}", consumerGroup, tp.topic(), tp.partition());
+            } catch (InterruptedException e) {
+                throw new RetriableException(e);
+            }
         }
 
         for (TopicPartition tp : topicOffsetsAndMetadata.keySet()) {
