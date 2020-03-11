@@ -2,6 +2,7 @@ package de.azapps.kafkabackup.sink;
 
 import de.azapps.kafkabackup.common.offset.DiskOffsetSink;
 import de.azapps.kafkabackup.common.offset.OffsetSink;
+import de.azapps.kafkabackup.common.offset.OffsetSinkScheduler;
 import de.azapps.kafkabackup.common.offset.S3OffsetSink;
 import de.azapps.kafkabackup.common.partition.PartitionException;
 import de.azapps.kafkabackup.common.partition.PartitionWriter;
@@ -34,6 +35,7 @@ public class BackupSinkTask extends SinkTask {
     private Map<TopicPartition, PartitionWriter> partitionWriters = new HashMap<>();
     private long maxSegmentSize;
     private OffsetSink offsetSink;
+    private OffsetSinkScheduler offsetSinkScheduler;
     private StorageMode storageMode;
     private AwsS3Service awsS3Service;
 
@@ -66,7 +68,8 @@ public class BackupSinkTask extends SinkTask {
             default:
                 throw new RuntimeException(String.format("Invalid Storage Mode %s. Supported values are %s or %s", config.storageMode(), StorageMode.DISK, StorageMode.S3));
         }
-
+        offsetSinkScheduler = new OffsetSinkScheduler(offsetSink);
+        offsetSinkScheduler.start(config.consumerOffsetSyncIntervalMs());
         log.debug("Initialized BackupSinkTask");
     }
 
@@ -93,8 +96,6 @@ public class BackupSinkTask extends SinkTask {
                         sinkRecord.kafkaPartition(), sinkRecord.kafkaOffset());
                 }
             });
-            // TODO: sync offsets in a separate scheduled instead!
-            offsetSink.syncOffsets();
         } catch (PartitionException e) {
             throw new RuntimeException(e);
         }
@@ -187,6 +188,5 @@ public class BackupSinkTask extends SinkTask {
             log.debug("Flushed Topic {}, Partition {}"
                     , partitionWriter.topic(), partitionWriter.partition());
         }
-        offsetSink.flush();
     }
 }

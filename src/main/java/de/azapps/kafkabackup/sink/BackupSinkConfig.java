@@ -25,13 +25,14 @@ class BackupSinkConfig extends AbstractConfig {
     static final String AWS_S3_BUCKET_NAME = "aws.s3.bucketName";
     static final String STORAGE_MODE = "storage.mode";
     static final String CONSUMER_GROUPS_SYNC_MAX_AGE_MS = "consumer.groups.sync.max.age.ms";
+    static final String CONSUMER_OFFSET_SYNC_INTERVAL_MS = "consumer.offset.sync.interval.ms";
 
     static final ConfigDef CONFIG_DEF = new ConfigDef()
-            .define(KEY_CONVERTER, ConfigDef.Type.STRING,
+            .define(KEY_CONVERTER, ConfigDef.Type.STRING, KAFKA_BYTE_ARRAY_CONVERTER_CLASS,
                     ConfigDef.Importance.HIGH, "Standard Kafka Connect Task config, overriding the Worker default")
-            .define(VALUE_CONVERTER, ConfigDef.Type.STRING,
+            .define(VALUE_CONVERTER, ConfigDef.Type.STRING, KAFKA_BYTE_ARRAY_CONVERTER_CLASS,
                     ConfigDef.Importance.HIGH, "Standard Kafka Connect Task config, overriding the Worker default")
-            .define(HEADER_CONVERTER, ConfigDef.Type.STRING,
+            .define(HEADER_CONVERTER, ConfigDef.Type.STRING, KAFKA_BYTE_ARRAY_CONVERTER_CLASS,
                     ConfigDef.Importance.HIGH, "Standard Kafka Connect Task config, overriding the Worker default")
             .define(STORAGE_MODE, ConfigDef.Type.STRING,
                     ConfigDef.Importance.HIGH, "Where to store the backups. DISK or S3")
@@ -47,8 +48,10 @@ class BackupSinkConfig extends AbstractConfig {
                     ConfigDef.Importance.MEDIUM, "AWS S3 Bucket path style access")
             .define(AWS_S3_BUCKET_NAME, ConfigDef.Type.STRING,
                     ConfigDef.Importance.MEDIUM, "AWS S3 Bucket name")
-            .define(CONSUMER_GROUPS_SYNC_MAX_AGE_MS, Type.LONG,
-                    ConfigDef.Importance.MEDIUM, "Interval for consumer groups sync");
+            .define(CONSUMER_GROUPS_SYNC_MAX_AGE_MS, Type.LONG, 300000,
+                    ConfigDef.Importance.MEDIUM, "List of consumer groups for offset sync will be an most this old.")
+            .define(CONSUMER_OFFSET_SYNC_INTERVAL_MS, Type.LONG, 60000,
+                    ConfigDef.Importance.MEDIUM, "Consumer offsets will be synced at this interval.");
 
     BackupSinkConfig(Map<?, ?> props) {
         super(CONFIG_DEF, props);
@@ -109,5 +112,8 @@ class BackupSinkConfig extends AbstractConfig {
     }
     Long consumerGroupsSyncMaxAgeMs() {
         return getLong(CONSUMER_GROUPS_SYNC_MAX_AGE_MS);
+    }
+    Long consumerOffsetSyncIntervalMs() {
+        return getLong(CONSUMER_OFFSET_SYNC_INTERVAL_MS);
     }
 }
