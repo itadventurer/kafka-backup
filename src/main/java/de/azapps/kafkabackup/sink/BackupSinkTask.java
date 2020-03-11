@@ -55,13 +55,13 @@ public class BackupSinkTask extends SinkTask {
             case S3:
                 awsS3Service = new AwsS3Service(config.region(), config.endpoint(), config.pathStyleAccessEnabled());
                 bucketName = config.bucketName();
-                offsetSink = new S3OffsetSink(adminClient, bucketName, awsS3Service, config.consumerGroupsSyncMaxAgeMs());
+                offsetSink = new S3OffsetSink(adminClient, config.consumerGroupsSyncMaxAgeMs(), awsS3Service, bucketName);
                 break;
             case DISK:
                 targetDir = Paths.get(config.targetDir());
                 maxSegmentSize = config.maxSegmentSize();
                 createDirectories(Paths.get(config.targetDir()));
-                offsetSink = new DiskOffsetSink(adminClient, targetDir);
+                offsetSink = new DiskOffsetSink(adminClient, config.consumerGroupsSyncMaxAgeMs(), targetDir);
                 break;
             default:
                 throw new RuntimeException(String.format("Invalid Storage Mode %s. Supported values are %s or %s", config.storageMode(), StorageMode.DISK, StorageMode.S3));
@@ -93,15 +93,14 @@ public class BackupSinkTask extends SinkTask {
                         sinkRecord.kafkaPartition(), sinkRecord.kafkaOffset());
                 }
             });
-
-            offsetSink.syncConsumerGroups();
-
-            offsetSink.syncOffsets(partitionWriters.keySet());
+            // TODO: sync offsets in a separate scheduled instead!
+            offsetSink.syncOffsets();
         } catch (PartitionException e) {
             throw new RuntimeException(e);
         }
     }
 
+    @Override
     public void open(Collection<TopicPartition> partitions) {
         super.open(partitions);
         try {
@@ -154,6 +153,7 @@ public class BackupSinkTask extends SinkTask {
             if (partitions.isEmpty()) {
                 log.info("No partitions assigned to BackupSinkTask");
             }
+            offsetSink.setPartitions(partitionWriters.keySet());
         } catch (IOException | SegmentIndex.IndexException | PartitionIndex.IndexException e) {
             throw new RuntimeException(e);
         }
@@ -169,7 +169,7 @@ public class BackupSinkTask extends SinkTask {
             log.debug("Closed BackupSinkTask for Topic {}, Partition {}"
                     , topicPartition.topic(), topicPartition.partition());
         }
-
+        offsetSink.setPartitions(partitionWriters.keySet());
     }
 
     @Override
