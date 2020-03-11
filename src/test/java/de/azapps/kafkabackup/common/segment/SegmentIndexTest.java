@@ -2,14 +2,9 @@ package de.azapps.kafkabackup.common.segment;
 
 import de.azapps.kafkabackup.common.TestUtils;
 import de.azapps.kafkabackup.common.record.Record;
-import de.azapps.kafkabackup.common.record.RecordSerde;
 import org.apache.kafka.common.record.TimestampType;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -52,6 +47,7 @@ public class SegmentIndexTest {
         assertEquals(entries, b.index());
         assertEquals(Optional.of(ENTRY3.recordFilePosition()), b.findByOffset(5));
         assertEquals(Optional.of(ENTRY3.recordFilePosition()), b.findEarliestWithHigherOrEqualOffset(2));
+        assertEquals(Optional.empty(), b.findEarliestWithHigherOrEqualOffset(11));
         assertEquals(36, b.lastValidStartPosition());
     }
 
@@ -97,9 +93,9 @@ public class SegmentIndexTest {
         SegmentIndexRestore restore = new SegmentIndexRestore(SegmentUtils.recordsFile(TEMP_DIR, partition, 0));
         restore.restore();
         SegmentIndex b = new SegmentIndex(indexFile);
-        assertEquals(a.index(),b.index());
+        assertEquals(a.index(), b.index());
     }
-    // Incrementing offsets
+
     @Test
     public void incrementingIndex() throws Exception {
         String indexFile = "incrementingIndex";
@@ -113,9 +109,56 @@ public class SegmentIndexTest {
         assertDoesNotThrow(() -> index.addEntry(new SegmentIndexEntry(10, 37, 10)));
         index.close();
     }
-    // Read V1 Index
-    // Find next entry if offset does not exist
-    // Empty index
-    // Errors in offsets, file positions
 
+    @Test
+    public void emptyIndexTest() throws Exception {
+        String indexFile = "emptyIndexTest";
+        SegmentIndex index = new SegmentIndex(Paths.get(TEMP_DIR.toString(), indexFile));
+        assertEquals(0L, index.lastValidStartPosition());
+        index.close();
+
+
+        SegmentIndex b = new SegmentIndex(Paths.get(TEMP_DIR.toString(), indexFile));
+        assertEquals(0L, b.lastValidStartPosition());
+        assertEquals(Optional.empty(), b.findEarliestWithHigherOrEqualOffset(0));
+        assertEquals(Optional.empty(), b.findEarliestWithHigherOrEqualOffset(11));
+        assertTrue(b.index().isEmpty());
+    }
+
+
+    @Test
+    public void testReadV1Index() throws Exception {
+        String indexFile = "testIndex";
+        Path directory = Paths.get("src/test/assets/v1/segmentindex");
+        List<SegmentIndexEntry> entries = new ArrayList<>();
+        entries.add(ENTRY1);
+        entries.add(ENTRY2);
+        entries.add(ENTRY3);
+        entries.add(ENTRY4);
+
+        SegmentIndex b = new SegmentIndex(Paths.get(directory.toString(), indexFile));
+        assertEquals(entries, b.index());
+        assertEquals(Optional.of(ENTRY3.recordFilePosition()), b.findByOffset(5));
+        assertEquals(Optional.of(ENTRY3.recordFilePosition()), b.findEarliestWithHigherOrEqualOffset(2));
+        assertEquals(36, b.lastValidStartPosition());
+    }
+
+
+    /**
+     * Utility function to be run once when the format on disk changes to be able to stay backwards-compatible
+     * <p>
+     * Call it manually once when the format changes
+     */
+    private static void writeTestIndexToFile() throws Exception {
+        String indexFile = "testIndex";
+        Path directory = Paths.get("src/test/assets/v1/segmentindex"); // CHANGEME WHEN CHANGING DATA FORMAT!
+        Files.createDirectories(directory);
+
+        SegmentIndex index = new SegmentIndex(Paths.get(directory.toString(), indexFile));
+        index.addEntry(ENTRY1);
+        index.addEntry(ENTRY2);
+        index.addEntry(ENTRY3);
+        index.addEntry(ENTRY4);
+        index.close();
+    }
 }
