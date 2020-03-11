@@ -43,7 +43,7 @@ class BackupSinkConfig extends AbstractConfig {
         return getString(TARGET_DIR_CONFIG);
     }
 
-    Integer maxSegmentSize() {
+    Integer maxSegmentSizeBytes() {
         return getInt(MAX_SEGMENT_SIZE);
     }
 
