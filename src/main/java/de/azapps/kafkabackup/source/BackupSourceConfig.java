@@ -34,13 +34,13 @@ class BackupSourceConfig extends AbstractConfig {
         if (!props.containsKey(TOPICS_CONFIG)) {
             throw new RuntimeException("Missing Configuration Variable: " + TOPICS_CONFIG);
         }
-        if(!props.containsKey(CLUSTER_BOOTSTRAP_SERVERS)) {
+        if (!props.containsKey(CLUSTER_BOOTSTRAP_SERVERS)) {
             throw new RuntimeException("Missing Configuration Variable: " + CLUSTER_BOOTSTRAP_SERVERS);
         }
-        if(!props.containsKey(CLUSTER_KEY_DESERIALIZER)) {
+        if (!props.containsKey(CLUSTER_KEY_DESERIALIZER)) {
             throw new RuntimeException("Missing Configuration Variable: " + CLUSTER_KEY_DESERIALIZER);
         }
-        if(!props.containsKey(CLUSTER_VALUE_DESERIALIZER)) {
+        if (!props.containsKey(CLUSTER_VALUE_DESERIALIZER)) {
             throw new RuntimeException("Missing Configuration Variable: " + CLUSTER_VALUE_DESERIALIZER);
         }
     }

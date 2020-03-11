@@ -29,10 +29,6 @@ public class PartitionIndexEntry {
         this.startOffset = startOffset;
     }
 
-    public long startOffset() {
-        return startOffset;
-    }
-
     static PartitionIndexEntry fromStream(InputStream byteStream) throws IOException {
         DataInputStream stream = new DataInputStream(byteStream);
         int filenameLength = stream.readInt();
@@ -43,10 +39,13 @@ public class PartitionIndexEntry {
         return new PartitionIndexEntry(filename, startOffset);
     }
 
+    public long startOffset() {
+        return startOffset;
+    }
+
     public String filename() {
         return filename;
     }
-
 
 
 }

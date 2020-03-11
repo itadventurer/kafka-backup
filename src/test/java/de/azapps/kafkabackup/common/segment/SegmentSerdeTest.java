@@ -10,7 +10,6 @@ import org.apache.kafka.connect.header.Headers;
 import org.junit.jupiter.api.Test;
 
 import java.io.EOFException;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,9 +23,8 @@ public class SegmentSerdeTest {
     private static final String TOPIC = "test-topic";
     private static final byte[] KEY_BYTES = "test-key".getBytes(StandardCharsets.UTF_8);
     private static final byte[] VALUE_BYTES = "test-value".getBytes(StandardCharsets.UTF_8);
-
-    private static Path TEMP_DIR = TestUtils.getTestDir("SegmentSerdeTest");
     private static final Headers HEADERS = new ConnectHeaders();
+    private static Path TEMP_DIR = TestUtils.getTestDir("SegmentSerdeTest");
 
     static {
         HEADERS.add("", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, new byte[0]));

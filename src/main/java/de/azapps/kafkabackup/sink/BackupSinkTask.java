@@ -58,7 +58,7 @@ public class BackupSinkTask extends SinkTask {
                 TopicPartition topicPartition = new TopicPartition(sinkRecord.topic(), sinkRecord.kafkaPartition());
                 PartitionWriter partition = partitionWriters.get(topicPartition);
                 partition.append(Record.fromSinkRecord(sinkRecord));
-                if(sinkRecord.kafkaOffset() % 100 == 0) {
+                if (sinkRecord.kafkaOffset() % 100 == 0) {
                     log.debug("Backed up Topic %s, Partition %d, up to offset %d", sinkRecord.topic(), sinkRecord.kafkaPartition(), sinkRecord.kafkaOffset());
                 }
             }

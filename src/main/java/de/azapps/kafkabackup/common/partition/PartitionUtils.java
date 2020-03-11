@@ -8,8 +8,9 @@ import java.util.regex.Pattern;
 
 public class PartitionUtils {
     private static final Pattern PARTITION_INDEX_PATTERN = Pattern.compile("^index_partition_([0-9]+)$");
+
     static Path indexFile(Path topicDir, int partition) {
-        return Paths.get(topicDir.toString(), String.format("index_partition_%03d",partition));
+        return Paths.get(topicDir.toString(), String.format("index_partition_%03d", partition));
     }
 
     public static Optional<Integer> isPartitionIndex(Path f) {

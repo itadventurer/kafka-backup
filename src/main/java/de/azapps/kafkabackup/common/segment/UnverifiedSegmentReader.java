@@ -18,9 +18,10 @@ public class UnverifiedSegmentReader {
     public UnverifiedSegmentReader(Path recordFile) throws IOException {
         this(recordFile, "topic", 0);
     }
+
     public UnverifiedSegmentReader(Path recordFile, String topic, int partition) throws IOException {
         recordInputStream = new FileInputStream(recordFile.toFile());
-        this.topic =topic;
+        this.topic = topic;
         this.partition = partition;
         SegmentUtils.ensureValidSegment(recordInputStream);
     }

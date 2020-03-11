@@ -8,7 +8,6 @@ import joptsimple.OptionSet;
 import org.apache.kafka.common.utils.Exit;
 
 import java.io.EOFException;
-import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Paths;

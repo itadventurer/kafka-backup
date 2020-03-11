@@ -11,13 +11,13 @@ import java.util.List;
 import java.util.Optional;
 
 public class PartitionIndex {
+    private static final byte V1_MAGIC_BYTE = 0x01;
     private Path indexFile;
     private List<PartitionIndexEntry> index = new ArrayList<>();
     private FileOutputStream fileOutputStream;
     private FileInputStream fileInputStream;
     private int position = 0;
     private long latestStartOffset = -1;
-    private static final byte V1_MAGIC_BYTE = 0x01;
 
     public PartitionIndex(Path indexFile) throws IOException, IndexException {
         this.indexFile = indexFile;
@@ -48,7 +48,7 @@ public class PartitionIndex {
         this.fileInputStream = new FileInputStream(indexFile.toFile());
         fileInputStream.getChannel().position(0);
         byte[] v1Validation = new byte[1];
-        if(fileInputStream.read(v1Validation) != 1 || v1Validation[0] != V1_MAGIC_BYTE) {
+        if (fileInputStream.read(v1Validation) != 1 || v1Validation[0] != V1_MAGIC_BYTE) {
             throw new IndexException("Cannot validate Magic Byte in the beginning of the index " + indexFile);
         }
     }
@@ -81,12 +81,6 @@ public class PartitionIndex {
 
     void flush() throws IOException {
         fileOutputStream.flush();
-    }
-
-    public static class IndexException extends Exception {
-        IndexException(String message) {
-            super(message);
-        }
     }
 
     long firstOffset() throws IndexException {
@@ -138,5 +132,11 @@ public class PartitionIndex {
 
     public List<PartitionIndexEntry> index() {
         return index;
+    }
+
+    public static class IndexException extends Exception {
+        IndexException(String message) {
+            super(message);
+        }
     }
 }

@@ -25,7 +25,7 @@ public class BackupSourceConnector extends SourceConnector {
 
     @Override
     public List<Map<String, String>> taskConfigs(int maxTasks) {
-        if(maxTasks>1) {
+        if (maxTasks > 1) {
             throw new ConnectException("kafka-backup can currently handle only one task.");
         }
         List<Map<String, String>> configs = new ArrayList<>();

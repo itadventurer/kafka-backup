@@ -19,11 +19,11 @@ public class SegmentIndexTest {
     private static final String TOPIC = "test-topic";
     private static final byte[] KEY_BYTES = "test-key".getBytes(StandardCharsets.UTF_8);
     private static final byte[] VALUE_BYTES = "test-value".getBytes(StandardCharsets.UTF_8);
-    private static Path TEMP_DIR = TestUtils.getTestDir("SegmentIndexTest");
     private static final SegmentIndexEntry ENTRY1 = new SegmentIndexEntry(0, 1, 10);
     private static final SegmentIndexEntry ENTRY2 = new SegmentIndexEntry(1, 11, 10);
     private static final SegmentIndexEntry ENTRY3 = new SegmentIndexEntry(5, 21, 15);
     private static final SegmentIndexEntry ENTRY4 = new SegmentIndexEntry(6, 36, 10);
+    private static Path TEMP_DIR = TestUtils.getTestDir("SegmentIndexTest");
 
     @Test
     public void simpleRoundtripTest() throws Exception {

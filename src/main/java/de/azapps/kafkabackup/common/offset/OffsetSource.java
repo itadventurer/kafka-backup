@@ -2,10 +2,6 @@ package de.azapps.kafkabackup.common.offset;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import de.azapps.kafkabackup.common.partition.PartitionIndex;
-import de.azapps.kafkabackup.common.partition.PartitionReader;
-import de.azapps.kafkabackup.common.segment.SegmentIndex;
-import de.azapps.kafkabackup.sink.BackupSinkTask;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
@@ -18,8 +14,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class OffsetSource {
@@ -67,10 +61,10 @@ public class OffsetSource {
     }
 
     private static class OffsetStoreFile {
+        TypeReference<HashMap<String, Long>> typeRef
+                = new TypeReference<HashMap<String, Long>>() {
+        };
         private Map<Long, List<String>> offsetGroups = new HashMap<>();
-
-        TypeReference<HashMap<String,Long>> typeRef
-                = new TypeReference<HashMap<String,Long>>() {};
 
 
         OffsetStoreFile(Path storeFile) throws IOException {
