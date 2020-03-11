@@ -177,6 +177,7 @@ public class BackupSinkTask extends SinkTask {
     public void stop() {
         // TODO: if an exception is thrown during start(), stop will be called before these are initialized. Need to to null check!
         partitionWriters.values().forEach(PartitionWriter::close);
+        offsetSinkScheduler.stop();
         offsetSink.close();
         log.info("Stopped BackupSinkTask");
     }
