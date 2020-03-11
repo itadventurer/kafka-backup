@@ -7,8 +7,6 @@ import de.azapps.kafkabackup.storage.s3.AwsS3Service;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 import org.apache.kafka.clients.admin.AdminClient;
@@ -62,10 +60,6 @@ public class S3OffsetSink extends OffsetSink {
 
     private static class OffsetStoreS3File {
         private static final TypeReference<HashMap<String, Long>> groupOffsetsTypeRef = new TypeReference<HashMap<String, Long>>() {};
-        private static final DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd'T'HH");
-        static {
-            dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-        }
 
         private Map<String, Long> groupOffsets = new HashMap<>();
         private final TopicPartition topicPartition;
@@ -98,8 +92,7 @@ public class S3OffsetSink extends OffsetSink {
         }
 
         private String getOffsetFileName() {
-            String timeStr = dateFormat.format(new Date());
-            return String.format("%s/%03d/offsets_%s.json", topicPartition.topic(), topicPartition.partition(), timeStr);
+            return String.format("%s/%03d/offsets.json", topicPartition.topic(), topicPartition.partition());
         }
     }
 }
