@@ -47,7 +47,6 @@ public class SegmentIndexEntry {
         stream.writeLong(recordByteLength);
     }
 
-
     @Override
     public boolean equals(Object o) {
         if (this == o)
