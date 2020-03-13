@@ -7,7 +7,6 @@ import de.azapps.kafkabackup.common.segment.SegmentReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,14 +29,14 @@ public class PartitionReader {
             throw new PartitionException("Cannot find index file for partition " + partition);
         }
         partitionIndex = new PartitionIndex(indexFile);
-        if(partitionIndex.hasMoreData()) {
+        if (partitionIndex.hasMoreData()) {
             seek(partitionIndex.firstOffset());
         }
     }
 
     public void close() throws IOException {
         partitionIndex.close();
-        if(currentSegment != null) {
+        if (currentSegment != null) {
             currentSegment.close();
         }
     }
@@ -50,7 +49,7 @@ public class PartitionReader {
     }
 
     public boolean hasMoreData() throws IOException {
-        if(currentSegment != null) {
+        if (currentSegment != null) {
             return currentSegment.hasMoreData() || partitionIndex.hasMoreData();
         } else {
             return false;

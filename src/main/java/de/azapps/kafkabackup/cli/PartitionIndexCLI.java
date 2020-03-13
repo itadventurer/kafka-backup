@@ -45,7 +45,7 @@ public class PartitionIndexCLI {
         OptionSet options;
         try {
             options = optionParser.parse(args);
-            if(Stream.of(COMMANDS).filter(options::has).count() != 1) {
+            if (Stream.of(COMMANDS).filter(options::has).count() != 1) {
                 throw new Exception("Must contain exactly one of " + Arrays.toString(COMMANDS));
             }
         } catch (Exception e) {

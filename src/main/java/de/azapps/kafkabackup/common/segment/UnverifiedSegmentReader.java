@@ -11,15 +11,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class UnverifiedSegmentReader {
+    private String topic;
+    private int partition;
     private FileInputStream recordInputStream;
 
     public UnverifiedSegmentReader(Path recordFile) throws IOException {
+        this(recordFile, "topic", 0);
+    }
+
+    public UnverifiedSegmentReader(Path recordFile, String topic, int partition) throws IOException {
         recordInputStream = new FileInputStream(recordFile.toFile());
+        this.topic = topic;
+        this.partition = partition;
         SegmentUtils.ensureValidSegment(recordInputStream);
     }
 
     public Record read() throws IOException {
-        return RecordSerde.read("topic", 0, recordInputStream);
+        return RecordSerde.read(topic, partition, recordInputStream);
     }
 
     public List<Record> readN(int n) throws IOException {

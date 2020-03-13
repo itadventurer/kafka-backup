@@ -1,7 +1,10 @@
 package de.azapps.kafkabackup.common.partition;
 
+import de.azapps.kafkabackup.common.segment.SegmentIndexEntry;
+
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 /**
  * Format:
@@ -29,10 +32,6 @@ public class PartitionIndexEntry {
         this.startOffset = startOffset;
     }
 
-    public long startOffset() {
-        return startOffset;
-    }
-
     static PartitionIndexEntry fromStream(InputStream byteStream) throws IOException {
         DataInputStream stream = new DataInputStream(byteStream);
         int filenameLength = stream.readInt();
@@ -43,10 +42,30 @@ public class PartitionIndexEntry {
         return new PartitionIndexEntry(filename, startOffset);
     }
 
+    public long startOffset() {
+        return startOffset;
+    }
+
     public String filename() {
         return filename;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
 
+        PartitionIndexEntry that = (PartitionIndexEntry) o;
 
+        return Objects.equals(filename(), that.filename())
+                && Objects.equals(startOffset(), that.startOffset());
+    }
+
+    @Override
+    public String toString() {
+        return String.format("PartitionIndexEntry{filename: %s, startOffset: %d}",
+                filename, startOffset);
+    }
 }

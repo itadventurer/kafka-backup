@@ -26,7 +26,7 @@ public class BackupSinkTask extends SinkTask {
     private static final Logger log = LoggerFactory.getLogger(BackupSinkTask.class);
     private Path targetDir;
     private Map<TopicPartition, PartitionWriter> partitionWriters = new HashMap<>();
-    private long maxSegmentSize;
+    private long maxSegmentSizeBytes;
     private OffsetSink offsetSink;
 
     @Override
@@ -39,7 +39,7 @@ public class BackupSinkTask extends SinkTask {
         BackupSinkConfig config = new BackupSinkConfig(props);
         try {
             targetDir = Paths.get(config.targetDir());
-            maxSegmentSize = config.maxSegmentSize();
+            maxSegmentSizeBytes = config.maxSegmentSizeBytes();
             Files.createDirectories(targetDir);
 
             // Setup OffsetSink
@@ -58,7 +58,7 @@ public class BackupSinkTask extends SinkTask {
                 TopicPartition topicPartition = new TopicPartition(sinkRecord.topic(), sinkRecord.kafkaPartition());
                 PartitionWriter partition = partitionWriters.get(topicPartition);
                 partition.append(Record.fromSinkRecord(sinkRecord));
-                if(sinkRecord.kafkaOffset() % 100 == 0) {
+                if (sinkRecord.kafkaOffset() % 100 == 0) {
                     log.debug("Backed up Topic %s, Partition %d, up to offset %d", sinkRecord.topic(), sinkRecord.kafkaPartition(), sinkRecord.kafkaOffset());
                 }
             }
@@ -76,7 +76,7 @@ public class BackupSinkTask extends SinkTask {
             for (TopicPartition topicPartition : partitions) {
                 Path topicDir = Paths.get(targetDir.toString(), topicPartition.topic());
                 Files.createDirectories(topicDir);
-                PartitionWriter partitionWriter = new PartitionWriter(topicPartition.topic(), topicPartition.partition(), topicDir, maxSegmentSize);
+                PartitionWriter partitionWriter = new PartitionWriter(topicPartition.topic(), topicPartition.partition(), topicDir, maxSegmentSizeBytes);
                 long lastWrittenOffset = partitionWriter.lastWrittenOffset();
 
                 // Note that we must *always* request that we seek to an offset here. Currently the

@@ -1,6 +1,7 @@
 package de.azapps.kafkabackup.common.segment;
 
 import java.io.*;
+import java.util.Objects;
 
 /**
  * Format:
@@ -9,41 +10,60 @@ import java.io.*;
  * recordLength: int64
  */
 public class SegmentIndexEntry {
-	private long offset;
-	private long recordFilePosition;
-	private long recordByteLength;
+    private long offset;
+    private long recordFilePosition;
+    private long recordByteLength;
 
-	SegmentIndexEntry(long offset, long recordFilePosition, long recordByteLength) {
-		this.offset = offset;
-		this.recordFilePosition = recordFilePosition;
-		this.recordByteLength = recordByteLength;
-	}
+    SegmentIndexEntry(long offset, long recordFilePosition, long recordByteLength) {
+        this.offset = offset;
+        this.recordFilePosition = recordFilePosition;
+        this.recordByteLength = recordByteLength;
+    }
 
-	static SegmentIndexEntry fromStream(InputStream byteStream) throws IOException {
-		DataInputStream stream = new DataInputStream(byteStream);
-		long offset = stream.readLong();
-		long recordFileOffset = stream.readLong();
-		long recordByteLength = stream.readLong();
-		return new SegmentIndexEntry(offset, recordFileOffset, recordByteLength);
-	}
+    static SegmentIndexEntry fromStream(InputStream byteStream) throws IOException {
+        DataInputStream stream = new DataInputStream(byteStream);
+        long offset = stream.readLong();
+        long recordFileOffset = stream.readLong();
+        long recordByteLength = stream.readLong();
+        return new SegmentIndexEntry(offset, recordFileOffset, recordByteLength);
+    }
 
-	public long getOffset() {
-		return offset;
-	}
+    public long getOffset() {
+        return offset;
+    }
 
-	public long recordFilePosition() {
-		return recordFilePosition;
-	}
+    public long recordFilePosition() {
+        return recordFilePosition;
+    }
 
-	public long recordByteLength() {
-		return recordByteLength;
-	}
+    public long recordByteLength() {
+        return recordByteLength;
+    }
 
-	void writeToStream(OutputStream byteStream) throws IOException {
-		DataOutputStream stream = new DataOutputStream(byteStream);
-		stream.writeLong(offset);
-		stream.writeLong(recordFilePosition);
-		stream.writeLong(recordByteLength);
-	}
+    void writeToStream(OutputStream byteStream) throws IOException {
+        DataOutputStream stream = new DataOutputStream(byteStream);
+        stream.writeLong(offset);
+        stream.writeLong(recordFilePosition);
+        stream.writeLong(recordByteLength);
+    }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+
+        SegmentIndexEntry that = (SegmentIndexEntry) o;
+
+        return Objects.equals(getOffset(), that.getOffset())
+                && Objects.equals(recordFilePosition(), that.recordFilePosition())
+                && Objects.equals(recordByteLength(), that.recordByteLength());
+    }
+
+    @Override
+    public String toString() {
+        return String.format("SegmentIndexEntry{offset: %d, recordFilePosition: %d, recordByteLength: %d}",
+                offset, recordFilePosition, recordByteLength);
+    }
 }

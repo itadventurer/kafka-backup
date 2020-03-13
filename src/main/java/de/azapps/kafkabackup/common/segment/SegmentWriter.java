@@ -51,18 +51,21 @@ public class SegmentWriter {
         }
     }
 
-    public long lastWrittenOffset(){
+    public long lastWrittenOffset() {
         return segmentIndex.lastIndexEntry().map(SegmentIndexEntry::getOffset).orElse(-1L);
     }
 
     public void append(Record record) throws IOException, SegmentIndex.IndexException, SegmentException {
         if (!record.topic().equals(topic)) {
-            throw new RuntimeException("Trying to append to wrong topic!\n" +
+            throw new SegmentException("Trying to append to wrong topic!\n" +
                     "Expected topic: " + topic + " given topic: " + record.topic());
         }
-        if(record.kafkaPartition() != partition) {
-            throw new RuntimeException("Trying to append to wrong partition!\n" +
+        if (record.kafkaPartition() != partition) {
+            throw new SegmentException("Trying to append to wrong partition!\n" +
                     "Expected partition: " + partition + " given partition: " + partition);
+        }
+        if (record.kafkaOffset() < startOffset) {
+            throw new SegmentException("Try to append a record with an offset smaller than the start offset. Something is very wrong");
         }
         if (record.kafkaOffset() <= lastWrittenOffset()) {
             // We are handling the offsets ourselves. This should never happen!

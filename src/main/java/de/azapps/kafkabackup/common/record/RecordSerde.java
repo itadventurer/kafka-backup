@@ -86,8 +86,7 @@ public class RecordSerde {
                 headerValue = new byte[headerValueLength];
                 dataStream.read(headerValue);
             }
-            Header header = new ConnectHeader(headerKey, new SchemaAndValue(Schema.BYTES_SCHEMA, headerValue));
-            headers.add(header);
+            headers.add(headerKey, new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, headerValue));
         }
 
         return new Record(topic, partition, key, value, offset, timestamp, timestampType, headers);

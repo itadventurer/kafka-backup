@@ -27,7 +27,7 @@ class BackupSinkConfig extends AbstractConfig {
         if (!props.containsKey(MAX_SEGMENT_SIZE)) {
             throw new RuntimeException("Missing Configuration Variable: " + MAX_SEGMENT_SIZE);
         }
-        if(!props.containsKey(CLUSTER_BOOTSTRAP_SERVERS)) {
+        if (!props.containsKey(CLUSTER_BOOTSTRAP_SERVERS)) {
             throw new RuntimeException("Missing Configuration Variable: " + CLUSTER_BOOTSTRAP_SERVERS);
         }
     }
@@ -43,7 +43,7 @@ class BackupSinkConfig extends AbstractConfig {
         return getString(TARGET_DIR_CONFIG);
     }
 
-    Integer maxSegmentSize() {
+    Integer maxSegmentSizeBytes() {
         return getInt(MAX_SEGMENT_SIZE);
     }
 

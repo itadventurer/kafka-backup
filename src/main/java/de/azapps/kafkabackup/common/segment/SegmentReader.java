@@ -4,7 +4,6 @@ import de.azapps.kafkabackup.common.record.Record;
 import de.azapps.kafkabackup.common.record.RecordSerde;
 
 import java.io.EOFException;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -45,7 +44,7 @@ public class SegmentReader {
         lastValidStartPosition = segmentIndex.lastValidStartPosition();
     }
 
-    public void seek(long offset) throws IndexOutOfBoundsException, IOException {
+    public void seek(long offset) throws IOException {
         Optional<Long> optionalPosition = segmentIndex.findEarliestWithHigherOrEqualOffset(offset);
         if (optionalPosition.isPresent()) {
             recordInputStream.getChannel().position(optionalPosition.get());

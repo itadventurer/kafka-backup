@@ -24,7 +24,7 @@ public class SegmentUtils {
         }
     }
 
-    static Path indexFile(Path topicDir, int partition, long startOffset) {
+    public static Path indexFile(Path topicDir, int partition, long startOffset) {
         return indexFile(topicDir, filePrefix(partition, startOffset));
     }
 
@@ -32,7 +32,7 @@ public class SegmentUtils {
         return Paths.get(topicDir.toString(), filePrefix + "_index");
     }
 
-    static Path recordsFile(Path topicDir, int partition, long startOffset) {
+    public static Path recordsFile(Path topicDir, int partition, long startOffset) {
         return recordsFile(topicDir, filePrefix(partition, startOffset));
     }
 

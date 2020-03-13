@@ -129,8 +129,8 @@ public class BackupSourceTask extends SourceTask {
         Map<String, Long> sourceOffset = Collections.singletonMap(SOURCE_OFFSET_OFFSET, record.kafkaOffset());
         return new SourceRecord(sourcePartition, sourceOffset,
                 record.topic(), record.kafkaPartition(),
-                Schema.BYTES_SCHEMA, record.key(),
-                Schema.BYTES_SCHEMA, record.value(),
+                Schema.OPTIONAL_BYTES_SCHEMA, record.key(),
+                Schema.OPTIONAL_BYTES_SCHEMA, record.value(),
                 record.timestamp(), record.headers());
     }
 

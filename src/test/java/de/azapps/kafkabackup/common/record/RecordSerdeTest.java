@@ -3,88 +3,116 @@ package de.azapps.kafkabackup.common.record;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
-import org.apache.kafka.connect.header.Header;
-import org.junit.jupiter.api.BeforeAll;
+import org.apache.kafka.connect.header.ConnectHeaders;
+import org.apache.kafka.connect.header.Headers;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 public class RecordSerdeTest {
 
+    private static final String TOPIC = "test-topic";
+    private static final int PARTITION = 42;
+    private static final long OFFSET = 123;
+    private static final byte[] KEY_BYTES = "test-key".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] VALUE_BYTES = "test-value".getBytes(StandardCharsets.UTF_8);
 
-    private static final String topic = "test-topic";
-    private static final int partition = 42;
-    private static final long offset = 123;
-    private static byte[] keyBytes;
-    private static String keyBase64;
-    private static byte[] valueBytes;
-    private static String valueBase64;
+    private static final String SIMPLE_RECORD_FILE = "simple_record";
+    private static final String NULL_RECORD_FILE = "null_record";
+    private static final String EMPTY_RECORD_FILE = "empty_record";
+    private static final String HEADER_RECORD_FILE = "header_record";
 
-    @BeforeAll
-    public static void setUp() throws Exception {
-        // encoding here is not really important, we just want some bytes
-        keyBytes = "test-key".getBytes(StandardCharsets.UTF_8);
-        valueBytes = "test-value".getBytes(StandardCharsets.UTF_8);
-        // using Base64 as encoding in the json is part of our Record serialization format however:
-        keyBase64 = Base64.getEncoder().encodeToString(keyBytes);
-        valueBase64 = Base64.getEncoder().encodeToString(valueBytes);
+    // Example records
+    private static Record SIMPLE_RECORD, NULL_RECORD, EMPTY_RECORD, HEADER_RECORD;
+
+    static {
+        SIMPLE_RECORD = new Record(TOPIC, PARTITION, KEY_BYTES, VALUE_BYTES, OFFSET);
+        NULL_RECORD = new Record(TOPIC, PARTITION, null, null, OFFSET);
+        EMPTY_RECORD = new Record(TOPIC, PARTITION, new byte[0], new byte[0], OFFSET);
+        // Build multiple headers that might cause problems
+        Headers headers = new ConnectHeaders();
+        headers.add("", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, new byte[0]));
+        headers.add("null", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, null));
+        headers.add("value", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, VALUE_BYTES));
+        HEADER_RECORD = new Record(TOPIC, PARTITION, KEY_BYTES, VALUE_BYTES, OFFSET, null, TimestampType.NO_TIMESTAMP_TYPE, headers);
     }
 
     @Test
     public void roundtripTest() throws Exception {
-        Record record = new Record(topic, partition, keyBytes, valueBytes, offset);
-
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        RecordSerde.write(outputStream, record);
-        byte[] data = outputStream.toByteArray();
-        Record toCheck = RecordSerde.read(topic, partition, new ByteArrayInputStream(data));
-        assertEquals(record, toCheck);
+        Record simpleRoundtrip = writeAndReadRecord(SIMPLE_RECORD);
+        assertEquals(SIMPLE_RECORD, simpleRoundtrip);
     }
 
     @Test
     public void roundtripWithNull() throws Exception {
-        // NULL Record
-        Record nullRecord = new Record(topic, partition, null, null, offset);
-        ByteArrayOutputStream outputStreamNull = new ByteArrayOutputStream();
-        RecordSerde.write(outputStreamNull, nullRecord);
-        byte[] data = outputStreamNull.toByteArray();
-        Record toCheckNull = RecordSerde.read(topic, partition, new ByteArrayInputStream(data));
-        assertEquals(nullRecord, toCheckNull);
+        Record nullRoundtrip = writeAndReadRecord(NULL_RECORD);
+        assertEquals(NULL_RECORD, nullRoundtrip);
 
-        // EmptyRecord
-        Record emptyRecord = new Record(topic, partition, new byte[0], new byte[0], offset);
-        ByteArrayOutputStream outputStreamEmpty = new ByteArrayOutputStream();
-        RecordSerde.write(outputStreamEmpty, emptyRecord);
-        byte[] dataEmpty = outputStreamEmpty.toByteArray();
-        Record toCheckEmpty = RecordSerde.read(topic, partition, new ByteArrayInputStream(dataEmpty));
-        assertEquals(emptyRecord, toCheckEmpty);
+        Record emptyRoundtrip = writeAndReadRecord(EMPTY_RECORD);
+        assertEquals(EMPTY_RECORD, emptyRoundtrip);
 
         // Must be different
-        assertNotEquals(toCheckEmpty, toCheckNull);
+        assertNotEquals(nullRoundtrip, emptyRoundtrip);
     }
 
     @Test
     public void roundtripHeaders() throws Exception {
-        // Build multiple headers that might cause problems
-        List<Header> headers = new ArrayList<>();
-        headers.add(new ConnectHeader("", new SchemaAndValue(Schema.BYTES_SCHEMA, new byte[0])));
-        headers.add(new ConnectHeader("null", new SchemaAndValue(Schema.BYTES_SCHEMA, null)));
-        headers.add(new ConnectHeader("value", new SchemaAndValue(Schema.BYTES_SCHEMA, valueBytes)));
+        Record headerRoundtrip = writeAndReadRecord(HEADER_RECORD);
+        assertEquals(HEADER_RECORD, headerRoundtrip);
+    }
 
-        Record record = new Record(topic, partition, keyBytes, valueBytes, offset, null, TimestampType.NO_TIMESTAMP_TYPE, headers);
+    /**
+     * DO NOT CHANGE THIS TEST!
+     */
+    @Test
+    public void readV1() throws Exception {
+        File v1Directory = new File("src/test/assets/v1/records");
+        Record simpleRecord = readFromFile(new File(v1Directory, SIMPLE_RECORD_FILE));
+        assertEquals(SIMPLE_RECORD, simpleRecord);
+        Record nullRecord = readFromFile(new File(v1Directory, NULL_RECORD_FILE));
+        assertEquals(NULL_RECORD, nullRecord);
+        assertNotEquals(SIMPLE_RECORD, nullRecord); // just to make sure!
+        Record emptyRecord = readFromFile(new File(v1Directory, EMPTY_RECORD_FILE));
+        assertEquals(EMPTY_RECORD, emptyRecord);
+        assertNotEquals(NULL_RECORD, emptyRecord); // just to make sure!
+        Record headerRecord = readFromFile(new File(v1Directory, HEADER_RECORD_FILE));
+        assertEquals(HEADER_RECORD, headerRecord);
+        assertNotEquals(EMPTY_RECORD, headerRecord); // just to make sure!
+    }
+
+    // UTILS
+
+    private Record writeAndReadRecord(Record record) throws IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         RecordSerde.write(outputStream, record);
         byte[] data = outputStream.toByteArray();
-        Record toCheck = RecordSerde.read(topic, partition, new ByteArrayInputStream(data));
-        assertEquals(record, toCheck);
+        return RecordSerde.read(TOPIC, PARTITION, new ByteArrayInputStream(data));
     }
 
+    private static Record readFromFile(File file) throws IOException {
+        FileInputStream inputStream = new FileInputStream(file);
+        return RecordSerde.read(TOPIC, PARTITION, inputStream);
+    }
+
+    /**
+     * Utility function to be run once when the format on disk changes to be able to stay backwards-compatible
+     * 
+     * Call it manually once when the format changes
+     */
+    private static void writeTestRecordsToFile() throws IOException {
+        File directory = new File("src/test/assets/v1/records"); // CHANGEME WHEN CHANGING DATA FORMAT!
+        writeCurrentVersionRecordToFile(SIMPLE_RECORD, new File(directory, SIMPLE_RECORD_FILE));
+        writeCurrentVersionRecordToFile(NULL_RECORD, new File(directory, NULL_RECORD_FILE));
+        writeCurrentVersionRecordToFile(EMPTY_RECORD, new File(directory, EMPTY_RECORD_FILE));
+        writeCurrentVersionRecordToFile(HEADER_RECORD, new File(directory, HEADER_RECORD_FILE));
+    }
+
+    private static void writeCurrentVersionRecordToFile(Record record, File file) throws IOException {
+        FileOutputStream outputStream = new FileOutputStream(file);
+        RecordSerde.write(outputStream, record);
+    }
 }
