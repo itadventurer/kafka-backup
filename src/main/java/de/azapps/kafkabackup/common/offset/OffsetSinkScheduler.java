@@ -1,18 +1,17 @@
 package de.azapps.kafkabackup.common.offset;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 public class OffsetSinkScheduler {
-    private static final Logger log = LoggerFactory.getLogger(OffsetSinkScheduler.class);
 
-    private OffsetSink offsetSink;
     private ScheduledFuture<?> handle;
+    private final OffsetSink offsetSink;
     private final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
 
     public OffsetSinkScheduler(OffsetSink offsetSink) {
@@ -31,7 +30,9 @@ public class OffsetSinkScheduler {
     }
 
     public void stop() {
-        handle.cancel(false); // let it complete current run
+        if (handle != null) {
+            handle.cancel(false); // let it complete current run
+        }
         log.info("Stopped OffsetSinkScheduler");
     }
 }
