@@ -2,6 +2,7 @@ package de.azapps.kafkabackup.common.record;
 
 import de.azapps.kafkabackup.common.AlreadyBytesConverter;
 import org.apache.kafka.common.record.TimestampType;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.header.ConnectHeaders;
 import org.apache.kafka.connect.header.Header;
 import org.apache.kafka.connect.header.Headers;
@@ -50,6 +51,11 @@ public class Record {
         byte[] key = converter.fromConnectData(sinkRecord.topic(), sinkRecord.keySchema(), sinkRecord.key());
         byte[] value = converter.fromConnectData(sinkRecord.topic(), sinkRecord.valueSchema(), sinkRecord.value());
         return new Record(sinkRecord.topic(), sinkRecord.kafkaPartition(), key, value, sinkRecord.kafkaOffset(), sinkRecord.timestamp(), sinkRecord.timestampType(), sinkRecord.headers());
+    }
+
+    public SinkRecord toSinkRecord() {
+        return new SinkRecord(topic, kafkaPartition, Schema.OPTIONAL_BYTES_SCHEMA, key, Schema.OPTIONAL_BYTES_SCHEMA, value, kafkaOffset,
+                timestamp, timestampType, headers);
     }
 
     public String topic() {
