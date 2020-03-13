@@ -7,11 +7,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 class BackupSinkConfig extends AbstractConfig {
-    private static final String CLUSTER_PREFIX = "cluster.";
-    private static final String CLUSTER_BOOTSTRAP_SERVERS = CLUSTER_PREFIX + "bootstrap.servers";
-    private static final String ADMIN_CLIENT_PREFIX = "admin.";
-    private static final String TARGET_DIR_CONFIG = "target.dir";
-    private static final String MAX_SEGMENT_SIZE = "max.segment.size.bytes";
+    static final String CLUSTER_PREFIX = "cluster.";
+    static final String CLUSTER_BOOTSTRAP_SERVERS = CLUSTER_PREFIX + "bootstrap.servers";
+    static final String ADMIN_CLIENT_PREFIX = "admin.";
+    static final String TARGET_DIR_CONFIG = "target.dir";
+    static final String MAX_SEGMENT_SIZE = "max.segment.size.bytes";
 
     static final ConfigDef CONFIG_DEF = new ConfigDef()
             .define(TARGET_DIR_CONFIG, ConfigDef.Type.STRING,

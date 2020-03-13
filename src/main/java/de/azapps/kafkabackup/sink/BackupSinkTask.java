@@ -36,15 +36,23 @@ public class BackupSinkTask extends SinkTask {
 
     @Override
     public void start(Map<String, String> props) {
+        start(props, null);
+    }
+
+    public void start(Map<String, String> props, OffsetSink overrideOffsetSink) {
         BackupSinkConfig config = new BackupSinkConfig(props);
         try {
-            targetDir = Paths.get(config.targetDir());
             maxSegmentSizeBytes = config.maxSegmentSizeBytes();
+            targetDir = Paths.get(config.targetDir());
             Files.createDirectories(targetDir);
 
-            // Setup OffsetSink
-            AdminClient adminClient = AdminClient.create(config.adminConfig());
-            offsetSink = new OffsetSink(adminClient, targetDir);
+            // Allow tests to use mock offset sync
+            if(overrideOffsetSink != null) {
+                offsetSink = overrideOffsetSink;
+            } else {
+                AdminClient adminClient = AdminClient.create(config.adminConfig());
+                offsetSink = new OffsetSink(adminClient, targetDir);
+            }
             log.debug("Initialized BackupSinkTask with target dir {}", targetDir);
         } catch (IOException e) {
             throw new RuntimeException(e);

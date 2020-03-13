@@ -4,6 +4,7 @@ import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.header.ConnectHeaders;
+import org.apache.kafka.connect.sink.SinkRecord;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -93,5 +94,39 @@ public class RecordTest {
         assertNotEquals(b, a);
         assertNotEquals(a, c);
         assertNotEquals(b, c);
+    }
+
+    /**
+     * This is not used during normal operations, but we need to verify that this works
+     * correctly as we use the functions for our end to end tests!
+     */
+    @Test
+    public void roundtripSinkRecordTest() {
+
+        // given
+        Record a = new Record(TOPIC, PARTITION, KEY_BYTES, VALUE_BYTES, OFFSET, TIMESTAMP, TIMESTAMP_TYPE, HEADERS);
+        Record b = new Record(TOPIC, PARTITION, KEY_BYTES, VALUE_BYTES, 3, null, TimestampType.NO_TIMESTAMP_TYPE, HEADERS);
+        Record c = new Record(TOPIC, PARTITION, KEY_BYTES, VALUE_BYTES, 0);
+        Record d = new Record(TOPIC, PARTITION, null, null, 1);
+        Record e = new Record(TOPIC, PARTITION, new byte[0], new byte[0], 2);
+        Record f = new Record(TOPIC, PARTITION, KEY_BYTES, VALUE_BYTES, OFFSET);
+
+        // transform
+        SinkRecord srA = a.toSinkRecord();
+        SinkRecord srB = b.toSinkRecord();
+        SinkRecord srC = c.toSinkRecord();
+        SinkRecord srD = d.toSinkRecord();
+        SinkRecord srE = e.toSinkRecord();
+        SinkRecord srF = f.toSinkRecord();
+
+        // expect
+        assertEquals(a, Record.fromSinkRecord(srA));
+        assertEquals(b, Record.fromSinkRecord(srB));
+        assertEquals(c, Record.fromSinkRecord(srC));
+        assertEquals(d, Record.fromSinkRecord(srD));
+        assertEquals(e, Record.fromSinkRecord(srE));
+        assertEquals(f, Record.fromSinkRecord(srF));
+
+
     }
 }
