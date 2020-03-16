@@ -24,12 +24,18 @@ public class BackupSinkConnector extends SinkConnector {
 
 	@Override
 	public List<Map<String, String>> taskConfigs(int maxTasks) {
-		if(maxTasks > 1 && config.get(BackupSinkConfig.STORAGE_MODE).equals(StorageMode.DISK.name())) {
+		if (maxTasks > 1 && config.get(BackupSinkConfig.STORAGE_MODE).equals(StorageMode.DISK.name())) {
 			throw new ConnectException("kafka-backup can currently handle only one task using storage mode: "
 					+ StorageMode.DISK.name());
 		}
-		List<Map<String, String>> configs = new ArrayList<>();
-		configs.add(config);
+		// We need to return a list of configurations, where the size should be equal to maxTasks,
+		// otherwise the connector will not be scaled.
+		// See https://www.confluent.jp/blog/create-dynamic-kafka-connect-source-connectors/
+		// for a great guide to implementing the taskConfigs method.
+		List<Map<String, String>> configs = new ArrayList<>(maxTasks);
+		for (int i = 0; i < maxTasks; i++) {
+			configs.add(config); // Just give the same config to all tasks
+		}
 		return configs;
 	}
 
