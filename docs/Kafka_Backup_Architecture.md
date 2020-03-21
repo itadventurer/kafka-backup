@@ -150,6 +150,7 @@ directory for each topic using the name of the topic. Each directory
 contains following files:
 
 | File Name                                                              | Number of files             | Description                               |
+|------------------------------------------------------------------------|-----------------------------|-------------------------------------------|
 | `consumer_offsets_partition_[partition-num]`                           | One per partition           | Offsets for the partition `partition-num` |
 | `index_partition_[partition-num]`                                      | One per partition           | Partition Index                           |
 | `segment_partition_[partition-num]_from_offset_[start-offset]_records` | Possible many per partition | Record File for the segment               |
