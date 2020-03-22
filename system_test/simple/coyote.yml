@@ -1,0 +1,127 @@
+- name: coyote
+  title: kafka-backup
+
+- name: Initialization
+  entries:
+    - name: Docker Compose Pull
+      command: docker-compose -p kafkabackupsimple pull
+      ignore_exit_code: true
+    - name: Docker Compose Build
+      command: docker-compose -p kafkabackupsimple build
+
+- name: Setup Cluster to Backup
+  entries:
+    - name: Docker Compose Up
+      command: docker-compose -p kafkabackupsimple up -d
+    - name: Wait for Connect to get up
+      command: >
+        bash -c '
+          for ((i=0;i<30;i++)); do
+            docker-compose -p kafkabackupsimple exec -T to-backup curl "http://localhost:8083/connectors" && break;
+            sleep 10;
+          done'
+      nolog: true
+    - name: Check docker compose log
+      command: docker-compose -p kafkabackupsimple logs
+      stdout_has: [ 'INFO success: broker entered RUNNING state' ]
+      stdout_not_has: [ 'INFO exited: broker' ]
+    - name: to-backup build.info
+      command: docker exec kafkabackupsimple_to-backup_1 cat /build.info
+
+- name: Prepare Partition with data
+  entries:
+    - name: Create Topic backup-test-1partition
+      command: >
+        docker-compose -p kafkabackupsimple exec -T to-backup runutil
+          create_topic backup-test-1partition 1
+    - name: Produce 300 messages
+      command: >
+        docker-compose -p kafkabackupsimple exec -T to-backup runutil
+          produce_messages backup-test-1partition 0 0 300
+    - name: Consume 100 messages with cg-100
+      command: >
+        docker-compose -p kafkabackupsimple exec -T to-backup runutil
+          consume_messages backup-test-1partition cg-100 100
+    - name: Consume 200 messages with cg-200
+      command: >
+        docker-compose -p kafkabackupsimple exec -T to-backup runutil
+          consume_messages backup-test-1partition cg-200 200
+    - name: Consume 300 messages with cg-300
+      command: >
+        docker-compose -p kafkabackupsimple exec -T to-backup runutil
+          consume_messages backup-test-1partition cg-300 300
+
+- name: Start Kafka Backup
+  entries:
+    - name: Clean previous data
+      command: >
+        docker-compose -p kafkabackupsimple exec -T to-backup runutil
+          rm -rf "/kafka-backup/001_simple_1partition_test/"
+    - name: Create an Kafka Backup Connector
+      command: >
+        docker-compose -p kafkabackupsimple exec -T to-backup runutil
+          curl -vs --stderr - -X POST -H "Content-Type: application/json"
+               --data @-
+               "http://localhost:8083/connectors"
+      stdout_not_has: [ 'HTTP/1.1 [45][0-9][0-9] ' ]
+      stdin: |
+        {
+          "name": "backup-sink",
+          "config": {
+            "connector.class": "de.azapps.kafkabackup.sink.BackupSinkConnector",
+            "tasks.max": "1",
+            "topics.regex": "backup-test.*",
+            "key.converter": "de.azapps.kafkabackup.common.AlreadyBytesConverter",
+            "value.converter": "de.azapps.kafkabackup.common.AlreadyBytesConverter",
+            "target.dir": "/kafka-backup/001_simple_1partition_test/",
+            "max.segment.size.bytes": 10485760,
+            "cluster.bootstrap.servers": "localhost:9092"
+          }
+        }
+    - command: sleep 30
+      nolog: true
+- name: Stop Cluster that was backed up
+  entries:
+    - name: Docker Compose Down
+      command: docker-compose -p kafkabackupsimple stop to-backup
+
+- name: Restore
+  entries:
+    - name: Create Topic
+      command: >
+        docker-compose -p kafkabackupsimple exec -T restore-to runutil
+          create_topic backup-test-1partition 1
+    - name: Create an Kafka Backup Restore Connector
+      command: >
+        docker-compose -p kafkabackupsimple exec -T restore-to runutil
+          curl -vs --stderr - -X POST -H "Content-Type: application/json"
+               --data @-
+               "http://localhost:8083/connectors"
+      stdout_not_has: [ 'HTTP/1.1 [45][0-9][0-9] ' ]
+      stdin: |
+        {
+          "name": "backup-source",
+          "config": {
+            "connector.class": "de.azapps.kafkabackup.source.BackupSourceConnector",
+            "tasks.max": "1",
+            "topics": "backup-test-1partition",
+            "key.converter": "de.azapps.kafkabackup.common.AlreadyBytesConverter",
+            "value.converter": "de.azapps.kafkabackup.common.AlreadyBytesConverter",
+            "source.dir": "/kafka-backup/001_simple_1partition_test/",
+            "batch.size": 1000,
+            "cluster.bootstrap.servers": "localhost:9092",
+            "cluster.key.deserializer": "org.apache.kafka.common.serialization.ByteArrayDeserializer",
+            "cluster.value.deserializer": "org.apache.kafka.common.serialization.ByteArrayDeserializer"
+          }
+        }
+    - command: sleep 30
+      nolog: true
+    - name: Verify Records
+      command: >
+        docker-compose -p kafkabackupsimple exec -T restore-to runutil
+          consume_verify_messages backup-test-1partition 0 300
+
+- name: Clean-up Containers
+  entries:
+    - name: Docker Compose Down
+      command: docker-compose -p kafkabackupsimple down
