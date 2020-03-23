@@ -1,0 +1,33 @@
+name: Java CI
+
+on: [push]
+
+jobs:
+  buildAndTest:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up JDK 11
+      uses: actions/setup-java@v1
+      with:
+        java-version: 11.0.5
+    # Unit Tests
+    - name: Test with Gradle
+      run: ./gradlew test
+    # Build
+    - name: Build with Gradle
+      run: ./gradlew shadowjar
+    # Integration Tests
+    - name: setup env
+      run: |
+        echo "::set-env name=GOPATH::$(go env GOPATH)"
+        echo "::add-path::$(go env GOPATH)/bin"
+    - uses: actions/setup-go@v2-beta
+      with:
+        go-version: '^1.13.1'
+    # Setup Coyote
+    - name: Setup Coyote
+      run: go get github.com/landoop/coyote
+    - name: Run System Tests
+      working-directory: ./system_test/
+      run: ./run-tests

@@ -1,0 +1,28 @@
+version: '2'
+services:
+  to-backup:
+    build:
+      context: utils/
+      dockerfile: Dockerfile
+    environment:
+      - ADV_HOST=to-backup
+      - FORWARDLOGS=0
+      - RUNTESTS=0
+    volumes:
+      - "../build/libs/kafka-backup.jar:/connectors/kafka-backup.jar"
+      - "./utils/utils.sh:/root/utils.sh"
+      - "./utils/runutil:/bin/runutil"
+      - "/tmp/kafka-backup/:/kafka-backup/:rw"
+  restore-to:
+    build:
+      context: utils/
+      dockerfile: Dockerfile
+    environment:
+      - ADV_HOST=restore-to
+      - FORWARDLOGS=0
+      - RUNTESTS=0
+    volumes:
+      - "../build/libs/kafka-backup.jar:/connectors/kafka-backup.jar"
+      - "./utils/utils.sh:/root/utils.sh"
+      - "./utils/runutil:/bin/runutil"
+      - "/tmp/kafka-backup/:/kafka-backup/:rw"
