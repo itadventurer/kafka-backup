@@ -16,6 +16,7 @@ class BackupSourceConfig extends AbstractConfig {
     private static final String BATCH_SIZE_CONFIG = "batch.size";
     private static final String SOURCE_DIR_CONFIG = "source.dir";
     private static final String TOPICS_CONFIG = "topics";
+    static final String ALLOW_OLD_KAFKA_CONNECT_VERSION = "allow.old.kafka.connect.version.unsafe";
 
 
     private static final ConfigDef CONFIG_DEF = new ConfigDef()
