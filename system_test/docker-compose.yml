@@ -1,28 +1,154 @@
-version: '2'
+version: '3.3'
 services:
+  # To Backup
+  to-backup-zk-1:
+    image: confluentinc/cp-zookeeper:5.4.1
+    container_name: to-backup-zk-1
+    hostname: to-backup-zk-1
+    ports:
+      - 12181:2181
+    environment:
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_INIT_LIMIT: 5
+      ZOOKEEPER_SYNC_LIMIT: 2
+      ZOOKEEPER_SERVERS: to-backup-zk-1:2888:3888
+    networks:
+      - to-backup
+
+  to-backup-kafka:
+    #image: confluentinc/cp-kafka:5.4.1
+    build:
+      dockerfile: Dockerfile
+      context: ./utils
+    container_name: to-backup-kafka
+    hostname: to-backup-kafka
+    volumes:
+      - "./utils/utils.sh:/root/utils.sh"
+      - "./utils/runutil:/bin/runutil"
+    ports:
+      - 19092:9091
+      - 19091:9091
+    networks:
+      - to-backup
+    depends_on:
+      - to-backup-zk-1
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: to-backup-zk-1:2181
+      KAFKA_ADVERTISED_LISTENERS: INDOCKER://to-backup-kafka:9092,OUTDOCKER://localhost:19091
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INDOCKER:PLAINTEXT,OUTDOCKER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INDOCKER
+      KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE: 'false'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  to-backup-connect:
+    container_name: to-backup-connect
+    image: confluentinc/cp-kafka-connect:5.4.1
+    hostname: connect
+    depends_on:
+      - to-backup-kafka
+    networks:
+      - to-backup
+    volumes:
+      - ../build/libs/kafka-backup.jar:/connect-plugins/kafka-backup.jar
+      - "/tmp/kafka-backup/:/kafka-backup/:rw"
+    ports:
+      - 18083:8083
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: "to-backup-kafka:9092"
+      CONNECT_REST_PORT: 8083
+      CONNECT_GROUP_ID: "kafka-connect"
+      CONNECT_CONFIG_STORAGE_TOPIC: "connect-config"
+      CONNECT_OFFSET_STORAGE_TOPIC: "connect-offsets"
+      CONNECT_STATUS_STORAGE_TOPIC: "connect-status"
+      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_INTERNAL_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_INTERNAL_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_REST_ADVERTISED_HOST_NAME: "connect"
+      CONNECT_PLUGIN_PATH: /usr/share/java,/connect-plugins
+      CONNECT_REPLICATION_FACTOR: 1
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+  ################################################################################################
+  # Restore to
+
+  restore-to-zk-1:
+    image: confluentinc/cp-zookeeper:5.4.1
+    container_name: restore-to-zk-1
+    hostname: restore-to-zk-1
+    ports:
+      - 22181:2181
+    environment:
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_INIT_LIMIT: 5
+      ZOOKEEPER_SYNC_LIMIT: 2
+      ZOOKEEPER_SERVERS: restore-to-zk-1:2888:3888
+    networks:
+      - restore-to
+
+  restore-to-kafka:
+    #image: confluentinc/cp-kafka:5.4.1
+    build:
+      dockerfile: Dockerfile
+      context: ./utils
+    container_name: restore-to-kafka
+    hostname: restore-to-kafka
+    volumes:
+      - "./utils/utils.sh:/root/utils.sh"
+      - "./utils/runutil:/bin/runutil"
+    ports:
+      - 29092:9091
+      - 29091:9091
+    networks:
+      - restore-to
+    depends_on:
+      - restore-to-zk-1
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: restore-to-zk-1:2181
+      KAFKA_ADVERTISED_LISTENERS: INDOCKER://restore-to-kafka:9092,OUTDOCKER://localhost:29091
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INDOCKER:PLAINTEXT,OUTDOCKER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INDOCKER
+      KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE: 'false'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  restore-to-connect:
+    container_name: restore-to-connect
+    image: confluentinc/cp-kafka-connect:5.4.1
+    hostname: connect
+    depends_on:
+      - restore-to-kafka
+    networks:
+      - restore-to
+    volumes:
+      - ../build/libs/kafka-backup.jar:/connect-plugins/kafka-backup.jar
+      - "/tmp/kafka-backup/:/kafka-backup/:rw"
+    ports:
+      - 28083:8083
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: "restore-to-kafka:9092"
+      CONNECT_REST_PORT: 8083
+      CONNECT_GROUP_ID: "kafka-connect"
+      CONNECT_CONFIG_STORAGE_TOPIC: "connect-config"
+      CONNECT_OFFSET_STORAGE_TOPIC: "connect-offsets"
+      CONNECT_STATUS_STORAGE_TOPIC: "connect-status"
+      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_INTERNAL_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_INTERNAL_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_REST_ADVERTISED_HOST_NAME: "connect"
+      CONNECT_PLUGIN_PATH: /usr/share/java,/connect-plugins
+      CONNECT_REPLICATION_FACTOR: 1
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+
+networks:
   to-backup:
-    build:
-      context: utils/
-      dockerfile: Dockerfile
-    environment:
-      - ADV_HOST=to-backup
-      - FORWARDLOGS=0
-      - RUNTESTS=0
-    volumes:
-      - "../build/libs/kafka-backup.jar:/connectors/kafka-backup.jar"
-      - "./utils/utils.sh:/root/utils.sh"
-      - "./utils/runutil:/bin/runutil"
-      - "/tmp/kafka-backup/:/kafka-backup/:rw"
   restore-to:
-    build:
-      context: utils/
-      dockerfile: Dockerfile
-    environment:
-      - ADV_HOST=restore-to
-      - FORWARDLOGS=0
-      - RUNTESTS=0
-    volumes:
-      - "../build/libs/kafka-backup.jar:/connectors/kafka-backup.jar"
-      - "./utils/utils.sh:/root/utils.sh"
-      - "./utils/runutil:/bin/runutil"
-      - "/tmp/kafka-backup/:/kafka-backup/:rw"

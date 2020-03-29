@@ -1,5 +1,27 @@
 #!/bin/bash
 
+kafka_start() {
+  confluent local start kafka
+}
+
+kafka_stop() {
+  confluent local stop
+}
+
+kafka_delete_data() {
+  rm -r /tmp/confluent.*
+}
+
+kafka-topics() {
+  "$CONFLUENT_HOME/bin/kafka-topics" $@
+}
+kafka-console-consumer() {
+  "$CONFLUENT_HOME/bin/kafka-console-consumer" $@
+}
+kafka-consumer-groups() {
+  "$CONFLUENT_HOME/bin/kafka-consumer-groups" $@
+}
+
 create_topic() {
   TOPIC=$1
   PARTITIONS=$2
@@ -37,11 +59,11 @@ gen_messages() {
     return 255
   fi
   SIZE=$4
-  for NUM in $(seq "$START_NUM" $((START_NUM + COUNT - 1))); do
+  for NUM in {$START_NUM..$((START_NUM + COUNT - 1))}; do
     if [ "0" -eq "$(((NUM - START_NUM) % 100))" ]; then
       echo -e -n "\rProduced $((NUM - START_NUM))/$COUNT messages" >/dev/stderr
     fi
-    gen_message "$PARTITION" "$NUM" "$SIZE"
+    gen_message "$PARTITION" $NUM "$SIZE"
   done
   echo ""
 }
@@ -67,7 +89,6 @@ verify_messages() {
       echo -e -n "\rVerified $((PREVIOUS_NUM + 1)) messages" >/dev/stderr
     fi
     KEY=$(echo "$MESSAGE" | awk '{print $1}')
-    # shellcheck disable=SC2001
     KEY_MATCH=$(echo "$KEY" | sed 's/part_\([0-9]*\)_num_\([0-9]*\)_\(.*\)$/\1\t\2\t\3/')
     KEY_PARTITION=$(echo "$KEY_MATCH" | awk '{print $1}')
     KEY_NUM=$(echo "$KEY_MATCH" | awk '{print $2}')
@@ -101,7 +122,7 @@ consume_verify_messages() {
     return 255
   fi
 
-  timeout 60 kafka-console-consumer \
+  kafka-console-consumer \
     --bootstrap-server localhost:9092 \
     --from-beginning --property print.key=true \
     --topic "$TOPIC" \

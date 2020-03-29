@@ -25,9 +25,17 @@ jobs:
     - uses: actions/setup-go@v2-beta
       with:
         go-version: '^1.13.1'
-    # Setup Coyote
+    # Prepare Tests
     - name: Setup Coyote
       run: go get github.com/landoop/coyote
-    - name: Run System Tests
+    - name: Simple Roundtrip Test
       working-directory: ./system_test/
-      run: ./run-tests
+      run: |
+        docker-compose pull
+        docker-compose build
+        mkdir -p /tmp/kafka-backup out
+        chmod 777 /tmp/kafka-backup
+    # Run system tests
+    - name: Simple Roundtrip Test
+      working-directory: ./system_test/
+      run: coyote -c 01_simple_roundtrip_test.yaml --out out/01.html

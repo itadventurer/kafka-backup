@@ -105,7 +105,7 @@ consume_verify_messages() {
     return 255
   fi
 
-  kafka-console-consumer \
+  timeout 60 kafka-console-consumer \
     --bootstrap-server localhost:9092 \
     --from-beginning --property print.key=true \
     --topic "$TOPIC" \
@@ -124,7 +124,7 @@ consume_messages() {
     return 255
   fi
 
-  MESSAGES=$(kafka-console-consumer \
+  MESSAGES=$(timeout 60 kafka-console-consumer \
     --bootstrap-server localhost:9092 \
     --from-beginning --property print.key=true \
     --topic "$TOPIC" \

@@ -1,6 +1,0 @@
-#!/bin/bash
-mkdir -p /tmp/kafka-backup out
-chmod 777 -R /tmp/kafka-backup
-for TEST in *_test.yaml ; do
-  coyote -c "$TEST" -out out/"$TEST".html
-done
