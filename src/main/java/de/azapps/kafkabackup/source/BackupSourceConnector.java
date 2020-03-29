@@ -1,9 +1,12 @@
 package de.azapps.kafkabackup.source;
 
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.source.SourceConnector;
+import org.apache.kafka.connect.source.SourceRecord;
+import org.apache.kafka.connect.source.SourceTask;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +19,13 @@ public class BackupSourceConnector extends SourceConnector {
     @Override
     public void start(Map<String, String> props) {
         config = props;
+        if (!config.getOrDefault(BackupSourceConfig.ALLOW_OLD_KAFKA_CONNECT_VERSION, "false").equals("true")) {
+            try {
+                SourceTask.class.getMethod("commitRecord", SourceRecord.class, RecordMetadata.class);
+            } catch (NoSuchMethodException e) {
+                throw new RuntimeException("Kafka Backup requires at least Kafka Connect 2.4. Otherwise Offsets cannot be committed. If you are sure what you are doing, please set " + BackupSourceConfig.ALLOW_OLD_KAFKA_CONNECT_VERSION + " to true");
+            }
+        }
     }
 
     @Override
