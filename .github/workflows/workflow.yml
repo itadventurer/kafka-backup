@@ -6,36 +6,39 @@ jobs:
   buildAndTest:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-    - name: Set up JDK 11
-      uses: actions/setup-java@v1
-      with:
-        java-version: 11.0.5
-    # Unit Tests
-    - name: Test with Gradle
-      run: ./gradlew test
-    # Build
-    - name: Build with Gradle
-      run: ./gradlew shadowjar
-    # Integration Tests
-    - name: setup env
-      run: |
-        echo "::set-env name=GOPATH::$(go env GOPATH)"
-        echo "::add-path::$(go env GOPATH)/bin"
-    - uses: actions/setup-go@v2-beta
-      with:
-        go-version: '^1.13.1'
-    # Prepare Tests
-    - name: Setup Coyote
-      run: go get github.com/landoop/coyote
-    - name: Simple Roundtrip Test
-      working-directory: ./system_test/
-      run: |
-        docker-compose pull
-        docker-compose build
-        mkdir -p /tmp/kafka-backup out
-        chmod 777 /tmp/kafka-backup
-    # Run system tests
-    - name: Simple Roundtrip Test
-      working-directory: ./system_test/
-      run: coyote -c 01_simple_roundtrip_test.yaml --out out/01.html
+      - uses: actions/checkout@v1
+      - name: Set up JDK 11
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11.0.5
+      # Unit Tests
+      - name: Test with Gradle
+        run: ./gradlew test
+      # Build
+      - name: Build with Gradle
+        run: ./gradlew shadowjar
+      # Integration Tests
+      - name: setup env
+        run: |
+          echo "::set-env name=GOPATH::$(go env GOPATH)"
+          echo "::add-path::$(go env GOPATH)/bin"
+      - uses: actions/setup-go@v2-beta
+        with:
+          go-version: '^1.13.1'
+      # Prepare Tests
+      - name: Setup Coyote
+        run: go get github.com/landoop/coyote
+      - name: Simple Roundtrip Test
+        working-directory: ./system_test/
+        run: |
+          docker-compose pull
+          docker-compose build
+          mkdir -p /tmp/kafka-backup out
+          chmod 777 /tmp/kafka-backup
+      # Run system tests
+      - name: Simple Roundtrip Test
+        working-directory: ./system_test/
+        run: coyote -c 01_simple_roundtrip_test.yaml --out out/01.html
+      - name: Full Test
+        working-directory: ./system_test/
+        run: coyote -c 02_full_test.yaml --out out/02.html
