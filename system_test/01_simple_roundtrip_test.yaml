@@ -1,3 +1,21 @@
+# Test description
+#
+# Create two topics:
+# * backup-test-1partition: 1 partition
+# * backup-test-empty-topic: 3 partitions
+#
+# * Fill the 1partition topic with 300 messages á 10KB each in every partition
+# * Consume the messages with three consumer groups: cg-100: consume 100 messages, cg-200 consume 200 messages, cg-300 consume 300 messages
+# * Fill one of the 3 partitions of empty-topic with 300 messages. Leave the other partitions empty
+#
+# * Take a backup
+# * Stop the Cluster
+#
+# * Start the backup
+# * Verify that all messages have been written correctly
+# * Check the consumer offsets
+#
+# * Stop everything
 - name: coyote
   title: kafka-backup
 
@@ -17,44 +35,46 @@
 
 - name: Create  Topic for tests
   entries:
-    - command: docker-compose exec -T to-backup-kafka runutil
-          create_topic backup-test-1partition 1
+    - command: docker-compose exec -T to-backup-kafka runutil bash -c '
+        create_topic backup-test-1partition 1 &&
+        create_topic backup-test-empty-topic 3'
 - name: Produce Messages
   entries:
     - name: Produce 300 messages
-      command: docker-compose exec -T to-backup-kafka runutil
-          produce_messages backup-test-1partition 0 0 300
+      command: docker-compose exec -T to-backup-kafka runutil bash -c '
+        produce_messages backup-test-1partition 0 0 300 &&
+        produce_messages backup-test-empty-topic 0 0 300'
 - name: Consume messages
   entries:
     - name: Consume 100 messages with cg-100
       command: docker-compose exec -T to-backup-kafka runutil
-          consume_messages backup-test-1partition cg-100 100
+        consume_messages backup-test-1partition cg-100 100
     - name: Consume 200 messages with cg-200
       command: docker-compose exec -T to-backup-kafka runutil
-          consume_messages backup-test-1partition cg-200 200
+        consume_messages backup-test-1partition cg-200 200
     - name: Consume 300 messages with cg-300
       command: docker-compose exec -T to-backup-kafka runutil
-          consume_messages backup-test-1partition cg-300 300
+        consume_messages backup-test-1partition cg-300 300
 - name: Check Consumer Group Offsets
   entries:
     - name: Check Consumer Group cg-100
       command: docker-compose exec -T to-backup-kafka runutil
-          kafka_group_describe cg-100
+        kafka_group_describe cg-100
       stdout_has: [ 'backup-test-1partition 0          100             300             200' ]
     - name: Check Consumer Group cg-200
       command: docker-compose exec -T to-backup-kafka runutil
-          kafka_group_describe cg-200
+        kafka_group_describe cg-200
       stdout_has: [ 'backup-test-1partition 0          200             300             100' ]
     - name: Check Consumer Group cg-200
       command: docker-compose exec -T to-backup-kafka runutil
-          kafka_group_describe cg-300
+        kafka_group_describe cg-300
       stdout_has: [ 'backup-test-1partition 0          300             300             0' ]
 
 - name: Start Kafka Backup
   entries:
     - name: Clean previous data
       command: docker-compose exec -T to-backup-kafka runutil
-          rm -rf "/kafka-backup/001_simple_1partition_test/"
+        rm -rf "/kafka-backup/001_simple_1partition_test/"
     - name: Create an Kafka Backup Connector
       command: >
         docker-compose exec -T to-backup-connect
@@ -88,7 +108,7 @@
   entries:
     - name: Create Topic
       command: docker-compose exec -T restore-to-kafka runutil
-          create_topic backup-test-1partition 1
+        create_topic backup-test-1partition 1
     - name: Create an Kafka Backup Restore Connector
       command: >
         docker-compose exec -T restore-to-connect
@@ -102,7 +122,7 @@
           "config": {
             "connector.class": "de.azapps.kafkabackup.source.BackupSourceConnector",
             "tasks.max": "1",
-            "topics": "backup-test-1partition",
+            "topics": "backup-test-1partition,backup-test-empty-topic",
             "key.converter": "de.azapps.kafkabackup.common.AlreadyBytesConverter",
             "value.converter": "de.azapps.kafkabackup.common.AlreadyBytesConverter",
             "source.dir": "/kafka-backup/001_simple_1partition_test/",
@@ -118,20 +138,21 @@
 - name: Verify Backup
   entries:
     - name: Verify Records
-      command: docker-compose exec -T restore-to-kafka runutil
-          consume_verify_messages backup-test-1partition 0 300
+      command: docker-compose exec -T restore-to-kafka runutil bash -c '
+        consume_verify_messages backup-test-1partition 0 300 &&
+        consume_verify_messages backup-test-empty-topic 0 300'
     - name: Check Consumer Group cg-100
       command: docker-compose exec -T restore-to-kafka runutil
-          kafka_group_describe cg-100
-      stdout_has: [ 'backup-test-1partition 0          100             300             200' ]
+        kafka_group_describe cg-100
+      stdout_has: [ 'backup-test-1partition 0          100' ]
     - name: Check Consumer Group cg-200
       command: docker-compose exec -T restore-to-kafka runutil
-          kafka_group_describe cg-200
-      stdout_has: [ 'backup-test-1partition 0          200             300             100' ]
+        kafka_group_describe cg-200
+      stdout_has: [ 'backup-test-1partition 0          200' ]
     - name: Check Consumer Group cg-200
       command: docker-compose exec -T restore-to-kafka runutil
-          kafka_group_describe cg-300
-      stdout_has: [ 'backup-test-1partition 0          300             300             0' ]
+        kafka_group_describe cg-300
+      stdout_has: [ 'backup-test-1partition 0          300' ]
 
 - name: Clean-up Containers
   entries:
