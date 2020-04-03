@@ -4,7 +4,7 @@
 - name: Setup Cluster to Backup
   entries:
     - name: Docker Compose Up
-      timeout: 30s
+      timeout: 300s
       command: docker-compose up -d
     - name: Wait for Connect to get up
       command: >
@@ -24,9 +24,9 @@
       command: docker-compose exec -T to-backup-kafka runutil bash -c '
         create_topic backup-test-1partition 1 &&
         create_topic backup-test-3partitions 3'
-      timeout: 30s
+      timeout: 300s
     - name: Produce 300 messages, 10KiB each to each partition
-      timeout: 30s
+      timeout: 300s
       command: docker-compose exec -T to-backup-kafka runutil bash -c '
         produce_messages backup-test-1partition 0 0 300 &&
 
@@ -34,12 +34,12 @@
         produce_messages backup-test-3partitions 1 0 300 &&
         produce_messages backup-test-3partitions 2 0 300'
     - name: Consume all messages with consumer-group `cg-3k`
-      timeout: 30s
+      timeout: 300s
       command: docker-compose exec -T to-backup-kafka runutil bash -c '
         consume_messages backup-test-1partition cg-3k 300 &&
         consume_messages backup-test-3partitions cg-3k 900'
     - name: Check Consumer Group cg-3k
-      timeout: 30s
+      timeout: 300s
       command: docker-compose exec -T to-backup-kafka runutil
           kafka_group_describe cg-3k
       stdout_has: [
@@ -48,7 +48,7 @@
       'backup-test-3partitions 1          300',
       'backup-test-3partitions 2          300']
     - name: Produce 200 messages
-      timeout: 30s
+      timeout: 300s
       command: docker-compose exec -T to-backup-kafka runutil bash -c '
         produce_messages backup-test-1partition 0 300 200 &&
 
@@ -56,12 +56,12 @@
         produce_messages backup-test-3partitions 1 300 200 &&
         produce_messages backup-test-3partitions 2 300 200'
     - name: Consume all messages with consumer-group `cg-5k`
-      timeout: 30s
+      timeout: 300s
       command: docker-compose exec -T to-backup-kafka runutil bash -c '
         consume_messages backup-test-1partition cg-5k 500 &&
         consume_messages backup-test-3partitions cg-5k 1500'
     - name: Produce 100 more messages
-      timeout: 30s
+      timeout: 300s
       command: docker-compose exec -T to-backup-kafka runutil bash -c '
         produce_messages backup-test-1partition 0 500 100 &&
 
@@ -71,7 +71,7 @@
 - name: Start Kafka Backup
   entries:
     - name: Create an Kafka Backup Connector
-      timeout: 30s
+      timeout: 300s
       command: >
         docker-compose exec -T to-backup-connect
           curl -vs --stderr - -X POST -H "Content-Type: application/json"
@@ -95,7 +95,7 @@
     - command: sleep 10
       nolog: true
     - name: Check For errors
-      timeout: 30s
+      timeout: 300s
       command: docker-compose exec -T to-backup-connect curl -vs "http://localhost:8083/connectors/backup-sink/status"
       stderr_has: ["200 OK"]
       stdout_has: ["RUNNING"]
@@ -104,11 +104,11 @@
 - name: Create another topic and write some data to it
   entries:
     - name: Create Topic
-      timeout: 30s
+      timeout: 300s
       command: docker-compose exec -T to-backup-kafka runutil
         create_topic backup-test-10partitions 10
     - name: Write data
-      timeout: 30s
+      timeout: 300s
       command: |
         docker-compose exec -T to-backup-kafka runutil bash -c '
           for i in $(seq 0 9) ; do
@@ -127,7 +127,7 @@
     - command: sleep 20
       nolog: true
     - name: Check For errors
-      timeout: 30s
+      timeout: 300s
       command: docker-compose exec -T to-backup-connect curl -vs "http://localhost:8083/connectors/backup-sink/status"
       stderr_has: ["200 OK"]
       stdout_has: ["RUNNING"]
@@ -136,20 +136,20 @@
 - name: Stop Cluster that was backed up
   entries:
     - name: Docker Compose Down
-      timeout: 30s
+      timeout: 300s
       command: docker-compose stop to-backup-kafka
 
 - name: Restore
   entries:
     - name: Create Topic
-      timeout: 30s
+      timeout: 300s
       command: docker-compose exec -T restore-to-kafka runutil bash -c '
         create_topic backup-test-1partition 1 &&
         create_topic backup-test-3partitions 3 &&
         create_topic backup-test-10partitions 10'
 
     - name: Create an Kafka Backup Restore Connector
-      timeout: 30s
+      timeout: 300s
       command: >
         docker-compose exec -T restore-to-connect
           curl -vs --stderr - -X POST -H "Content-Type: application/json"
@@ -175,7 +175,7 @@
     - command: sleep 3
       nolog: true
     - name: Check For errors
-      timeout: 30s
+      timeout: 300s
       command: docker-compose exec -T restore-to-connect curl -vs "http://localhost:8083/connectors/backup-source/status"
       stderr_has: ["200 OK"]
       stdout_has: ["RUNNING"]
@@ -183,7 +183,7 @@
     - command: sleep 60
       nolog: true
     - name: Check For errors
-      timeout: 30s
+      timeout: 300s
       command: docker-compose exec -T restore-to-connect curl -vs "http://localhost:8083/connectors/backup-source/status"
       stderr_has: ["200 OK"]
       stdout_has: ["RUNNING"]
@@ -192,25 +192,25 @@
 - name: Verify Backup
   entries:
     - name: Verify Records of backup-test-1partition
-      timeout: 30s
+      timeout: 300s
       command: docker-compose exec -T restore-to-kafka runutil
           consume_verify_messages backup-test-1partition 0 2100
     - name: Verify Records of backup-test-3partitions
-      timeout: 30s
+      timeout: 300s
       command: |
         docker-compose exec -T restore-to-kafka runutil bash -c '
           for i in $(seq 0 2) ; do
               consume_verify_messages backup-test-3partitions $i 600
           done'
     - name: Verify Records of backup-test-10partitions
-      timeout: 120s
+      timeout: 300s
       command: |
         docker-compose exec -T restore-to-kafka runutil bash -c '
           for i in $(seq 0 9) ; do
               consume_verify_messages backup-test-10partitions $i 500
           done'
     - name: Check Consumer Group cg-3k
-      timeout: 30s
+      timeout: 300s
       command: docker-compose exec -T restore-to-kafka runutil
           kafka_group_describe cg-3k
       stdout_has: [

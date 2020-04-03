@@ -28,7 +28,7 @@ jobs:
       # Prepare Tests
       - name: Setup Coyote
         run: go get github.com/landoop/coyote
-      - name: Simple Roundtrip Test
+      - name: Setup Tests
         working-directory: ./system_test/
         run: |
           docker-compose pull
