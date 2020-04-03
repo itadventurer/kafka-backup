@@ -65,11 +65,14 @@ public class SegmentWriter {
                     "Expected partition: " + partition + " given partition: " + partition);
         }
         if (record.kafkaOffset() < startOffset) {
-            throw new SegmentException("Try to append a record with an offset smaller than the start offset. Something is very wrong");
+            throw new SegmentException("Try to append a record with an offset smaller than the start offset. Something is very wrong. \n" +
+                    "Topic: " + record.topic() + "Partition: " + record.kafkaPartition() + " StartOffset: " + startOffset + " RecordOffset: " + record.kafkaOffset() + "\n" +
+                    "You probably forgot to delete a previous Backup\n");
         }
         if (record.kafkaOffset() <= lastWrittenOffset()) {
             // We are handling the offsets ourselves. This should never happen!
-            throw new SegmentException("Trying to override a written record. There is something terribly wrong in your setup! Please check whether you are trying to override an existing backup");
+            throw new SegmentException("Trying to override a written record. There is something terribly wrong in your setup! Please check whether you are trying to override an existing backup" +
+                    "Topic: " + record.topic() + "Partition: " + record.kafkaPartition() + " lastWrittenOffset: " + lastWrittenOffset() + " RecordOffset: " + record.kafkaOffset());
         }
         long startPosition = recordOutputStream.getChannel().position();
         RecordSerde.write(recordOutputStream, record);

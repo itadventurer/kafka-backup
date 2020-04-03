@@ -3,7 +3,7 @@
 create_topic() {
   TOPIC=$1
   PARTITIONS=$2
-  if [ -z "$PARTITIONS" ]; then
+  if [ -z "$PARTITIONS" ] || [ -n "$3" ]; then
     echo "USAGE: $0 [TOPIC] [PARTITIONS]"
     return 255
   fi
@@ -15,11 +15,11 @@ export -f create_topic
 gen_message() {
   PARTITION=$1
   NUM=$2
-  if [ -z "$NUM" ]; then
+  SIZE=$3
+  if [ -z "$NUM" ]  || [ -n "$4" ]; then
     echo "USAGE: $0 [PARTITION] [NUM] (SIZE)"
     return 255
   fi
-  SIZE=$3
   if [ -z "$SIZE" ]; then
     SIZE=7500 # 10k Bytes base64
   fi
@@ -34,7 +34,7 @@ gen_messages() {
   PARTITION=$1
   START_NUM=$2
   COUNT=$3
-  if [ -z "$COUNT" ]; then
+  if [ -z "$COUNT" ] || [ -n "$4" ]; then
     echo "USAGE: $0 [PARTITION] [START_NUM] [COUNT] (SIZE)"
     return 255
   fi
@@ -54,11 +54,11 @@ produce_messages() {
   PARTITION=$2
   START_NUM=$3
   COUNT=$4
-  if [ -z "$COUNT" ]; then
+  SIZE=$5
+  if [ -z "$COUNT" ] || [ -n "$6" ]; then
     echo "USAGE: $0 [TOPIC] [PARTITION] [START_NUM] [COUNT] (SIZE)"
     return 255
   fi
-  SIZE=$5
 
   gen_messages "$PARTITION" "$START_NUM" "$COUNT" "$SIZE" | kafkacat -P -b localhost:9092 -t "$TOPIC" -p "$PARTITION" -K ","
 }
@@ -67,7 +67,7 @@ export -f produce_messages
 verify_messages() {
   PREVIOUS_NUM="-1"
   while read -r MESSAGE; do
-    if [ "0" -eq "$(((PREVIOUS_NUM + 1) % 10))" ]; then
+    if [ "0" -eq "$(((PREVIOUS_NUM + 1) % 100))" ]; then
       echo -e -n "\rVerified $((PREVIOUS_NUM + 1)) messages" >/dev/stderr
     fi
     KEY=$(echo "$MESSAGE" | awk '{print $1}')
@@ -100,12 +100,12 @@ consume_verify_messages() {
   TOPIC=$1
   PARTITION=$2
   COUNT=$3
-  if [ -z "$COUNT" ]; then
+  if [ -z "$COUNT" ] || [ -n "$4" ]; then
     echo "USAGE: $0 [TOPIC] [PARTITION] [COUNT]"
     return 255
   fi
 
-  timeout 60 kafka-console-consumer \
+  kafka-console-consumer \
     --bootstrap-server localhost:9092 \
     --from-beginning --property print.key=true \
     --topic "$TOPIC" \
@@ -119,12 +119,12 @@ consume_messages() {
   TOPIC=$1
   CONSUMER_GROUP=$2
   COUNT=$3
-  if [ -z "$COUNT" ]; then
+  if [ -z "$COUNT" ] || [ -n "$4" ]; then
     echo "USAGE: $0 [TOPIC] [CONSUMER GROUP] [COUNT]"
     return 255
   fi
 
-  MESSAGES=$(timeout 60 kafka-console-consumer \
+  MESSAGES=$(kafka-console-consumer \
     --bootstrap-server localhost:9092 \
     --from-beginning --property print.key=true \
     --topic "$TOPIC" \
@@ -136,7 +136,7 @@ export -f consume_messages
 
 kafka_group_describe() {
   GROUP=$1
-  if [ -z "$GROUP" ]; then
+  if [ -z "$GROUP" ] || [ -n "$2" ]; then
     echo "USAGE: $0 [GROUP]"
     return 255
   fi
@@ -146,7 +146,7 @@ export -f kafka_group_describe
 
 burry_backup() {
   TARGET_DIR=$1
-  if [ -z "$TARGET_DIR" ]; then
+  if [ -z "$TARGET_DIR" ] || [ -n "$2" ]; then
     echo "USAGE: $0 [TARGET_DIR]"
     return 255
   fi
@@ -156,7 +156,7 @@ export -f burry_backup
 
 burry_restore() {
   SOURCE_DIR=$1
-  if [ -z "$SOURCE_DIR" ]; then
+  if [ -z "$SOURCE_DIR" ] || [ -n "$2" ]; then
     echo "USAGE: $0 [SOURCE_DIR]"
     return 255
   fi

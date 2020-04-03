@@ -28,8 +28,7 @@ services:
       - "./utils/utils.sh:/root/utils.sh"
       - "./utils/runutil:/bin/runutil"
     ports:
-      - 19092:9091
-      - 19091:9091
+      - 19092:19092
     networks:
       - to-backup
     depends_on:
@@ -37,7 +36,7 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: to-backup-zk-1:2181
-      KAFKA_ADVERTISED_LISTENERS: INDOCKER://to-backup-kafka:9092,OUTDOCKER://localhost:19091
+      KAFKA_ADVERTISED_LISTENERS: INDOCKER://to-backup-kafka:9092,OUTDOCKER://localhost:19092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INDOCKER:PLAINTEXT,OUTDOCKER:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: INDOCKER
       KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE: 'false'
@@ -103,8 +102,7 @@ services:
       - "./utils/utils.sh:/root/utils.sh"
       - "./utils/runutil:/bin/runutil"
     ports:
-      - 29092:9091
-      - 29091:9091
+      - 29092:29092
     networks:
       - restore-to
     depends_on:
@@ -112,7 +110,7 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: restore-to-zk-1:2181
-      KAFKA_ADVERTISED_LISTENERS: INDOCKER://restore-to-kafka:9092,OUTDOCKER://localhost:29091
+      KAFKA_ADVERTISED_LISTENERS: INDOCKER://restore-to-kafka:9092,OUTDOCKER://localhost:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INDOCKER:PLAINTEXT,OUTDOCKER:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: INDOCKER
       KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE: 'false'
