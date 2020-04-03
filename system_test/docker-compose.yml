@@ -89,10 +89,7 @@ services:
       - restore-to
 
   restore-to-kafka:
-    #image: confluentinc/cp-kafka:5.4.1
-    build:
-      dockerfile: Dockerfile
-      context: ./utils
+    image: itadventurer/cp-kafka-with-utils:20200403
     container_name: restore-to-kafka
     hostname: restore-to-kafka
     volumes:
