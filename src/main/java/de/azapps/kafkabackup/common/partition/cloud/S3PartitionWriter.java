@@ -6,14 +6,12 @@ import de.azapps.kafkabackup.common.partition.PartitionWriter;
 import de.azapps.kafkabackup.common.record.Record;
 import de.azapps.kafkabackup.common.record.RecordJSONSerde;
 import de.azapps.kafkabackup.storage.s3.AwsS3Service;
+import org.apache.kafka.common.TopicPartition;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import lombok.Builder;
-import lombok.RequiredArgsConstructor;
 
-@RequiredArgsConstructor
-@Builder
 public class S3PartitionWriter implements PartitionWriter {
 
   private final String bucketName;
@@ -23,6 +21,15 @@ public class S3PartitionWriter implements PartitionWriter {
   private final AwsS3Service awsS3Service;
 
   private final RecordJSONSerde recordJSONSerde = new RecordJSONSerde();
+  private Long lastCommittableOffset;
+
+  public S3PartitionWriter(AwsS3Service awsS3Service, String bucketName, TopicPartition tp) {
+    this.awsS3Service = awsS3Service;
+    this.bucketName = bucketName;
+    this.topicName = tp.topic();
+    this.partition = tp.partition();
+    this.lastCommittableOffset = null; // Nothing written so far, so nothing to commit
+  }
 
   @Override
   public void append(Record record) throws PartitionException {
@@ -37,6 +44,9 @@ public class S3PartitionWriter implements PartitionWriter {
       objectMetadata.setContentLength(jsonRecord.length);
 
       awsS3Service.saveFile(bucketName, fileName, jsonStream, objectMetadata);
+      // Since it was successfully written, mark it as committable.
+      // Note that committed offsets are always the *next offset to read* (hence +1);
+      lastCommittableOffset = record.kafkaOffset() + 1;
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -64,5 +74,10 @@ public class S3PartitionWriter implements PartitionWriter {
   @Override
   public int partition() {
     return partition;
+  }
+
+  @Override
+  public Long getLastCommittableOffset() {
+    return lastCommittableOffset;
   }
 }

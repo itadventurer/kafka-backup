@@ -155,12 +155,7 @@ public class BackupSinkTask extends SinkTask {
     }
 
     private PartitionWriter openS3Partition(TopicPartition tp) {
-        return S3PartitionWriter.builder()
-                .bucketName(bucketName)
-                .partition(tp.partition())
-                .topicName(tp.topic())
-                .awsS3Service(awsS3Service)
-                .build();
+        return new S3PartitionWriter(awsS3Service, bucketName, tp);
         // In the S3 storage mode, we track offsets in the source kafka cluster (due to eventual consistency)
         // See approach described in https://www.confluent.io/blog/apache-kafka-to-amazon-s3-exactly-once/
         // So no call to context.offset here.
@@ -194,6 +189,33 @@ public class BackupSinkTask extends SinkTask {
             partitionWriter.flush();
             log.debug("Flushed Topic {}, Partition {}"
                     , partitionWriter.topic(), partitionWriter.partition());
+        }
+    }
+
+    @Override
+    public Map<TopicPartition, OffsetAndMetadata> preCommit(Map<TopicPartition, OffsetAndMetadata> currentOffsets) {
+        switch (storageMode) {
+            case DISK:
+                // Flush to disk and then return null to prevent offsets from being committed in source cluster
+                flush(currentOffsets);
+                return null;
+            case S3:
+                // Only commit offsets that where successfully written to S3
+                Map<TopicPartition, OffsetAndMetadata> offsetsToCommit = new HashMap<>();
+                // Note: we must iterate over all assigned partitions here,
+                // since time-based rotation might have kicked in for partitions not present in last call to put().
+                for (TopicPartition tp : partitionWriters.keySet()) {
+                    Long offset = partitionWriters.get(tp).getLastCommittableOffset(); // this is already last written + 1
+                    if (offset != null) {
+                        log.trace("Mark {} : {} as ready to commit.", tp, offset);
+                        offsetsToCommit.put(tp, new OffsetAndMetadata(offset));
+                    }
+                }
+                return offsetsToCommit;
+            default:
+                // This shouldn't happen, but still:
+                flush(currentOffsets);
+                return currentOffsets;
         }
     }
 }

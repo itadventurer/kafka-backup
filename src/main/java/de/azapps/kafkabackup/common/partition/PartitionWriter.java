@@ -8,4 +8,5 @@ public interface PartitionWriter {
     void flush() throws PartitionException;
     String topic();
     int partition();
+    Long getLastCommittableOffset();
 }
