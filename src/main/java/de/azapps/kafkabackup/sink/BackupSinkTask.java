@@ -92,8 +92,8 @@ public class BackupSinkTask extends SinkTask {
                 log.info("Record: {}", record);
                 partition.append(record);
                 if (sinkRecord.kafkaOffset() % 100 == 0) {
-                    log.debug("Backed up Topic %s, Partition %d, up to offset %d", sinkRecord.topic(),
-                        sinkRecord.kafkaPartition(), sinkRecord.kafkaOffset());
+                    log.debug("Backed up Topic {}, Partition {}, up to offset {}", sinkRecord.topic(),
+                            sinkRecord.kafkaPartition(), sinkRecord.kafkaOffset());
                 }
             });
         } catch (PartitionException e) {
@@ -109,45 +109,13 @@ public class BackupSinkTask extends SinkTask {
                 PartitionWriter partitionWriter;
                 switch (storageMode) {
                     case DISK:
-                        Path topicDir = Paths.get(targetDir.toString(), topicPartition.topic());
-                        Files.createDirectories(topicDir);
-                        partitionWriter = new DiskPartitionWriter(
-                            topicPartition.topic(),
-                            topicPartition.partition(),
-                            topicDir,
-                            maxSegmentSize
-                        );
+                        partitionWriter = openDiskPartition(topicPartition);
                         break;
                     case S3:
-                        partitionWriter = S3PartitionWriter.builder()
-                            .bucketName(bucketName)
-                            .partition(topicPartition.partition())
-                            .topicName(topicPartition.topic())
-                            .awsS3Service(awsS3Service)
-                            .build();
+                        partitionWriter = openS3Partition(topicPartition);
                         break;
                     default:
                         throw new RuntimeException(String.format("Invalid Storage Mode. Supported values are %s or %s", StorageMode.DISK, StorageMode.S3));
-                }
-
-                long lastWrittenOffset = partitionWriter.lastWrittenOffset();
-
-                // Note that we must *always* request that we seek to an offset here. Currently the
-                // framework will still commit Kafka offsets even though we track our own (see KAFKA-3462),
-                // which can result in accidentally using that offset if one was committed but no files
-                // were written to disk. To protect against this, even if we
-                // just want to start at offset 0 or reset to the earliest offset, we specify that
-                // explicitly to forcibly override any committed offsets.
-                if (lastWrittenOffset > 0) {
-                    context.offset(topicPartition, lastWrittenOffset + 1);
-                    log.debug("Initialized Topic {}, Partition {}. Last written offset: {}"
-                            , topicPartition.topic(), topicPartition.partition(), lastWrittenOffset);
-                } else {
-                    // The offset was not found, so rather than forcibly set the offset to 0 we let the
-                    // consumer decide where to start based upon standard consumer offsets (if available)
-                    // or the consumer's `auto.offset.reset` configuration
-                    log.info("Resetting offset for {} based upon existing consumer group offsets or, if "
-                            + "there are none, the consumer's 'auto.offset.reset' value.", topicPartition);
                 }
                 this.partitionWriters.put(topicPartition, partitionWriter);
             }
@@ -158,6 +126,44 @@ public class BackupSinkTask extends SinkTask {
         } catch (IOException | SegmentIndex.IndexException | PartitionIndex.IndexException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private PartitionWriter openDiskPartition(TopicPartition tp) throws IOException, SegmentIndex.IndexException, PartitionIndex.IndexException {
+        Path topicDir = Paths.get(targetDir.toString(), tp.topic());
+        Files.createDirectories(topicDir);
+        DiskPartitionWriter partitionWriter = new DiskPartitionWriter(tp.topic(), tp.partition(), topicDir, maxSegmentSize);
+        long lastWrittenOffset = partitionWriter.lastWrittenOffset();
+        // In the DISK storage mode, we track our own offsets in the target data.
+        // Note that we must *always* request that we seek to an offset here. Currently the
+        // framework will still commit Kafka offsets even though we track our own (see KAFKA-3462),
+        // which can result in accidentally using that offset if one was committed but no files
+        // were written to disk. To protect against this, even if we
+        // just want to start at offset 0 or reset to the earliest offset, we specify that
+        // explicitly to forcibly override any committed offsets.
+        if (lastWrittenOffset > 0) {
+            context.offset(tp, lastWrittenOffset + 1);
+            log.debug("Initialized Topic {}, Partition {}. Last written offset: {}"
+                    , tp.topic(), tp.partition(), lastWrittenOffset);
+        } else {
+            // The offset was not found, so rather than forcibly set the offset to 0 we let the
+            // consumer decide where to start based upon standard consumer offsets (if available)
+            // or the consumer's `auto.offset.reset` configuration
+            log.info("Resetting offset for {} based upon existing consumer group offsets or, if "
+                    + "there are none, the consumer's 'auto.offset.reset' value.", tp);
+        }
+        return partitionWriter;
+    }
+
+    private PartitionWriter openS3Partition(TopicPartition tp) {
+        return S3PartitionWriter.builder()
+                .bucketName(bucketName)
+                .partition(tp.partition())
+                .topicName(tp.topic())
+                .awsS3Service(awsS3Service)
+                .build();
+        // In the S3 storage mode, we track offsets in the source kafka cluster (due to eventual consistency)
+        // See approach described in https://www.confluent.io/blog/apache-kafka-to-amazon-s3-exactly-once/
+        // So no call to context.offset here.
     }
 
     public void close(Collection<TopicPartition> partitions) {

@@ -52,6 +52,7 @@ public class DiskPartitionWriter implements PartitionWriter {
         return currentSegment.lastWrittenOffset();
     }
 
+    @Override
     public void append(Record record) throws PartitionException {
         try {
             if (currentSegment.size() > maxSegmentSize) {
@@ -63,6 +64,7 @@ public class DiskPartitionWriter implements PartitionWriter {
         }
     }
 
+    @Override
     public void close() throws PartitionException {
         try {
             partitionIndex.close();
@@ -72,6 +74,7 @@ public class DiskPartitionWriter implements PartitionWriter {
         }
     }
 
+    @Override
     public void flush() throws PartitionException {
         try {
             partitionIndex.flush();
@@ -81,10 +84,12 @@ public class DiskPartitionWriter implements PartitionWriter {
         }
     }
 
+    @Override
     public String topic() {
         return topic;
     }
 
+    @Override
     public int partition() {
         return partition;
     }

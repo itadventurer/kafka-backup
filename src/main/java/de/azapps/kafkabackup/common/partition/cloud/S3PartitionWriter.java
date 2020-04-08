@@ -24,9 +24,6 @@ public class S3PartitionWriter implements PartitionWriter {
 
   private final RecordJSONSerde recordJSONSerde = new RecordJSONSerde();
 
-  private final long lastWrittenOffset = 0;
-
-
   @Override
   public void append(Record record) throws PartitionException {
     String fileName = buildFileKeyForRecord(topicName, partition, record);
@@ -57,11 +54,6 @@ public class S3PartitionWriter implements PartitionWriter {
   @Override
   public void flush() throws PartitionException {
 
-  }
-
-  @Override
-  public long lastWrittenOffset() {
-    return lastWrittenOffset;
   }
 
   @Override
