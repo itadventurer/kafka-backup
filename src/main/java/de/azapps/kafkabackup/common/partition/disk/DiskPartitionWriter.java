@@ -96,6 +96,11 @@ public class DiskPartitionWriter implements PartitionWriter {
 
     @Override
     public Long getLastCommittableOffset() {
-        return lastWrittenOffset() + 1; // committed offset in kafka are the *next to read*.
+        long offset = lastWrittenOffset();
+        if (offset < 0) {
+            return null;
+        } else {
+            return offset + 1;// committed offset in kafka are the *next to read*.
+        }
     }
 }

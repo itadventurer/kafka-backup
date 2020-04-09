@@ -1,79 +1,98 @@
 package de.azapps.kafkabackup.common.partition.cloud;
 
-import com.amazonaws.services.s3.model.ObjectMetadata;
 import de.azapps.kafkabackup.common.partition.PartitionException;
 import de.azapps.kafkabackup.common.partition.PartitionWriter;
 import de.azapps.kafkabackup.common.record.Record;
-import de.azapps.kafkabackup.common.record.RecordJSONSerde;
 import de.azapps.kafkabackup.storage.s3.AwsS3Service;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.connect.errors.RetriableException;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.Queue;
 
+@Slf4j
 public class S3PartitionWriter implements PartitionWriter {
 
-  private final String bucketName;
-  private final int partition;
-
-  private final String topicName;
   private final AwsS3Service awsS3Service;
+  private final String bucketName;
+  private final TopicPartition topicPartition;
+  private final int maxBatchMessages;
+  private final long maxBatchTimeMs;
+  private final Queue<Record> buffer = new LinkedList<>();
 
-  private final RecordJSONSerde recordJSONSerde = new RecordJSONSerde();
-  private Long lastCommittableOffset;
+  private S3BatchWriter batchWriter;
+  private Long lastCommittableOffset = null; // Nothing written so far, so nothing to commit
 
-  public S3PartitionWriter(AwsS3Service awsS3Service, String bucketName, TopicPartition tp) {
+
+  public S3PartitionWriter(AwsS3Service awsS3Service, String bucketName, TopicPartition tp, int maxBatchMessages, long maxBatchTimeMs) {
     this.awsS3Service = awsS3Service;
     this.bucketName = bucketName;
-    this.topicName = tp.topic();
-    this.partition = tp.partition();
-    this.lastCommittableOffset = null; // Nothing written so far, so nothing to commit
+    this.topicPartition = tp;
+    this.maxBatchMessages = maxBatchMessages;
+    this.maxBatchTimeMs = maxBatchTimeMs;
   }
 
   @Override
   public void append(Record record) throws PartitionException {
-    String fileName = buildFileKeyForRecord(topicName, partition, record);
+    buffer.add(record);
+  }
+
+  @Override
+  public void flush() throws PartitionException, RetriableException {
+    while (!buffer.isEmpty()) {
+      Record record = buffer.poll();
+      writeToBatch(record);
+      maybeCommitBasedOnMessages();
+    }
+    maybeCommitBasedOnTime();
+  }
+
+  private void writeToBatch(Record record) {
     try {
-      ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-      recordJSONSerde.write(outputStream, record);
-      byte[] jsonRecord = outputStream.toByteArray();
-      ByteArrayInputStream jsonStream = new ByteArrayInputStream(jsonRecord);
-
-      ObjectMetadata objectMetadata = new ObjectMetadata();
-      objectMetadata.setContentLength(jsonRecord.length);
-
-      awsS3Service.saveFile(bucketName, fileName, jsonStream, objectMetadata);
-      // Since it was successfully written, mark it as committable.
-      // Note that committed offsets are always the *next offset to read* (hence +1);
-      lastCommittableOffset = record.kafkaOffset() + 1;
+      if (batchWriter == null) {
+        batchWriter = new S3BatchWriter(awsS3Service, bucketName, topicPartition, record);
+      } else {
+        batchWriter.append(record);
+      }
     } catch (IOException e) {
-      e.printStackTrace();
+      throw new PartitionException(e);
     }
   }
 
-  private String buildFileKeyForRecord(String topic, int partition, Record record) {
-    return String.format("%s/%03d/msg_%020d.json", topic, partition, record.kafkaOffset());
+  private void maybeCommitBasedOnMessages() {
+    if (batchWriter != null && batchWriter.getCount() >= maxBatchMessages) {
+      commitCurrentBatch();
+    }
+  }
+
+  private void maybeCommitBasedOnTime() {
+    long now = System.currentTimeMillis();
+    if (batchWriter != null && (now - batchWriter.getStartWallClockTime()) >= maxBatchTimeMs) {
+      commitCurrentBatch();
+    }
+  }
+
+  private void commitCurrentBatch() {
+    batchWriter.commitBatch();
+    // We got here without exception, so its safe to commit to kafka
+    lastCommittableOffset = batchWriter.getEndOffset() + 1;
+    batchWriter = null;
   }
 
   @Override
   public void close() throws PartitionException {
-
-  }
-
-  @Override
-  public void flush() throws PartitionException {
-
   }
 
   @Override
   public String topic() {
-    return topicName;
+    return topicPartition.topic();
   }
 
   @Override
   public int partition() {
-    return partition;
+    return topicPartition.partition();
   }
 
   @Override
