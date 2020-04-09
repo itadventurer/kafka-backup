@@ -63,6 +63,7 @@ public class S3PartitionWriter implements PartitionWriter {
 
   private void maybeCommitBasedOnMessages() {
     if (batchWriter != null && batchWriter.getCount() >= maxBatchMessages) {
+      log.info("Commit {} based on num messages", batchWriter.getObjectKey());
       commitCurrentBatch();
     }
   }
@@ -70,6 +71,7 @@ public class S3PartitionWriter implements PartitionWriter {
   private void maybeCommitBasedOnTime() {
     long now = System.currentTimeMillis();
     if (batchWriter != null && (now - batchWriter.getStartWallClockTime()) >= maxBatchTimeMs) {
+      log.info("Commit {} based on time", batchWriter.getObjectKey());
       commitCurrentBatch();
     }
   }
