@@ -24,6 +24,11 @@ consume_messages backup-test-1partition cg-100 100
 consume_messages backup-test-1partition cg-200 200
 consume_messages backup-test-1partition cg-300 300
 
+# 1 empty partition, one full
+create_topic backup-test-empty 3
+produce_messages backup-test-empty 0 0 300
+
+
 
 ########################## Backup
 # * Start Kafka Connect distributed
@@ -45,6 +50,7 @@ kafka_delete_data
 kafka_start
 # * Create all 3 topics as above (we are not testing zookeeper backup!)
 create_topic backup-test-1partition 1
+create_topic backup-test-empty 3
 
 
 ########################## Restore topic
