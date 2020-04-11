@@ -1,8 +1,7 @@
 # Test Description
 #
-# Objective:
-# * Backup multiple partitions of different sizes with multiple consumers
-# * Create new partitions while Kafka Backup is running
+# We start and stop the Backup and restore process multiple times. This should not influence the backup
+
 - name: coyote
   title: kafka-backup
 
@@ -21,7 +20,7 @@
             sleep 10;
           done'
     - name: Clean previous data
-      command: docker-compose exec -T to-backup-connect rm -rf /kafka-backup/02_full_test/
+      command: docker-compose exec -T to-backup-connect rm -rf /kafka-backup/03_start_n_stop/
 
 - name: Setup Tests
   entries:
@@ -43,36 +42,7 @@
       command: docker-compose exec -T to-backup-kafka runutil bash -c '
         consume_messages backup-test-1partition cg-3k 300 &&
         consume_messages backup-test-3partitions cg-3k 900'
-    - name: Check Consumer Group cg-3k
-      timeout: 300s
-      command: docker-compose exec -T to-backup-kafka runutil
-          kafka_group_describe cg-3k
-      stdout_has: [
-      'backup-test-1partition  0          300',
-      'backup-test-3partitions 0          300',
-      'backup-test-3partitions 1          300',
-      'backup-test-3partitions 2          300']
-    - name: Produce 200 messages
-      timeout: 300s
-      command: docker-compose exec -T to-backup-kafka runutil bash -c '
-        produce_messages backup-test-1partition 0 300 200 &&
 
-        produce_messages backup-test-3partitions 0 300 200 &&
-        produce_messages backup-test-3partitions 1 300 200 &&
-        produce_messages backup-test-3partitions 2 300 200'
-    - name: Consume all messages with consumer-group `cg-5k`
-      timeout: 300s
-      command: docker-compose exec -T to-backup-kafka runutil bash -c '
-        consume_messages backup-test-1partition cg-5k 500 &&
-        consume_messages backup-test-3partitions cg-5k 1500'
-    - name: Produce 100 more messages
-      timeout: 300s
-      command: docker-compose exec -T to-backup-kafka runutil bash -c '
-        produce_messages backup-test-1partition 0 500 100 &&
-
-        produce_messages backup-test-3partitions 0 500 100 &&
-        produce_messages backup-test-3partitions 1 500 100 &&
-        produce_messages backup-test-3partitions 2 500 100'
 - name: Start Kafka Backup
   entries:
     - name: Create an Kafka Backup Connector
@@ -92,7 +62,7 @@
             "topics.regex": "backup-test.*",
             "key.converter": "de.azapps.kafkabackup.common.AlreadyBytesConverter",
             "value.converter": "de.azapps.kafkabackup.common.AlreadyBytesConverter",
-            "target.dir": "/kafka-backup/02_full_test",
+            "target.dir": "/kafka-backup/03_start_n_stop",
             "max.segment.size.bytes": 10485760,
             "cluster.bootstrap.servers": "to-backup-kafka:9092"
           }
@@ -106,37 +76,76 @@
       stdout_has: ["RUNNING"]
       stdout_not_has: ["FAILED"]
 
-- name: Create another topic and write some data to it
+- name: Restart Kafka Backup and Produce more data
   entries:
-    - name: Create Topic
+    - name: Delete Kafka Backup
+      command: >
+        docker-compose exec -T to-backup-connect
+        curl -vs --stderr - -X DELETE -H "Content-Type: application/json"
+          --data @-
+          "http://localhost:8083/connectors"
+    - command: sleep 10
+      nolog: true
+    - name: Produce 300 messages, 10KiB each to each partition
+      timeout: 300s
+      command: docker-compose exec -T to-backup-kafka runutil bash -c '
+        produce_messages backup-test-1partition 0 300 300 &&
+
+        produce_messages backup-test-3partitions 0 300 300 &&
+        produce_messages backup-test-3partitions 1 300 300 &&
+        produce_messages backup-test-3partitions 2 300 300'
+    - name: Create it again. point it to the same directory
+      timeout: 300s
+      command: >
+        docker-compose exec -T to-backup-connect
+          curl -vs --stderr - -X POST -H "Content-Type: application/json"
+               --data @-
+               "http://localhost:8083/connectors"
+      stdout_not_has: [ 'HTTP/1.1 [45][0-9][0-9] ' ]
+      stdin: |
+        {
+          "name": "backup-sink2",
+          "config": {
+            "connector.class": "de.azapps.kafkabackup.sink.BackupSinkConnector",
+            "tasks.max": "1",
+            "topics.regex": "backup-test.*",
+            "key.converter": "de.azapps.kafkabackup.common.AlreadyBytesConverter",
+            "value.converter": "de.azapps.kafkabackup.common.AlreadyBytesConverter",
+            "target.dir": "/kafka-backup/03_start_n_stop",
+            "max.segment.size.bytes": 10485760,
+            "cluster.bootstrap.servers": "to-backup-kafka:9092"
+          }
+        }
+    - command: sleep 10
+      nolog: true
+    - name: Pause Kafka Backup
+      command: >
+        docker-compose exec -T to-backup-connect
+        curl -vs --stderr - -X PUT -H "Content-Type: application/json"
+          --data @-
+          "http://localhost:8083/connectors/backup-sink2/pause"
+    - command: sleep 10
+      nolog: true
+    - name: Produce 300 messages, 10KiB each to each partition
+      timeout: 300s
+      command: docker-compose exec -T to-backup-kafka runutil bash -c '
+        produce_messages backup-test-1partition 0 600 300 &&
+
+        produce_messages backup-test-3partitions 0 600 300 &&
+        produce_messages backup-test-3partitions 1 600 300 &&
+        produce_messages backup-test-3partitions 2 600 300'
+    - name: Produce 1000 messages to 1partition to force segmentation roll
       timeout: 300s
       command: docker-compose exec -T to-backup-kafka runutil
-        create_topic backup-test-10partitions 10
-    - name: Write data
-      timeout: 300s
-      command: |
-        docker-compose exec -T to-backup-kafka runutil bash -c '
-          for i in $(seq 0 9) ; do
-            produce_messages backup-test-10partitions $i 0 500
-          done
-          produce_messages backup-test-1partition 0 600 1500'
-    - name: Wait for kafka connect to detect the new topic
+        produce_messages backup-test-1partition 0 600 300
+    - name: Start Kafka Backup
       command: >
-        bash -c '
-          echo "Expecting new directory for topic "
-          for ((i=0;i<60;i++)); do
-            docker-compose exec -T to-backup-connect [ -d /kafka-backup/02_full_test/backup-test-10partitions ] && break;
-            echo "$i/60"
-            sleep 10;
-          done'
-    - command: sleep 20
+        docker-compose exec -T to-backup-connect
+        curl -vs --stderr - -X PUT -H "Content-Type: application/json"
+          --data @-
+          "http://localhost:8083/connectors/backup-sink2/start"
+    - command: sleep 10
       nolog: true
-    - name: Check For errors
-      timeout: 300s
-      command: docker-compose exec -T to-backup-connect curl -vs "http://localhost:8083/connectors/backup-sink/status"
-      stderr_has: ["200 OK"]
-      stdout_has: ["RUNNING"]
-      stdout_not_has: ["FAILED"]
 
 - name: Stop Cluster that was backed up
   entries:
@@ -150,8 +159,7 @@
       timeout: 300s
       command: docker-compose exec -T restore-to-kafka runutil bash -c '
         create_topic backup-test-1partition 1 &&
-        create_topic backup-test-3partitions 3 &&
-        create_topic backup-test-10partitions 10'
+        create_topic backup-test-3partitions 3'
 
     - name: Create an Kafka Backup Restore Connector
       timeout: 300s
@@ -167,10 +175,10 @@
           "config": {
             "connector.class": "de.azapps.kafkabackup.source.BackupSourceConnector",
             "tasks.max": "1",
-            "topics": "backup-test-1partition,backup-test-3partitions,backup-test-10partitions",
+            "topics": "backup-test-1partition,backup-test-3partitions",
             "key.converter": "de.azapps.kafkabackup.common.AlreadyBytesConverter",
             "value.converter": "de.azapps.kafkabackup.common.AlreadyBytesConverter",
-            "source.dir": "/kafka-backup/02_full_test/",
+            "source.dir": "/kafka-backup/03_start_n_stop/",
             "batch.size": 1000,
             "cluster.bootstrap.servers": "restore-to-kafka:9092",
             "cluster.key.deserializer": "org.apache.kafka.common.serialization.ByteArrayDeserializer",
@@ -199,30 +207,23 @@
     - name: Verify Records of backup-test-1partition
       timeout: 300s
       command: docker-compose exec -T restore-to-kafka runutil
-          consume_verify_messages backup-test-1partition 0 2100
+        consume_verify_messages backup-test-1partition 0 900
     - name: Verify Records of backup-test-3partitions
       timeout: 300s
       command: |
         docker-compose exec -T restore-to-kafka runutil bash -c '
           for i in $(seq 0 2) ; do
-              consume_verify_messages backup-test-3partitions $i 600
-          done'
-    - name: Verify Records of backup-test-10partitions
-      timeout: 300s
-      command: |
-        docker-compose exec -T restore-to-kafka runutil bash -c '
-          for i in $(seq 0 9) ; do
-              consume_verify_messages backup-test-10partitions $i 500
+              consume_verify_messages backup-test-3partitions $i 900
           done'
     - name: Check Consumer Group cg-3k
       timeout: 300s
       command: docker-compose exec -T restore-to-kafka runutil
-          kafka_group_describe cg-3k
+        kafka_group_describe cg-3k
       stdout_has: [
-      'backup-test-1partition  0          300',
-      'backup-test-3partitions 0          300',
-      'backup-test-3partitions 1          300',
-      'backup-test-3partitions 2          300']
+        'backup-test-1partition  0          300',
+        'backup-test-3partitions 0          300',
+        'backup-test-3partitions 1          300',
+        'backup-test-3partitions 2          300']
 - name: Clean-up Containers
   entries:
     - name: Docker Compose Down

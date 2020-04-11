@@ -16,7 +16,7 @@ gen_message() {
   PARTITION=$1
   NUM=$2
   SIZE=$3
-  if [ -z "$NUM" ]  || [ -n "$4" ]; then
+  if [ -z "$NUM" ] || [ -n "$4" ]; then
     echo "USAGE: $0 [PARTITION] [NUM] (SIZE)"
     return 255
   fi
@@ -65,7 +65,10 @@ produce_messages() {
 export -f produce_messages
 
 verify_messages() {
-  PREVIOUS_NUM="-1"
+  PREVIOUS_NUM="$1"
+  if [ -z "$PREVIOUS_NUM" ]; then
+    PREVIOUS_NUM="-1"
+  fi
   while read -r MESSAGE; do
     if [ "0" -eq "$(((PREVIOUS_NUM + 1) % 100))" ]; then
       echo -e -n "\rVerified $((PREVIOUS_NUM + 1)) messages" >/dev/stderr
@@ -99,9 +102,15 @@ export -f verify_messages
 consume_verify_messages() {
   TOPIC=$1
   PARTITION=$2
-  COUNT=$3
-  if [ -z "$COUNT" ] || [ -n "$4" ]; then
-    echo "USAGE: $0 [TOPIC] [PARTITION] [COUNT]"
+  START_NUM=$3
+  COUNT=$4
+  if [ -z "$COUNT" ]; then
+    COUNT="$START_NUM"
+    START_NUM="0"
+  fi
+
+  if [ -z "$COUNT" ] || [ -n "$5" ]; then
+    echo "USAGE: $0 [TOPIC] [PARTITION] ([START_NUM]) [COUNT]"
     return 255
   fi
 
@@ -111,7 +120,7 @@ consume_verify_messages() {
     --topic "$TOPIC" \
     --max-messages="$COUNT" \
     --partition="$PARTITION" 2>/dev/null |
-    verify_messages
+    verify_messages $((START_NUM - 1))
 }
 export -f consume_verify_messages
 
@@ -130,7 +139,7 @@ consume_messages() {
     --topic "$TOPIC" \
     --max-messages "$COUNT" \
     --group "$CONSUMER_GROUP") # 2>/dev/null)
-      echo "Consumed $(echo "$MESSAGES" | wc -l) messages"
+  echo "Consumed $(echo "$MESSAGES" | wc -l) messages"
 }
 export -f consume_messages
 

@@ -42,3 +42,9 @@ jobs:
       - name: Full Test
         working-directory: ./system_test/
         run: coyote -c 02_full_test.yaml --out out/02.html
+      - name: Start and Stop Kafka Connect
+        working-directory: ./system_test/
+        run: coyote -c 03_start_n_stop.yaml --out out/03.html
+      - name: Delete old Segments before restore
+        working-directory: ./system_test/
+        run: coyote -c 04_delete_old_segments.yaml --out out/04.html
