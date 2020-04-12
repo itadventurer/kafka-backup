@@ -14,7 +14,8 @@ WORKING_DIR="$(mktemp -d --suffix kafka-backup)"
 
 # Cleanup after SIGTERM/SIGINT
 _term() {
-  rm -r "$WORKING_DIR"
+  #rm -r "$WORKING_DIR"
+  echo ""
 }
 
 trap _term SIGTERM
@@ -23,15 +24,17 @@ trap _term INT
 ##################################### Parse arguments
 
 OPTIONS="h"
-LONGOPTS=bootstrap-server:,target-dir:,topics:,topics-regex:,max-segment-size:,command-config:,backup-jar:,help,debug
+LONGOPTS=bootstrap-server:,source-dir:,topics:,batch-size:,offset-file:,command-config:,backup-jar:,help,debug
 
 HELP=$(
   cat <<END
 --bootstrap-server  [REQUIRED] The Kafka server to connect to
---target-dir        [REQUIRED] Directory where the backup files should be stored
---topics            <T1,T2,…>  List of topics to be backed up. You must provide either --topics or --topics-regex. Not both
---topics-regex                 Regex of topics to be backed up. You must provide either --topics or --topics-regex. Not both
---max-segment-size  [REQUIRED] Size of the backup segments in bytes DEFAULT: 1GiB
+--source-dir        [REQUIRED] Directory where the backup files are found
+--topics            [REQUIRED] List of topics to restore
+--batch-size                   Batch size (Default: 1MiB)
+--offset-file                  File where to store offsets. THIS FILE IS CRUCIAL FOR A CORRECT RESTORATION PROCESS
+                               IF YOU LOSE IT YOU NEED TO START THE BACKUP FROM SCRATCH. OTHERWISE YOU WILL HAVE DUPLICATE DATA
+                               Default: [source-dir]/restore.offsets
 --command-config    <FILE>     Property file containing configs to be
                                passed to Admin Client. Only useful if you have additional connection options
 --backup-jar                   Path to the kafka-backup.jar file
@@ -41,10 +44,10 @@ END
 )
 
 BOOTSTRAP_SERVER=""
-TARGET_DIR=""
+SOURCE_DIR=""
 TOPICS=""
-TOPICS_REGEX=""
-MAX_SEGMENT_SIZE="$(( 1 * 1024 * 1024 * 1024 ))" # 1GiB
+OFFSET_FILE=""
+BATCH_SIZE="$(( 1 * 1024 * 1024 ))"
 COMMAND_CONFIG=""
 PLUGIN_PATH="$(pwd)"
 CONNECT_BIN=""
@@ -68,20 +71,20 @@ while true; do
     BOOTSTRAP_SERVER="$2"
     shift 2
     ;;
-  --target-dir)
-    TARGET_DIR="$2"
+  --source-dir)
+    SOURCE_DIR="$2"
     shift 2
     ;;
   --topics)
     TOPICS="$2"
     shift 2
     ;;
-  --topics-regex)
-    TOPICS_REGEX="$2"
+  --batch-size)
+    BATCH_SIZE="$2"
     shift 2
     ;;
-  --max-segment-size)
-    MAX_SEGMENT_SIZE="$2"
+  --offset-file)
+    OFFSET_FILE="$2"
     shift 2
     ;;
   --command-config)
@@ -119,20 +122,29 @@ if [ -z "$BOOTSTRAP_SERVER" ]; then
   exit 1
 fi
 
-if [ -z "$TARGET_DIR" ]; then
-  echo "--target-dir is missing"
+if [ -z "$SOURCE_DIR" ]; then
+  echo "--source-dir is missing"
   echo "$HELP"
   exit 1
 fi
 
-if [ ! -d "$TARGET_DIR" ]; then
-  echo "Directory $TARGET_DIR does not exist."
+if [ ! -d "$SOURCE_DIR" ]; then
+  echo "Directory $SOURCE_DIR does not exist."
   exit 1
 fi
 
-if { [ -z "$TOPICS" ] && [ -z "$TOPICS_REGEX" ]; } || { [ -n "$TOPICS" ] && [ -n "$TOPICS_REGEX" ]; }; then
-  echo "You need to provide either --topics or --topics-regex not both nor none"
+if [ -z "$TOPICS" ]; then
+  echo "--topics is missing"
   echo "$HELP"
+  exit 1
+fi
+
+if [ -z "$OFFSET_FILE" ]; then
+  OFFSET_FILE="$SOURCE_DIR/restore.offsets"
+fi
+
+if ! touch "$OFFSET_FILE" ; then
+  echo "cannot touch $OFFSET_FILE. Please make sure it is writable"
   exit 1
 fi
 
@@ -186,23 +198,18 @@ fi
 CONNECTOR_CONFIG="$WORKING_DIR/connector.properties"
 
 cat <<EOF >"$CONNECTOR_CONFIG"
-name=backup-sink
-connector.class=de.azapps.kafkabackup.sink.BackupSinkConnector
+name=backup-source
+connector.class=de.azapps.kafkabackup.source.BackupSourceConnector
 tasks.max=1
+topics=$TOPICS
 key.converter=de.azapps.kafkabackup.common.AlreadyBytesConverter
 value.converter=de.azapps.kafkabackup.common.AlreadyBytesConverter
-target.dir=$TARGET_DIR
-max.segment.size.bytes=$MAX_SEGMENT_SIZE
+source.dir=$SOURCE_DIR
+batch.size=$BATCH_SIZE
 cluster.bootstrap.servers=$BOOTSTRAP_SERVER
+cluster.key.deserializer=org.apache.kafka.common.serialization.ByteArrayDeserializer
+cluster.value.deserializer=org.apache.kafka.common.serialization.ByteArrayDeserializer
 EOF
-
-if [ -n "$TOPICS" ]; then
-  echo "topics:$TOPICS" >>"$CONNECTOR_CONFIG"
-fi
-
-if [ -n "$TOPICS_REGEX" ]; then
-  echo "topics.regex:$TOPICS_REGEX" >>"$CONNECTOR_CONFIG"
-fi
 
 if [ -n "$COMMAND_CONFIG" ]; then
   sed 's/^/cluster./' "$COMMAND_CONFIG" >>"$CONNECTOR_CONFIG"
@@ -215,8 +222,20 @@ if [ "$DEBUG" == "y" ]; then
   echo "$CONNECTOR_CONFIG:"
   sed 's/^/> /' "$CONNECTOR_CONFIG"
   echo
+
 fi
 
 ##################################### Start Connect Standalone
+"$CONNECT_BIN" "$WORKER_CONFIG" "$CONNECTOR_CONFIG" >> "$WORKING_DIR/log" &
+PID=$!
+tail -F "$WORKING_DIR/log" &
+PID2=$!
+sleep 5
+grep -q "All records read. Restore was successful" <(tail -F "$WORKING_DIR/log" 2>/dev/null)
+echo "Detected finished restore. Terminating Kafka Connect…"
+kill $PID
+echo "Waiting for Kafka Connect to terminate…"
+sleep 5
+kill $PID2
 
-"$CONNECT_BIN" "$WORKER_CONFIG" "$CONNECTOR_CONFIG"
+_term
