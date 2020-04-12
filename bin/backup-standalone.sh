@@ -23,7 +23,7 @@ trap _term INT
 ##################################### Parse arguments
 
 OPTIONS="h"
-LONGOPTS=bootstrap-server:,target-dir:,topics:,topics-regex:,max-segment-size:,command-config:,backup-jar:,help,debug
+LONGOPTS=bootstrap-server:,target-dir:,topics:,topics-regex:,max-segment-size:,command-config:,help,debug
 
 HELP=$(
   cat <<END
@@ -34,7 +34,6 @@ HELP=$(
 --max-segment-size  [REQUIRED] Size of the backup segments in bytes DEFAULT: 1GiB
 --command-config    <FILE>     Property file containing configs to be
                                passed to Admin Client. Only useful if you have additional connection options
---backup-jar                   Path to the kafka-backup.jar file
 --help                         Prints this message
 --debug                        Print Debug information
 END
@@ -46,7 +45,7 @@ TOPICS=""
 TOPICS_REGEX=""
 MAX_SEGMENT_SIZE="$(( 1 * 1024 * 1024 * 1024 ))" # 1GiB
 COMMAND_CONFIG=""
-PLUGIN_PATH="$(pwd)"
+PLUGIN_PATH="$( dirname "${BASH_SOURCE[0]}" )"
 CONNECT_BIN=""
 DEBUG="n"
 
@@ -86,10 +85,6 @@ while true; do
     ;;
   --command-config)
     COMMAND_CONFIG="$2"
-    shift 2
-    ;;
-  --backup-jar)
-    PLUGIN_PATH="$(dirname "$2")"
     shift 2
     ;;
   -h | --help)

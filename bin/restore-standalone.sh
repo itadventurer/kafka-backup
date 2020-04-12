@@ -14,7 +14,12 @@ WORKING_DIR="$(mktemp -d --suffix kafka-backup)"
 
 # Cleanup after SIGTERM/SIGINT
 _term() {
-  #rm -r "$WORKING_DIR"
+  echo "Detected finished restore. Terminating Kafka Connect…"
+  kill $PID
+  echo "Waiting for Kafka Connect to terminate…"
+  sleep 5
+  kill $PID2
+  rm -r "$WORKING_DIR"
   echo ""
 }
 
@@ -24,7 +29,7 @@ trap _term INT
 ##################################### Parse arguments
 
 OPTIONS="h"
-LONGOPTS=bootstrap-server:,source-dir:,topics:,batch-size:,offset-file:,command-config:,backup-jar:,help,debug
+LONGOPTS=bootstrap-server:,source-dir:,topics:,batch-size:,offset-file:,command-config:,help,debug
 
 HELP=$(
   cat <<END
@@ -37,7 +42,6 @@ HELP=$(
                                Default: [source-dir]/restore.offsets
 --command-config    <FILE>     Property file containing configs to be
                                passed to Admin Client. Only useful if you have additional connection options
---backup-jar                   Path to the kafka-backup.jar file
 --help                         Prints this message
 --debug                        Print Debug information
 END
@@ -47,9 +51,9 @@ BOOTSTRAP_SERVER=""
 SOURCE_DIR=""
 TOPICS=""
 OFFSET_FILE=""
-BATCH_SIZE="$(( 1 * 1024 * 1024 ))"
+BATCH_SIZE="$((1 * 1024 * 1024))"
 COMMAND_CONFIG=""
-PLUGIN_PATH="$(pwd)"
+PLUGIN_PATH="$(dirname "${BASH_SOURCE[0]}")"
 CONNECT_BIN=""
 DEBUG="n"
 
@@ -89,10 +93,6 @@ while true; do
     ;;
   --command-config)
     COMMAND_CONFIG="$2"
-    shift 2
-    ;;
-  --backup-jar)
-    PLUGIN_PATH="$(dirname "$2")"
     shift 2
     ;;
   -h | --help)
@@ -143,7 +143,7 @@ if [ -z "$OFFSET_FILE" ]; then
   OFFSET_FILE="$SOURCE_DIR/restore.offsets"
 fi
 
-if ! touch "$OFFSET_FILE" ; then
+if ! touch "$OFFSET_FILE"; then
   echo "cannot touch $OFFSET_FILE. Please make sure it is writable"
   exit 1
 fi
@@ -158,21 +158,20 @@ if [ ! -f "$PLUGIN_PATH/kafka-backup.jar" ]; then
   exit 1
 fi
 
-if [ -n "$(command -v connect-standalone.sh)" ] ; then
+if [ -n "$(command -v connect-standalone.sh)" ]; then
   CONNECT_BIN="connect-standalone.sh"
 fi
 
-if [ -n "$(command -v connect-standalone)" ] ; then
+if [ -n "$(command -v connect-standalone)" ]; then
   CONNECT_BIN="connect-standalone"
 fi
 
-if [ -z "$CONNECT_BIN" ] ; then
+if [ -z "$CONNECT_BIN" ]; then
   echo "Cannot find connect-standalone or connect-standalone.sh in PATH. please add it"
   exit 1
 fi
 
 ##################################### Create configs
-
 
 # Standalone Worker Config
 
@@ -226,16 +225,11 @@ if [ "$DEBUG" == "y" ]; then
 fi
 
 ##################################### Start Connect Standalone
-"$CONNECT_BIN" "$WORKER_CONFIG" "$CONNECTOR_CONFIG" >> "$WORKING_DIR/log" &
+"$CONNECT_BIN" "$WORKER_CONFIG" "$CONNECTOR_CONFIG" >>"$WORKING_DIR/log" &
 PID=$!
 tail -F "$WORKING_DIR/log" &
 PID2=$!
 sleep 5
 grep -q "All records read. Restore was successful" <(tail -F "$WORKING_DIR/log" 2>/dev/null)
-echo "Detected finished restore. Terminating Kafka Connect…"
-kill $PID
-echo "Waiting for Kafka Connect to terminate…"
-sleep 5
-kill $PID2
 
 _term
