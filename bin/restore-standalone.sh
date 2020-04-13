@@ -44,19 +44,23 @@ HELP=$(
 --command-config    <FILE>     Property file containing configs to be
                                passed to Admin Client. Only useful if you have additional connection options
 --help                         Prints this message
---debug                        Print Debug information
+--debug                        Print Debug information (if using the environment variable, set it to 'y')
+
+You can also set all parameters using environment variables. Use CAPITAL LETTERS and underscores (_) instead of dashes (-).
+E.g. BOOTSTRAP_SERVER instead of --bootstrap-server
 END
 )
 
-BOOTSTRAP_SERVER=""
-SOURCE_DIR=""
-TOPICS=""
-OFFSET_FILE=""
-BATCH_SIZE="$((1 * 1024 * 1024))"
-COMMAND_CONFIG=""
+[ -z ${BOOTSTRAP_SERVER+x} ] && BOOTSTRAP_SERVER=""
+[ -z ${SOURCE_DIR+x} ] && SOURCE_DIR=""
+[ -z ${TOPICS+x} ] && TOPICS=""
+[ -z ${OFFSET_FILE+x} ] && OFFSET_FILE=""
+[ -z ${BATCH_SIZE+x} ] && BATCH_SIZE="$((1 * 1024 * 1024))"
+[ -z ${COMMAND_CONFIG+x} ] && COMMAND_CONFIG=""
+[ -z ${DEBUG+x} ] && DEBUG="n"
+
 PLUGIN_PATH="$(dirname "${BASH_SOURCE[0]}")"
 CONNECT_BIN=""
-DEBUG="n"
 
 # -temporarily store output to be able to check for errors
 # -activate quoting/enhanced mode (e.g. by writing out “--options”)
