@@ -10,7 +10,7 @@ if [[ ${PIPESTATUS[0]} -ne 4 ]]; then
   exit 1
 fi
 
-WORKING_DIR="$(mktemp -d --suffix kafka-backup)"
+WORKING_DIR="$(mktemp -d -t kafka-backup.XXXXXX)"
 
 # Cleanup after SIGTERM/SIGINT
 _term() {
@@ -31,7 +31,7 @@ HELP=$(
 --target-dir        [REQUIRED] Directory where the backup files should be stored
 --topics            <T1,T2,…>  List of topics to be backed up. You must provide either --topics or --topics-regex. Not both
 --topics-regex                 Regex of topics to be backed up. You must provide either --topics or --topics-regex. Not both
---max-segment-size  [REQUIRED] Size of the backup segments in bytes DEFAULT: 1GiB
+--max-segment-size             Size of the backup segments in bytes DEFAULT: 1GiB
 --command-config    <FILE>     Property file containing configs to be
                                passed to Admin Client. Only useful if you have additional connection options
 --help                         Prints this message
@@ -121,8 +121,7 @@ if [ -z "$TARGET_DIR" ]; then
 fi
 
 if [ ! -d "$TARGET_DIR" ]; then
-  echo "Directory $TARGET_DIR does not exist."
-  exit 1
+  mkdir "$TARGET_DIR"
 fi
 
 if { [ -z "$TOPICS" ] && [ -z "$TOPICS_REGEX" ]; } || { [ -n "$TOPICS" ] && [ -n "$TOPICS_REGEX" ]; }; then
@@ -167,7 +166,7 @@ key.converter=org.apache.kafka.connect.json.JsonConverter
 value.converter=org.apache.kafka.connect.json.JsonConverter
 key.converter.schemas.enable=false
 value.converter.schemas.enable=false
-offset.storage.file.filename=$OFFSET_FILE
+offset.storage.file.filename=$WORKING_DIR/kafka-backup.offsets
 offset.flush.interval.ms=10000
 plugin.path=$PLUGIN_PATH
 EOF

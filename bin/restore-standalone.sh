@@ -11,7 +11,7 @@ if [[ ${PIPESTATUS[0]} -ne 4 ]]; then
   exit 1
 fi
 
-WORKING_DIR="$(mktemp -d --suffix kafka-backup)"
+WORKING_DIR="$(mktemp -d -t kafka-backup.XXXXXX)"
 
 # Cleanup after SIGTERM/SIGINT
 _term() {
