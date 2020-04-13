@@ -167,7 +167,7 @@ key.converter=org.apache.kafka.connect.json.JsonConverter
 value.converter=org.apache.kafka.connect.json.JsonConverter
 key.converter.schemas.enable=false
 value.converter.schemas.enable=false
-offset.storage.file.filename=$WORKING_DIR/kafka-backup.offsets
+offset.storage.file.filename=$OFFSET_FILE
 offset.flush.interval.ms=10000
 plugin.path=$PLUGIN_PATH
 EOF

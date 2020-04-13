@@ -6,6 +6,7 @@ set -o errexit -o pipefail -o noclobber -o nounset
 # -use return value from ${PIPESTATUS[0]}, because ! hosed $?
 ! getopt --test >/dev/null
 if [[ ${PIPESTATUS[0]} -ne 4 ]]; then
+  # shellcheck disable=SC2016
   echo '`getopt --test` failed in this environment.'
   exit 1
 fi
@@ -183,7 +184,7 @@ key.converter=org.apache.kafka.connect.json.JsonConverter
 value.converter=org.apache.kafka.connect.json.JsonConverter
 key.converter.schemas.enable=false
 value.converter.schemas.enable=false
-offset.storage.file.filename=$WORKING_DIR/kafka-backup.offsets
+offset.storage.file.filename=$OFFSET_FILE
 offset.flush.interval.ms=10000
 plugin.path=$PLUGIN_PATH
 EOF
@@ -225,11 +226,23 @@ if [ "$DEBUG" == "y" ]; then
 fi
 
 ##################################### Start Connect Standalone
+
+# We need to wait for Kafka Connect to print the `All records read`
+# line. The user should also see the log messages. Therefore we start
+# Kafka Connect in the background and write the output to a temp
+# file. We `tail` the output to stdout in the background (but the user
+# can see it). In the foreground we grep the temp file for the
+# expected line and kill all background processes when we encounter it
+
+# Start Kafka connect in the background
 "$CONNECT_BIN" "$WORKER_CONFIG" "$CONNECTOR_CONFIG" >>"$WORKING_DIR/log" &
 PID=$!
+# Print the content of the log to stdout. Fork it to the background
 tail -F "$WORKING_DIR/log" &
 PID2=$!
+# We need to wait some time (5 seconds should be fine) until something is written to the log – otherwise weird things happen
 sleep 5
+# Wait for the finish message
 grep -q "All records read. Restore was successful" <(tail -F "$WORKING_DIR/log" 2>/dev/null)
-
+# Terminate both background processes and cleanup
 _term
