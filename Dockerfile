@@ -2,7 +2,7 @@
 FROM openjdk:8u212-jdk-alpine AS builder
 WORKDIR /opt/kafka-backup
 COPY . /opt/kafka-backup
-RUN ./gradlew --no-daemon shadowJar
+RUN ./gradlew --no-daemon test shadowJar
 
 # Build Docker Image with Kafka Backup Jar
 FROM openjdk:8u212-jre-alpine
