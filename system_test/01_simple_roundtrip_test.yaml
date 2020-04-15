@@ -23,15 +23,11 @@
   entries:
     - name: Docker Compose Up
       command: docker-compose up -d
-    - name: Wait for Connect to get up
-      command: >
-        bash -c '
-          echo "Trying to reach Kafka Connect. Try "
-          for ((i=0;i<60;i++)); do
-            docker-compose exec -T to-backup-connect curl "http://localhost:8083/connectors" && docker-compose exec -T restore-to-connect curl "http://localhost:8083/connectors" && break;
-            echo "$i/60"
-            sleep 10;
-          done'
+    - name: Clean previous data
+      command: docker run -v /tmp/kafka-backup/:/kafka-backup/ kafka-backup-dev:latest rm -rf "/kafka-backup/001_simple_1partition_test/"
+    - name: Wait for Kafka to get up
+      command: docker logs to-backup-kafka 2>&1 | grep -q '\[KafkaServer id=1\] started'
+      timeout: 30s
 
 - name: Create  Topic for tests
   entries:
@@ -72,35 +68,18 @@
 
 - name: Start Kafka Backup
   entries:
-    - name: Clean previous data
-      command: docker-compose exec -T to-backup-kafka runutil
-        rm -rf "/kafka-backup/001_simple_1partition_test/"
-    - name: Create an Kafka Backup Connector
+    - name: Start Kafka Backup
       command: >
-        docker-compose exec -T to-backup-connect
-          curl -vs --stderr - -X POST -H "Content-Type: application/json"
-               --data @-
-               "http://localhost:8083/connectors"
-      stdout_not_has: [ 'HTTP/1.1 [45][0-9][0-9] ' ]
-      stdin: |
-        {
-          "name": "backup-sink",
-          "config": {
-            "connector.class": "de.azapps.kafkabackup.sink.BackupSinkConnector",
-            "tasks.max": "1",
-            "topics.regex": "backup-test.*",
-            "key.converter": "de.azapps.kafkabackup.common.AlreadyBytesConverter",
-            "value.converter": "de.azapps.kafkabackup.common.AlreadyBytesConverter",
-            "target.dir": "/kafka-backup/001_simple_1partition_test/",
-            "max.segment.size.bytes": 10485760,
-            "cluster.bootstrap.servers": "to-backup-kafka:9092"
-          }
-        }
+        docker run -d -v /tmp/kafka-backup/:/kafka-backup/ --net=system_test_to-backup --name to-backup --rm
+        kafka-backup-dev:latest backup-standalone.sh --bootstrap-server to-backup-kafka:9092
+        --target-dir /kafka-backup/001_simple_1partition_test/ --topics-regex 'backup-test.*'
     - command: sleep 30
       nolog: true
 
 - name: Stop Cluster that was backed up
   entries:
+    - name: Stop Kafka Backup
+      command: docker kill to-backup
     - name: Docker Compose Down
       command: docker-compose stop to-backup-kafka
 
@@ -109,31 +88,13 @@
     - name: Create Topic
       command: docker-compose exec -T restore-to-kafka runutil
         create_topic backup-test-1partition 1
-    - name: Create an Kafka Backup Restore Connector
+    - name: Run Kafka Restore
       command: >
-        docker-compose exec -T restore-to-connect
-          curl -vs --stderr - -X POST -H "Content-Type: application/json"
-               --data @-
-               "http://localhost:8083/connectors"
-      stdout_not_has: [ 'HTTP/1.1 [45][0-9][0-9] ' ]
-      stdin: |
-        {
-          "name": "backup-source",
-          "config": {
-            "connector.class": "de.azapps.kafkabackup.source.BackupSourceConnector",
-            "tasks.max": "1",
-            "topics": "backup-test-1partition,backup-test-empty-topic",
-            "key.converter": "de.azapps.kafkabackup.common.AlreadyBytesConverter",
-            "value.converter": "de.azapps.kafkabackup.common.AlreadyBytesConverter",
-            "source.dir": "/kafka-backup/001_simple_1partition_test/",
-            "batch.size": 1000,
-            "cluster.bootstrap.servers": "restore-to-kafka:9092",
-            "cluster.key.deserializer": "org.apache.kafka.common.serialization.ByteArrayDeserializer",
-            "cluster.value.deserializer": "org.apache.kafka.common.serialization.ByteArrayDeserializer"
-          }
-        }
-    - command: sleep 30
-      nolog: true
+        docker run -v /tmp/kafka-backup/:/kafka-backup/ --net=system_test_restore-to --name restore-to --rm
+        kafka-backup-dev:latest restore-standalone.sh --bootstrap-server restore-to-kafka:9092
+        --source-dir /kafka-backup/001_simple_1partition_test/ --topics 'backup-test-1partition,backup-test-empty-topic'
+      timeout: 60s
+      stdout_has: ['All records read.']
 
 - name: Verify Backup
   entries:

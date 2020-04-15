@@ -39,36 +39,6 @@ services:
       KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE: 'false'
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
-  to-backup-connect:
-    container_name: to-backup-connect
-    image: confluentinc/cp-kafka-connect:5.4.1
-    hostname: connect
-    depends_on:
-      - to-backup-kafka
-    networks:
-      - to-backup
-    volumes:
-      - ../build/libs/kafka-backup.jar:/connect-plugins/kafka-backup.jar
-      - "/tmp/kafka-backup/:/kafka-backup/:rw"
-    ports:
-      - 18083:8083
-    environment:
-      CONNECT_BOOTSTRAP_SERVERS: "to-backup-kafka:9092"
-      CONNECT_REST_PORT: 8083
-      CONNECT_GROUP_ID: "kafka-connect"
-      CONNECT_CONFIG_STORAGE_TOPIC: "connect-config"
-      CONNECT_OFFSET_STORAGE_TOPIC: "connect-offsets"
-      CONNECT_STATUS_STORAGE_TOPIC: "connect-status"
-      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
-      CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
-      CONNECT_INTERNAL_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
-      CONNECT_INTERNAL_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
-      CONNECT_REST_ADVERTISED_HOST_NAME: "connect"
-      CONNECT_PLUGIN_PATH: /usr/share/java,/connect-plugins
-      CONNECT_REPLICATION_FACTOR: 1
-      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
-      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
-      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
   ################################################################################################
   # Restore to
 
@@ -109,37 +79,6 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: INDOCKER
       KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE: 'false'
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-
-  restore-to-connect:
-    container_name: restore-to-connect
-    image: confluentinc/cp-kafka-connect:5.4.1
-    hostname: connect
-    depends_on:
-      - restore-to-kafka
-    networks:
-      - restore-to
-    volumes:
-      - ../build/libs/kafka-backup.jar:/connect-plugins/kafka-backup.jar
-      - "/tmp/kafka-backup/:/kafka-backup/:rw"
-    ports:
-      - 28083:8083
-    environment:
-      CONNECT_BOOTSTRAP_SERVERS: "restore-to-kafka:9092"
-      CONNECT_REST_PORT: 8083
-      CONNECT_GROUP_ID: "kafka-connect"
-      CONNECT_CONFIG_STORAGE_TOPIC: "connect-config"
-      CONNECT_OFFSET_STORAGE_TOPIC: "connect-offsets"
-      CONNECT_STATUS_STORAGE_TOPIC: "connect-status"
-      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
-      CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
-      CONNECT_INTERNAL_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
-      CONNECT_INTERNAL_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
-      CONNECT_REST_ADVERTISED_HOST_NAME: "connect"
-      CONNECT_PLUGIN_PATH: /usr/share/java,/connect-plugins
-      CONNECT_REPLICATION_FACTOR: 1
-      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
-      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
-      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
 
 networks:
   to-backup:
