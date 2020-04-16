@@ -31,39 +31,39 @@
 
 - name: Create  Topic for tests
   entries:
-    - command: docker-compose exec -T to-backup-kafka runutil bash -c '
-        create_topic backup-test-1partition 1 &&
-        create_topic backup-test-empty-topic 3'
+    - command: docker-compose exec -T to-backup-kafka bash -c '
+        utils create_topic --topic backup-test-1partition --partitions 1 &&
+        utils create_topic --topic backup-test-empty-topic --partitions 3'
 - name: Produce Messages
   entries:
     - name: Produce 300 messages
-      command: docker-compose exec -T to-backup-kafka runutil bash -c '
-        produce_messages backup-test-1partition 0 0 300 &&
-        produce_messages backup-test-empty-topic 0 0 300'
+      command: docker-compose exec -T to-backup-kafka bash -c '
+        utils produce_messages --topic backup-test-1partition --partition 0 --start_num 0 --count 300 &&
+        utils produce_messages --topic backup-test-empty-topic --partition 0 --start_num 0 --count 300'
 - name: Consume messages
   entries:
     - name: Consume 100 messages with cg-100
-      command: docker-compose exec -T to-backup-kafka runutil
-        consume_messages backup-test-1partition cg-100 100
+      command: docker-compose exec -T to-backup-kafka
+        utils consume_messages --topic backup-test-1partition --consumer_group cg-100 --count 100
     - name: Consume 200 messages with cg-200
-      command: docker-compose exec -T to-backup-kafka runutil
-        consume_messages backup-test-1partition cg-200 200
+      command: docker-compose exec -T to-backup-kafka
+        utils consume_messages --topic backup-test-1partition --consumer_group cg-200 --count 200
     - name: Consume 300 messages with cg-300
-      command: docker-compose exec -T to-backup-kafka runutil
-        consume_messages backup-test-1partition cg-300 300
+      command: docker-compose exec -T to-backup-kafka
+        utils consume_messages --topic backup-test-1partition --consumer_group cg-300 --count 300
 - name: Check Consumer Group Offsets
   entries:
     - name: Check Consumer Group cg-100
-      command: docker-compose exec -T to-backup-kafka runutil
-        kafka_group_describe cg-100
+      command: docker-compose exec -T to-backup-kafka
+        kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group cg-100
       stdout_has: [ 'backup-test-1partition 0          100             300             200' ]
     - name: Check Consumer Group cg-200
-      command: docker-compose exec -T to-backup-kafka runutil
-        kafka_group_describe cg-200
+      command: docker-compose exec -T to-backup-kafka
+        kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group cg-200
       stdout_has: [ 'backup-test-1partition 0          200             300             100' ]
     - name: Check Consumer Group cg-200
-      command: docker-compose exec -T to-backup-kafka runutil
-        kafka_group_describe cg-300
+      command: docker-compose exec -T to-backup-kafka
+        kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group cg-300
       stdout_has: [ 'backup-test-1partition 0          300             300             0' ]
 
 - name: Start Kafka Backup
@@ -86,8 +86,8 @@
 - name: Restore
   entries:
     - name: Create Topic
-      command: docker-compose exec -T restore-to-kafka runutil
-        create_topic backup-test-1partition 1
+      command: docker-compose exec -T restore-to-kafka
+        utils create_topic --topic backup-test-1partition --partitions 1
     - name: Run Kafka Restore
       command: >
         docker run -v /tmp/kafka-backup/:/kafka-backup/ --net=system_test_restore-to --name restore-to --rm
@@ -99,20 +99,24 @@
 - name: Verify Backup
   entries:
     - name: Verify Records
-      command: docker-compose exec -T restore-to-kafka runutil bash -c '
-        consume_verify_messages backup-test-1partition 0 300 &&
-        consume_verify_messages backup-test-empty-topic 0 300'
+      timeout: 30s
+      command: docker-compose exec -T restore-to-kafka bash -c '
+        utils consume_verify_messages --topic backup-test-1partition --partition 0 --count 300 &&
+        utils consume_verify_messages --topic backup-test-empty-topic --partition 0 --count 300'
     - name: Check Consumer Group cg-100
-      command: docker-compose exec -T restore-to-kafka runutil
-        kafka_group_describe cg-100
+      timeout: 30s
+      command: docker-compose exec -T restore-to-kafka
+        kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group cg-100
       stdout_has: [ 'backup-test-1partition 0          100' ]
     - name: Check Consumer Group cg-200
-      command: docker-compose exec -T restore-to-kafka runutil
-        kafka_group_describe cg-200
+      timeout: 30s
+      command: docker-compose exec -T restore-to-kafka
+        kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group cg-200
       stdout_has: [ 'backup-test-1partition 0          200' ]
     - name: Check Consumer Group cg-200
-      command: docker-compose exec -T restore-to-kafka runutil
-        kafka_group_describe cg-300
+      timeout: 30s
+      command: docker-compose exec -T restore-to-kafka
+        kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group cg-300
       stdout_has: [ 'backup-test-1partition 0          300' ]
 
 - name: Clean-up Containers

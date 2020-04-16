@@ -1,84 +1,70 @@
 version: '3.3'
 services:
   # To Backup
-  to-backup-zk-1:
-    image: confluentinc/cp-zookeeper:5.4.1
-    container_name: to-backup-zk-1
-    hostname: to-backup-zk-1
+  to-backup-zk:
+    build:
+      context: ./utils
+      dockerfile: Dockerfile
+    container_name: to-backup-zk
+    hostname: to-backup-zk
     ports:
       - 12181:2181
-    environment:
-      ZOOKEEPER_SERVER_ID: 1
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-      ZOOKEEPER_INIT_LIMIT: 5
-      ZOOKEEPER_SYNC_LIMIT: 2
-      ZOOKEEPER_SERVERS: to-backup-zk-1:2888:3888
+    volumes:
+      - "./utils/kafka-configs/zookeeper.properties:/etc/zookeeper.properties"
+    command: "zookeeper-server-start.sh /etc/zookeeper.properties"
     networks:
       - to-backup
 
   to-backup-kafka:
-    image: itadventurer/cp-kafka-with-utils:20200403
+    build:
+      context: ./utils
+      dockerfile: Dockerfile
     container_name: to-backup-kafka
     hostname: to-backup-kafka
     volumes:
-      - "./utils/utils.sh:/root/utils.sh"
-      - "./utils/runutil:/bin/runutil"
+      - "./utils/kafka-configs/to-backup-kafka.properties:/etc/kafka.properties"
+      - "./utils/utils.py:/usr/bin/utils"
     ports:
       - 19092:19092
     networks:
       - to-backup
     depends_on:
-      - to-backup-zk-1
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: to-backup-zk-1:2181
-      KAFKA_ADVERTISED_LISTENERS: INDOCKER://to-backup-kafka:9092,OUTDOCKER://localhost:19092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INDOCKER:PLAINTEXT,OUTDOCKER:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: INDOCKER
-      KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE: 'false'
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      - to-backup-zk
+    command: "kafka-server-start.sh /etc/kafka.properties"
 
   ################################################################################################
   # Restore to
 
-  restore-to-zk-1:
-    image: confluentinc/cp-zookeeper:5.4.1
+  restore-to-zk:
+    build:
+      context: ./utils
+      dockerfile: Dockerfile
     container_name: restore-to-zk-1
     hostname: restore-to-zk-1
     ports:
       - 22181:2181
-    environment:
-      ZOOKEEPER_SERVER_ID: 1
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-      ZOOKEEPER_INIT_LIMIT: 5
-      ZOOKEEPER_SYNC_LIMIT: 2
-      ZOOKEEPER_SERVERS: restore-to-zk-1:2888:3888
+    volumes:
+      - "./utils/kafka-configs/zookeeper.properties:/etc/zookeeper.properties"
+    command: "zookeeper-server-start.sh /etc/zookeeper.properties"
     networks:
       - restore-to
 
   restore-to-kafka:
-    image: itadventurer/cp-kafka-with-utils:20200403
+    build:
+      context: ./utils
+      dockerfile: Dockerfile
     container_name: restore-to-kafka
     hostname: restore-to-kafka
     volumes:
-      - "./utils/utils.sh:/root/utils.sh"
-      - "./utils/runutil:/bin/runutil"
+      - "./utils/kafka-configs/restore-to-kafka.properties:/etc/kafka.properties"
+      - "./utils/utils.py:/usr/bin/utils"
     ports:
       - 29092:29092
     networks:
       - restore-to
     depends_on:
-      - restore-to-zk-1
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: restore-to-zk-1:2181
-      KAFKA_ADVERTISED_LISTENERS: INDOCKER://restore-to-kafka:9092,OUTDOCKER://localhost:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INDOCKER:PLAINTEXT,OUTDOCKER:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: INDOCKER
-      KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE: 'false'
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      - restore-to-zk
+    command: "kafka-server-start.sh /etc/kafka.properties"
 
 networks:
   to-backup:

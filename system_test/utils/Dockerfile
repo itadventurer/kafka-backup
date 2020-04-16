@@ -1,20 +1,17 @@
-FROM confluentinc/cp-kafka:5.4.1
+FROM kafka-backup-dev:latest
 
-ENV BUILD_DEPS build-essential zlib1g-dev liblz4-dev libssl-dev libsasl2-dev cmake libcurl4-openssl-dev pkg-config
-ENV RUN_DEPS libssl1.0 libsasl2-2 ca-certificates curl
+RUN apk add --no-cache make gcc g++ cmake curl pkgconfig perl bsd-compat-headers zlib-dev lz4-dev openssl-dev \
+ curl-dev libcurl lz4-libs ca-certificates python3 bash python3-dev
 
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends $BUILD_DEPS $RUN_DEPS && \
-    echo "Building" && \
-    curl https://codeload.github.com/edenhill/kafkacat/tar.gz/master | tar xzf - && \
-    cd kafkacat-* && \
-    ./bootstrap.sh && \
-    mv kafkacat /usr/bin/ && \
-    echo "Cleaning up" && \
-    cd / && \
-    rm -rf /usr/src/kafkacat&& \
-    apt-get purge -y --auto-remove $BUILD_DEPS && \
-    apt-get clean -y && \
-    apt-get autoclean -y && \
-    rm /var/log/dpkg.log /var/log/alternatives.log /var/log/apt/*.log&& \
-    rm -rf /var/lib/apt/lists/*
+# Build librdkafka
+RUN mkdir /usr/src && cd /usr/src/ && \
+    curl https://codeload.github.com/edenhill/librdkafka/tar.gz/master | tar xzf - && \
+    cd librdkafka-master && \
+    ./configure && \
+    make && make install && \
+    cd / && rm -rf /usr/src/
+
+# Install confluent-kafka python
+
+RUN pip3 install confluent-kafka==1.3.0
+COPY utils.py /usr/bin/utils

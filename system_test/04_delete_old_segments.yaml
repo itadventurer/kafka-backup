@@ -18,13 +18,13 @@
 
 - name: Create  Topic for tests
   entries:
-    - command: docker-compose exec -T to-backup-kafka runutil
-        create_topic backup-test-1partition 1
+    - command: docker-compose exec -T to-backup-kafka
+        utils create_topic --topic backup-test-1partition --partitions 1
 - name: Produce Messages
   entries:
     - name: Produce 3000 messages
-      command: docker-compose exec -T to-backup-kafka runutil
-        produce_messages backup-test-1partition 0 0 3000
+      command: docker-compose exec -T to-backup-kafka
+        utils produce_messages --topic backup-test-1partition --partition 0 --start_num 0 --count 3000
 
 - name: Start Kafka Backup
   entries:
@@ -65,8 +65,8 @@
 - name: Restore
   entries:
     - name: Create Topic
-      command: docker-compose exec -T restore-to-kafka runutil
-        create_topic backup-test-1partition 1
+      command: docker-compose exec -T restore-to-kafka
+        utils create_topic --topic backup-test-1partition --partitions 1
     - name: Run Kafka Restore
       command: >
         docker run -v /tmp/kafka-backup/:/kafka-backup/ --net=system_test_restore-to --name restore-to --rm
@@ -79,8 +79,8 @@
 - name: Verify Backup
   entries:
     - name: Verify Records
-      command: docker-compose exec -T restore-to-kafka runutil
-        consume_verify_messages backup-test-1partition 0 1041 300
+      command: docker-compose exec -T restore-to-kafka
+        utils consume_verify_messages --topic backup-test-1partition --partition 0 --start_num 1041 --count 300
 
 - name: Clean-up Containers
   entries:
