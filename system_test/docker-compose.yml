@@ -23,7 +23,7 @@ services:
     hostname: to-backup-kafka
     volumes:
       - "./utils/kafka-configs/to-backup-kafka.properties:/etc/kafka.properties"
-      - "./utils/utils.py:/usr/bin/utils"
+      - "./utils/utils.py:/usr/bin/utils.py"
     ports:
       - 19092:19092
     networks:
@@ -57,7 +57,7 @@ services:
     hostname: restore-to-kafka
     volumes:
       - "./utils/kafka-configs/restore-to-kafka.properties:/etc/kafka.properties"
-      - "./utils/utils.py:/usr/bin/utils"
+      - "./utils/utils.py:/usr/bin/utils.py"
     ports:
       - 29092:29092
     networks:

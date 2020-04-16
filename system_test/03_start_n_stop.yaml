@@ -20,22 +20,22 @@
   entries:
     - name: Create Topics
       command: docker-compose exec -T to-backup-kafka bash -c '
-        utils create_topic --topic backup-test-1partition --partitions 1 &&
-        utils create_topic --topic backup-test-3partitions --partitions 3'
+        utils.py create_topic --topic backup-test-1partition --partitions 1 &&
+        utils.py create_topic --topic backup-test-3partitions --partitions 3'
       timeout: 300s
     - name: Produce 300 messages, 10KiB each to each partition
       timeout: 300s
       command: docker-compose exec -T to-backup-kafka bash -c '
-        utils produce_messages --topic backup-test-1partition --partition 0 --start_num 0 --count 300 &&
+        utils.py produce_messages --topic backup-test-1partition --partition 0 --start_num 0 --count 300 &&
 
-        utils produce_messages --topic backup-test-3partitions --partition 0 --start_num 0 --count 300 &&
-        utils produce_messages --topic backup-test-3partitions --partition 1 --start_num 0 --count 300 &&
-        utils produce_messages --topic backup-test-3partitions --partition 2 --start_num 0 --count 300'
+        utils.py produce_messages --topic backup-test-3partitions --partition 0 --start_num 0 --count 300 &&
+        utils.py produce_messages --topic backup-test-3partitions --partition 1 --start_num 0 --count 300 &&
+        utils.py produce_messages --topic backup-test-3partitions --partition 2 --start_num 0 --count 300'
     - name: Consume all messages with consumer-group `cg-3k`
       timeout: 300s
       command: docker-compose exec -T to-backup-kafka bash -c '
-        utils consume_messages --topic backup-test-1partition --consumer_group cg-3k --count 300 &&
-        utils consume_messages --topic backup-test-3partitions --consumer_group cg-3k --count 900'
+        utils.py consume_messages --topic backup-test-1partition --consumer_group cg-3k --count 300 &&
+        utils.py consume_messages --topic backup-test-3partitions --consumer_group cg-3k --count 900'
 
 - name: Start Kafka Backup
   entries:
@@ -62,11 +62,11 @@
     - name: Produce 300 messages, 10KiB each to each partition
       timeout: 300s
       command: docker-compose exec -T to-backup-kafka bash -c '
-        utils produce_messages --topic backup-test-1partition --partition 0 --start_num 300 --count 300 &&
+        utils.py produce_messages --topic backup-test-1partition --partition 0 --start_num 300 --count 300 &&
 
-        utils produce_messages --topic backup-test-3partitions --partition 0 --start_num 300 --count 300 &&
-        utils produce_messages --topic backup-test-3partitions --partition 1 --start_num 300 --count 300 &&
-        utils produce_messages --topic backup-test-3partitions --partition 2 --start_num 300 --count 300'
+        utils.py produce_messages --topic backup-test-3partitions --partition 0 --start_num 300 --count 300 &&
+        utils.py produce_messages --topic backup-test-3partitions --partition 1 --start_num 300 --count 300 &&
+        utils.py produce_messages --topic backup-test-3partitions --partition 2 --start_num 300 --count 300'
     - name: Start Kafka Backup
       command: >
         docker run -d -v /tmp/kafka-backup/:/kafka-backup/ --net=system_test_to-backup --name to-backup --rm
@@ -83,15 +83,15 @@
     - name: Produce 300 messages, 10KiB each to each partition
       timeout: 300s
       command: docker-compose exec -T to-backup-kafka bash -c '
-        utils produce_messages --topic backup-test-1partition --partition 0 --start_num 600 --count 300 &&
+        utils.py produce_messages --topic backup-test-1partition --partition 0 --start_num 600 --count 300 &&
 
-        utils produce_messages --topic backup-test-3partitions --partition 0 --start_num 600 --count 300 &&
-        utils produce_messages --topic backup-test-3partitions --partition 1 --start_num 600 --count 300 &&
-        utils produce_messages --topic backup-test-3partitions --partition 2 --start_num 600 --count 300'
+        utils.py produce_messages --topic backup-test-3partitions --partition 0 --start_num 600 --count 300 &&
+        utils.py produce_messages --topic backup-test-3partitions --partition 1 --start_num 600 --count 300 &&
+        utils.py produce_messages --topic backup-test-3partitions --partition 2 --start_num 600 --count 300'
     - name: Produce 300 messages to 1partition to force segmentation roll
       timeout: 300s
       command: docker-compose exec -T to-backup-kafka
-        utils produce_messages --topic backup-test-1partition --partition 0 --start_num 600 --count 300
+        utils.py produce_messages --topic backup-test-1partition --partition 0 --start_num 600 --count 300
     - name: Start Kafka Backup
       command: >
         docker exec to-backup
@@ -112,8 +112,8 @@
     - name: Create Topic
       timeout: 300s
       command: docker-compose exec -T restore-to-kafka bash -c '
-        utils create_topic --topic backup-test-1partition --partitions 1 &&
-        utils create_topic --topic backup-test-3partitions --partitions 3'
+        utils.py create_topic --topic backup-test-1partition --partitions 1 &&
+        utils.py create_topic --topic backup-test-3partitions --partitions 3'
     - name: Run Kafka Restore
       command: >
         docker run -v /tmp/kafka-backup/:/kafka-backup/ --net=system_test_restore-to --name restore-to --rm
@@ -128,13 +128,13 @@
     - name: Verify Records of backup-test-1partition
       timeout: 300s
       command: docker-compose exec -T restore-to-kafka
-        utils consume_verify_messages --topic backup-test-1partition --partition 0 --count 900
+        utils.py consume_verify_messages --topic backup-test-1partition --partition 0 --count 900
     - name: Verify Records of backup-test-3partitions
       timeout: 300s
       command: |
         docker-compose exec -T restore-to-kafka bash -c '
           for i in $(seq 0 2) ; do
-              utils consume_verify_messages --topic backup-test-3partitions --partition $i --count 900
+              utils.py consume_verify_messages --topic backup-test-3partitions --partition $i --count 900
           done'
     - name: Check Consumer Group cg-3k
       timeout: 300s
