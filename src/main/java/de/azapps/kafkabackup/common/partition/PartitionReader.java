@@ -11,11 +11,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PartitionReader {
-    private String topic;
-    private int partition;
-    private Path topicDir;
+    private final String topic;
+    private final int partition;
+    private final Path topicDir;
     private SegmentReader currentSegment;
-    private PartitionIndex partitionIndex;
+    private final PartitionIndex partitionIndex;
 
     public PartitionReader(String topic, int partition, Path topicDir) throws IOException, PartitionIndex.IndexException, PartitionException, SegmentIndex.IndexException {
         this.topic = topic;
@@ -77,6 +77,18 @@ public class PartitionReader {
         }
         return records;
     }
+
+    public List<Record> readBytesBatch(long batchsize) throws IOException, SegmentIndex.IndexException {
+        List<Record> records = new ArrayList<>();
+        long currentSize = 0;
+        while (hasMoreData() && currentSize < batchsize) {
+            Record record = read();
+            records.add(record);
+            currentSize += record.value().length + record.key().length;
+        }
+        return records;
+    }
+
 
     public List<Record> readFully() throws IOException, SegmentIndex.IndexException {
         List<Record> records = new ArrayList<>();

@@ -14,12 +14,12 @@ import java.util.List;
 import java.util.Optional;
 
 public class SegmentReader {
-    private String topic;
-    private int partition;
-    private String filePrefix;
-    private SegmentIndex segmentIndex;
-    private FileInputStream recordInputStream;
-    private long lastValidStartPosition;
+    private final String topic;
+    private final int partition;
+    private final String filePrefix;
+    private final SegmentIndex segmentIndex;
+    private final FileInputStream recordInputStream;
+    private final long lastValidStartPosition;
 
     public SegmentReader(String topic, int partition, Path topicDir, long startOffset) throws IOException, SegmentIndex.IndexException {
         this(topic, partition, topicDir, SegmentUtils.filePrefix(partition, startOffset));

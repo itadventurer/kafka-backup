@@ -27,6 +27,7 @@ public class BackupSourceTask extends SourceTask {
     private static final String SOURCE_OFFSET_OFFSET = "Offset";
     private Path sourceDir;
     private Map<TopicPartition, PartitionReader> partitionReaders = new HashMap<>();
+    private Set<TopicPartition> finishedPartitions = new HashSet<>();
     private int batchSize = 100;
     private OffsetSource offsetSource;
     private List<String> topics;
@@ -93,31 +94,37 @@ public class BackupSourceTask extends SourceTask {
         }
     }
 
+    long lastPrint=0;
     @Override
     public List<SourceRecord> poll() throws InterruptedException {
         List<SourceRecord> sourceRecords = new ArrayList<>();
-        int emptyPartitions = 0;
+        if (finishedPartitions.equals(partitionReaders.keySet())) {
+            long currentTime = System.currentTimeMillis();
+            if(currentTime - lastPrint > 5000) {
+                log.info("All records read. Restore was successful");
+                lastPrint=currentTime;
+            }
+            return new ArrayList<>();
+        }
         try {
-            for (PartitionReader partitionReader : partitionReaders.values()) {
-                List<Record> records = partitionReader.readN(batchSize);
+            for (TopicPartition topicPartition : partitionReaders.keySet()) {
+                PartitionReader partitionReader = partitionReaders.get(topicPartition);
+                List<Record> records = partitionReader.readBytesBatch(batchSize);
                 if (records.size() > 0) {
-                    log.debug("Read " + records.size() + " record " +
+                    log.info("Read " + records.size() + " record " +
                             "from topic " + records.get(0).topic() +
                             " partition " + records.get(0).kafkaPartition() +
                             ". Current offset: " + records.get(records.size() - 1).kafkaOffset());
-                } else {
-                    emptyPartitions++;
                 }
                 for (Record record : records) {
                     sourceRecords.add(toSourceRecord(record));
                 }
+                if(!partitionReader.hasMoreData()){
+                    finishedPartitions.add(topicPartition);
+                }
             }
         } catch (IOException | SegmentIndex.IndexException e) {
             e.printStackTrace();
-        }
-        if (emptyPartitions == partitionReaders.size()) {
-            log.info("All records read. Restore was successful");
-            Thread.sleep(5000);
         }
         return sourceRecords;
     }
