@@ -168,8 +168,9 @@ WORKER_CONFIG="$WORKING_DIR/standalone.properties"
 
 cat <<EOF >"$WORKER_CONFIG"
 bootstrap.servers=$BOOTSTRAP_SERVER
-key.converter=org.apache.kafka.connect.json.JsonConverter
-value.converter=org.apache.kafka.connect.json.JsonConverter
+key.converter=org.apache.kafka.connect.converters.ByteArrayConverter
+value.converter=org.apache.kafka.connect.converters.ByteArrayConverter
+header.converter=org.apache.kafka.connect.converters.ByteArrayConverter
 key.converter.schemas.enable=false
 value.converter.schemas.enable=false
 offset.storage.file.filename=$WORKING_DIR/kafka-backup.offsets
@@ -189,8 +190,9 @@ cat <<EOF >"$CONNECTOR_CONFIG"
 name=backup-sink
 connector.class=de.azapps.kafkabackup.sink.BackupSinkConnector
 tasks.max=1
-key.converter=de.azapps.kafkabackup.common.AlreadyBytesConverter
-value.converter=de.azapps.kafkabackup.common.AlreadyBytesConverter
+key.converter=org.apache.kafka.connect.converters.ByteArrayConverter
+value.converter=org.apache.kafka.connect.converters.ByteArrayConverter
+header.converter=org.apache.kafka.connect.converters.ByteArrayConverter
 target.dir=$TARGET_DIR
 max.segment.size.bytes=$MAX_SEGMENT_SIZE
 cluster.bootstrap.servers=$BOOTSTRAP_SERVER

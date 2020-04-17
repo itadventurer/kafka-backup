@@ -1,5 +1,6 @@
 package de.azapps.kafkabackup.source;
 
+import de.azapps.kafkabackup.common.BackupConfig;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 
@@ -8,9 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-class BackupSourceConfig extends AbstractConfig {
-    private static final String CLUSTER_PREFIX = "cluster.";
-    private static final String CLUSTER_BOOTSTRAP_SERVERS = CLUSTER_PREFIX + "bootstrap.servers";
+class BackupSourceConfig extends BackupConfig {
     private static final String CLUSTER_KEY_DESERIALIZER = CLUSTER_PREFIX + "key.deserializer";
     private static final String CLUSTER_VALUE_DESERIALIZER = CLUSTER_PREFIX + "value.deserializer";
     private static final String BATCH_SIZE_CONFIG = "batch.size";
@@ -34,9 +33,6 @@ class BackupSourceConfig extends AbstractConfig {
         }
         if (!props.containsKey(TOPICS_CONFIG)) {
             throw new RuntimeException("Missing Configuration Variable: " + TOPICS_CONFIG);
-        }
-        if (!props.containsKey(CLUSTER_BOOTSTRAP_SERVERS)) {
-            throw new RuntimeException("Missing Configuration Variable: " + CLUSTER_BOOTSTRAP_SERVERS);
         }
         if (!props.containsKey(CLUSTER_KEY_DESERIALIZER)) {
             throw new RuntimeException("Missing Configuration Variable: " + CLUSTER_KEY_DESERIALIZER);
