@@ -4,6 +4,7 @@ import de.azapps.kafkabackup.common.partition.PartitionException;
 import de.azapps.kafkabackup.common.partition.PartitionWriter;
 import de.azapps.kafkabackup.common.record.Record;
 import de.azapps.kafkabackup.storage.s3.AwsS3Service;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.errors.RetriableException;
@@ -13,6 +14,7 @@ import java.util.LinkedList;
 import java.util.Queue;
 
 @Slf4j
+@RequiredArgsConstructor
 public class S3PartitionWriter implements PartitionWriter {
 
   private final AwsS3Service awsS3Service;
@@ -24,15 +26,6 @@ public class S3PartitionWriter implements PartitionWriter {
 
   private S3BatchWriter batchWriter;
   private Long lastCommittableOffset = null; // Nothing written so far, so nothing to commit
-
-
-  public S3PartitionWriter(AwsS3Service awsS3Service, String bucketName, TopicPartition tp, int maxBatchMessages, long maxBatchTimeMs) {
-    this.awsS3Service = awsS3Service;
-    this.bucketName = bucketName;
-    this.topicPartition = tp;
-    this.maxBatchMessages = maxBatchMessages;
-    this.maxBatchTimeMs = maxBatchTimeMs;
-  }
 
   @Override
   public void append(Record record) throws PartitionException {

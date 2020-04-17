@@ -202,6 +202,7 @@ public class BackupSinkTask extends SinkTask {
                 partitionWriter.flush(); // Trigger a flush for this partition
                 timeoutMs = MIN_TIMEOUT_MS; // Reset timeout on success
             } catch (RetriableException e) {
+                log.warn("Retriable exception when flushing {} : {}", tp, e.getMessage());
                 // Reset connector to lastCommittableOffset (if any)
                 Long resetOffset = partitionWriter.getLastCommittableOffset();
                 if (resetOffset != null) {

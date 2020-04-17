@@ -4,6 +4,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import de.azapps.kafkabackup.common.record.Record;
 import de.azapps.kafkabackup.common.record.RecordJSONSerde;
 import de.azapps.kafkabackup.storage.s3.AwsS3Service;
+import lombok.Getter;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.errors.RetriableException;
 
@@ -13,7 +14,8 @@ import java.io.IOException;
 
 public class S3BatchWriter {
 
-    private static final byte[] RECORD_SEPARATOR = {0x0A};  // utf-8 encoding of unix line feed
+    private static final byte UTF8_UNIX_LINE_FEED = 0x0A;
+    private static final byte[] RECORD_SEPARATOR = {UTF8_UNIX_LINE_FEED};
 
     private final AwsS3Service awsS3Service;
     private final String bucketName;
@@ -24,9 +26,13 @@ public class S3BatchWriter {
     private final RecordJSONSerde recordJSONSerde = new RecordJSONSerde();
     private final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 
+    @Getter
     private long startWallClockTime;
+    @Getter
     private long startOffset;
+    @Getter
     private long endOffset;
+    @Getter
     private long count = 0;
 
     public S3BatchWriter(AwsS3Service awsS3Service, String bucketName, TopicPartition tp, Record record) throws IOException {
@@ -63,21 +69,5 @@ public class S3BatchWriter {
 
     public String getObjectKey() {
         return String.format("%s/%03d/msg_%020d.json", topic, partition, startOffset);
-    }
-
-    public long getStartOffset() {
-        return startOffset;
-    }
-
-    public long getEndOffset() {
-        return endOffset;
-    }
-
-    public long getStartWallClockTime() {
-        return startWallClockTime;
-    }
-
-    public long getCount() {
-        return count;
     }
 }
