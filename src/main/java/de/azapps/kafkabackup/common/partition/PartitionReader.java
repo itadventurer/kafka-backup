@@ -84,7 +84,12 @@ public class PartitionReader {
         while (hasMoreData() && currentSize < batchsize) {
             Record record = read();
             records.add(record);
-            currentSize += record.value().length + record.key().length;
+            if (record.value() != null) {
+                currentSize += record.value().length;
+            }
+            if (record.key() != null) {
+                currentSize += record.key().length;
+            }
         }
         return records;
     }
