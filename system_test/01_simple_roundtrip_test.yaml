@@ -33,6 +33,7 @@
   entries:
     - command: docker-compose exec -T to-backup-kafka bash -c '
         utils.py create_topic --topic backup-test-1partition --partitions 1 &&
+        utils.py create_topic --topic backup-test-weird-msgs --partitions 1 &&
         utils.py create_topic --topic backup-test-empty-topic --partitions 3'
 - name: Produce Messages
   entries:
@@ -40,6 +41,9 @@
       command: docker-compose exec -T to-backup-kafka bash -c '
         utils.py produce_messages --topic backup-test-1partition --partition 0 --start_num 0 --count 300 &&
         utils.py produce_messages --topic backup-test-empty-topic --partition 0 --start_num 0 --count 300'
+    - name: Produce 'weird' messages
+      command: docker-compose exec -T to-backup-kafka bash -c '
+        utils.py produce_weird_messages --partition 0 --topic backup-test-weird-msgs'
 - name: Consume messages
   entries:
     - name: Consume 100 messages with cg-100
@@ -70,11 +74,17 @@
   entries:
     - name: Start Kafka Backup
       command: >
-        docker run -d -v /tmp/kafka-backup/:/kafka-backup/ --net=system_test_to-backup --name to-backup --rm
+        docker run -d -v /tmp/kafka-backup/:/kafka-backup/ --net=system_test_to-backup -p 18083:8083 --name to-backup --rm
         kafka-backup-dev:latest backup-standalone.sh --bootstrap-server to-backup-kafka:9092
         --target-dir /kafka-backup/001_simple_1partition_test/ --topics-regex 'backup-test.*'
     - command: sleep 30
       nolog: true
+    - name: Check For errors
+      timeout: 300s
+      command: docker exec to-backup curl -vs "http://localhost:8083/connectors/backup-sink/status"
+      stderr_has: ["200 OK"]
+      stdout_has: ["RUNNING"]
+      stdout_not_has: ["FAILED"]
 
 - name: Stop Cluster that was backed up
   entries:
@@ -86,13 +96,15 @@
 - name: Restore
   entries:
     - name: Create Topic
-      command: docker-compose exec -T restore-to-kafka
-        utils.py create_topic --topic backup-test-1partition --partitions 1
+      command: docker-compose exec -T restore-to-kafka bash -c '
+        utils.py create_topic --topic backup-test-1partition --partitions 1 &&
+        utils.py create_topic --topic backup-test-weird-msgs --partitions 1 &&
+        utils.py create_topic --topic backup-test-empty-topic --partitions 3'
     - name: Run Kafka Restore
       command: >
         docker run -v /tmp/kafka-backup/:/kafka-backup/ --net=system_test_restore-to --name restore-to --rm
         kafka-backup-dev:latest restore-standalone.sh --bootstrap-server restore-to-kafka:9092
-        --source-dir /kafka-backup/001_simple_1partition_test/ --topics 'backup-test-1partition,backup-test-empty-topic'
+        --source-dir /kafka-backup/001_simple_1partition_test/ --topics 'backup-test-1partition,backup-test-empty-topic,backup-test-weird-msgs'
       timeout: 60s
       stdout_has: ['All records read.']
 
@@ -103,6 +115,10 @@
       command: docker-compose exec -T restore-to-kafka bash -c '
         utils.py consume_verify_messages --topic backup-test-1partition --partition 0 --count 300 &&
         utils.py consume_verify_messages --topic backup-test-empty-topic --partition 0 --count 300'
+    - name: Verify Weird Records
+      timeout: 15s
+      command: docker-compose exec -T restore-to-kafka bash -c '
+        utils.py consume_verify_weird_messages --partition 0 --topic backup-test-weird-msgs'
     - name: Check Consumer Group cg-100
       timeout: 30s
       command: docker-compose exec -T restore-to-kafka
