@@ -3,10 +3,8 @@ import argparse
 import hashlib
 import os
 import re
-import string
-from random import random
 
-from confluent_kafka import Producer, Consumer, TopicPartition
+from confluent_kafka import Producer, Consumer, TopicPartition, Message
 from confluent_kafka.admin import AdminClient, NewTopic
 
 
@@ -39,6 +37,89 @@ def produce_messages(topic, partition, start_num, count, bootstrap_servers, size
                          partition=partition)
     producer.flush()
 
+
+weird_messages = [
+    {
+        'value': None,
+        'key': b'noneValue'
+    },
+    {
+        'value': b'noneKey',
+        'key': None
+    },
+    {
+        'value': b'emptyKey',
+        'key': b''
+    },
+    {
+        'value': b'',
+        'key': b'emptyValue'
+    },
+    {
+        'value': b"headers",
+        'key': b"headers",
+        'headers': {
+            "normal": b"someheader",
+            "null": None,
+            "empty": b'',
+        }
+    }
+]
+
+
+def produce_weird_messages(topic, partition, bootstrap_servers):
+    producer = Producer({'bootstrap.servers': bootstrap_servers})
+    for msg in weird_messages:
+        if 'headers' in msg:
+            producer.produce(topic, msg['value'], key= msg['key'], headers=msg['headers'], partition=partition)
+        else:
+            producer.produce(topic, msg['value'], key= msg['key'], partition=partition)
+    producer.flush()
+
+
+def check_msg_equality(msgnum, expected, given: Message, expectFail=False):
+    errs = []
+    if expected['value'] != given.value():
+        errs.append(f"Values do not match! Expected {expected['value']} got {given.value()}")
+    if expected['key'] != given.key():
+        errs.append(f"Keys do not match! Expected {expected['key']} got {given.key()}")
+    if 'headers' in expected and expected['headers'] != given.headers():
+        errs.append(f"Headers do not match! Expected {expected['headers']} got {given.headers()}")
+    if expectFail:
+        if len(errs) == 0:
+            print(f"{msgnum}: expected ({expected}) matched given. Did not expect that")
+            exit(1)
+    elif len(errs) > 0:
+        for err in errs:
+            print(f"{msgnum}" + err)
+        exit(255)
+
+
+def consume_verify_weird_messages(topic, partition, bootstrap_servers):
+    c = Consumer({'bootstrap.servers': bootstrap_servers,
+                  'group.id': 'group2',
+                  'enable.auto.commit': False,
+                  'auto.offset.reset': 'beginning'})
+    c.assign([TopicPartition(topic, partition, 0)])
+
+    count = 3
+    msgs = []
+    while len(msgs) < count:
+        msg = c.poll(1.0)
+        if msg is None:
+            continue
+        if msg.error():
+            print("Consumer error: {}".format(msg.error()))
+            exit(255)
+        msgs.append(msg)
+
+    c.close()
+
+    for i in range(len(msgs)):
+        check_msg_equality(i, weird_messages[i], msgs[i])
+        for j in range(len(weird_messages)):
+            if i != j:
+                check_msg_equality(i, weird_messages[j], msgs[i], expectFail=True)
 
 key_regex = re.compile('part_([0-9]*)_num_([0-9]*)_(.*)')
 
@@ -124,6 +205,16 @@ p_consume_messages.add_argument('--topic', type=str, required=True)
 p_consume_messages.add_argument('--consumer_group', type=str, required=True)
 p_consume_messages.add_argument('--count', type=int, required=True)
 p_consume_messages.set_defaults(func=consume_messages)
+
+p_produce_weird_messages = subparsers.add_parser('produce_weird_messages')
+p_produce_weird_messages.add_argument('--topic', type=str, required=True)
+p_produce_weird_messages.add_argument('--partition', type=int, required=True)
+p_produce_weird_messages.set_defaults(func=produce_weird_messages)
+
+p_consume_verify_weird_messages = subparsers.add_parser('consume_verify_weird_messages')
+p_consume_verify_weird_messages.add_argument('--topic', type=str, required=True)
+p_consume_verify_weird_messages.add_argument('--partition', type=int, required=True)
+p_consume_verify_weird_messages.set_defaults(func=consume_verify_weird_messages)
 
 args = parser.parse_args()
 if 'func' not in args:

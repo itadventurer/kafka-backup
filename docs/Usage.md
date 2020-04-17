@@ -41,8 +41,9 @@ name=backup-sink
 connector.class=de.azapps.kafkabackup.sink.BackupSinkConnector
 tasks.max=1
 topics.regex=*
-key.converter=de.azapps.kafkabackup.common.AlreadyBytesConverter
-value.converter=de.azapps.kafkabackup.common.AlreadyBytesConverter
+key.converter=org.apache.kafka.connect.converters.ByteArrayConverter
+value.converter=org.apache.kafka.connect.converters.ByteArrayConverter
+header.converter=org.apache.kafka.connect.converters.ByteArrayConverter
 target.dir=/my/backup/dir
 # 1GiB
 max.segment.size.bytes=1073741824
@@ -58,8 +59,9 @@ cluster.bootstrap.servers=localhost:9092
 | `tasks.max`                 | ✓         | 1                                                    | Must be `1`. Currently no support for multi-task backups                                               |
 | `topics`                    | -         |                                                      | Explicit, comma-separated list of topics to back up                                                    |
 | `topics.regex`              | -         | `*`                                                  | Topic regex to back up                                                                                 |
-| `key.converter`             | ✓         | `de.azapps.kafkabackup.common.AlreadyBytesConverter` | Must be this class to interpret the data as bytes                                                      |
-| `value.converter`           | ✓         | `de.azapps.kafkabackup.common.AlreadyBytesConverter` | Must be this class to interpret the data as bytes                                                      |
+| `key.converter`             | ✓         | `org.apache.kafka.connect.converters.ByteArrayConverter` | Must be this class to interpret the data as bytes                                                      |
+| `value.converter`           | ✓         | `org.apache.kafka.connect.converters.ByteArrayConverter` | Must be this class to interpret the data as bytes                                                      |
+| `header.converter`           | ✓         | `org.apache.kafka.connect.converters.ByteArrayConverter` | Must be this class to interpret the data as bytes                                                      |
 | `target.dir`                | ✓         | `/my/backup/dir`                                     | Where to store the backup                                                                              |
 | `max.segment.size`          | ✓         | `1073741824` (`1 GiB`)                               | Max size of the backup files. When the size is reached, a new file is created. No data is overwritten. |
 | `cluster.bootstrap.servers` | ✓         | `my.kafka.cluster:9092`                              | `bootstrap.servers` property to connect to the cluster to back up.                                     |
@@ -101,8 +103,9 @@ name=backup-source
 connector.class=de.azapps.kafkabackup.source.BackupSourceConnector
 tasks.max=1
 topics=topic1,topic2,topic3
-key.converter=de.azapps.kafkabackup.common.AlreadyBytesConverter
-value.converter=de.azapps.kafkabackup.common.AlreadyBytesConverter
+key.converter=org.apache.kafka.connect.converters.ByteArrayConverter
+value.converter=org.apache.kafka.connect.converters.ByteArrayConverter
+header.converter=org.apache.kafka.connect.converters.ByteArrayConverter
 source.dir=/my/backup/dir
 batch.size=500
 ```
@@ -115,8 +118,9 @@ batch.size=500
 | `connector.class` | ✓         | `de.azapps.kafkabackup.source.BackupSourceConnector` | Must be this class to use `kafka-backup`                                         |
 | `tasks.max`       | ✓         | 1                                                    | Must be `1`. Currently no support for multi-task backups                         |
 | `topics`          | ✓         | `topic1,topic2,topic3`                               | A list of topics to restore. Only explicit list of topics is currently supported |
-| `key.converter`   | ✓         | `de.azapps.kafkabackup.common.AlreadyBytesConverter` | Must be this class to interpret the data as bytes                                |
-| `value.converter` | ✓         | `de.azapps.kafkabackup.common.AlreadyBytesConverter` | Must be this class to interpret the data as bytes                                |
+| `key.converter`   | ✓         | `org.apache.kafka.connect.converters.ByteArrayConverter` | Must be this class to interpret the data as bytes                                |
+| `value.converter` | ✓         | `org.apache.kafka.connect.converters.ByteArrayConverter` | Must be this class to interpret the data as bytes                                |
+| `header.converter` | ✓         | `org.apache.kafka.connect.converters.ByteArrayConverter` | Must be this class to interpret the data as bytes                                |
 | `source.dir`      | ✓         | `/my/backup/dir`                                     | Location of the backup files.                                                    |
 | `batch.size`      | -         | `500`                                                | How many messages should be processed in one batch?                                                                                 |
 
