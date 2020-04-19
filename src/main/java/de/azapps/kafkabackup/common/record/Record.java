@@ -1,61 +1,75 @@
 package de.azapps.kafkabackup.common.record;
 
-import de.azapps.kafkabackup.common.AlreadyBytesConverter;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.errors.DataException;
 import org.apache.kafka.connect.header.ConnectHeaders;
-import org.apache.kafka.connect.header.Header;
-import org.apache.kafka.connect.header.Headers;
 import org.apache.kafka.connect.sink.SinkRecord;
-import org.apache.kafka.connect.storage.Converter;
 
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Objects;
 
 public class Record {
-    private String topic;
-    private Integer kafkaPartition;
-    private byte[] key;
-    private byte[] value;
-    private Long timestamp;
-    private Headers headers;
-    private long kafkaOffset;
-    private TimestampType timestampType;
+    private final String topic;
+    private final Integer kafkaPartition;
+    private final byte[] key;
+    private final byte[] value;
+    private final Long timestamp;
+    private final Headers headers;
+    private final long kafkaOffset;
+    private final TimestampType timestampType;
 
     public Record(String topic, int partition, byte[] key, byte[] value, long kafkaOffset) {
         this(topic, partition, key, value, kafkaOffset, null, TimestampType.NO_TIMESTAMP_TYPE);
     }
 
     public Record(String topic, int partition, byte[] key, byte[] value, long kafkaOffset, Long timestamp, TimestampType timestampType) {
-        this(topic, partition, key, value, kafkaOffset, timestamp, timestampType, null);
+        this(topic, partition, key, value, kafkaOffset, timestamp, timestampType, new RecordHeaders());
     }
 
-    public Record(String topic, int partition, byte[] key, byte[] value, long kafkaOffset, Long timestamp, TimestampType timestampType, Iterable<Header> headers) {
+    public Record(String topic, int partition, byte[] key, byte[] value, long kafkaOffset, Long timestamp, TimestampType timestampType, Headers headers) {
         this.topic = topic;
         this.kafkaPartition = partition;
         this.key = key;
         this.value = value;
         this.timestamp = timestamp;
-        if (headers instanceof ConnectHeaders) {
-            this.headers = (ConnectHeaders) headers;
-        } else {
-            this.headers = new ConnectHeaders(headers);
-        }
+        this.headers = headers;
         this.kafkaOffset = kafkaOffset;
         this.timestampType = timestampType;
     }
 
     public static Record fromSinkRecord(SinkRecord sinkRecord) {
-        Converter converter = new AlreadyBytesConverter();
-        byte[] key = converter.fromConnectData(sinkRecord.topic(), sinkRecord.keySchema(), sinkRecord.key());
-        byte[] value = converter.fromConnectData(sinkRecord.topic(), sinkRecord.valueSchema(), sinkRecord.value());
-        return new Record(sinkRecord.topic(), sinkRecord.kafkaPartition(), key, value, sinkRecord.kafkaOffset(), sinkRecord.timestamp(), sinkRecord.timestampType(), sinkRecord.headers());
+        byte[] key = connectDataToBytes(sinkRecord.keySchema(), sinkRecord.key());
+        byte[] value = connectDataToBytes(sinkRecord.valueSchema(), sinkRecord.value());
+        RecordHeaders recordHeaders = new RecordHeaders();
+        for (org.apache.kafka.connect.header.Header connectHeader : sinkRecord.headers()) {
+            byte[] headerValue = connectDataToBytes(connectHeader.schema(), connectHeader.value());
+            recordHeaders.add(connectHeader.key(), headerValue);
+        }
+        return new Record(sinkRecord.topic(), sinkRecord.kafkaPartition(), key, value, sinkRecord.kafkaOffset(), sinkRecord.timestamp(), sinkRecord.timestampType(), recordHeaders);
+    }
+
+    private static byte[] connectDataToBytes(Schema schema, Object value) {
+        if (schema != null && schema.type() != Schema.Type.BYTES)
+            throw new DataException("Invalid schema type for ByteArrayConverter: " + schema.type().toString());
+
+        if (value != null && !(value instanceof byte[]))
+            throw new DataException("ByteArrayConverter is not compatible with objects of type " + value.getClass());
+
+        return (byte[]) value;
     }
 
     public SinkRecord toSinkRecord() {
+        ConnectHeaders connectHeaders = new ConnectHeaders();
+        for (Header header : headers) {
+            connectHeaders.addBytes(header.key(), header.value());
+        }
         return new SinkRecord(topic, kafkaPartition, Schema.OPTIONAL_BYTES_SCHEMA, key, Schema.OPTIONAL_BYTES_SCHEMA, value, kafkaOffset,
-                timestamp, timestampType, headers);
+                timestamp, timestampType, connectHeaders);
     }
 
     public String topic() {
@@ -143,9 +157,6 @@ public class Record {
             return true;
         }
         if (!Objects.equals(a.key(), b.key())) {
-            return false;
-        }
-        if (!Objects.equals(a.schema(), b.schema())) {
             return false;
         }
         try {

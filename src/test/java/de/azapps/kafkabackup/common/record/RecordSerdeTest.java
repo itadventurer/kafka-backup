@@ -1,10 +1,7 @@
 package de.azapps.kafkabackup.common.record;
 
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaAndValue;
-import org.apache.kafka.connect.header.ConnectHeaders;
-import org.apache.kafka.connect.header.Headers;
 import org.junit.jupiter.api.Test;
 
 import java.io.*;
@@ -27,17 +24,17 @@ public class RecordSerdeTest {
     private static final String HEADER_RECORD_FILE = "header_record";
 
     // Example records
-    private static Record SIMPLE_RECORD, NULL_RECORD, EMPTY_RECORD, HEADER_RECORD;
+    private static final Record SIMPLE_RECORD, NULL_RECORD, EMPTY_RECORD, HEADER_RECORD;
 
     static {
         SIMPLE_RECORD = new Record(TOPIC, PARTITION, KEY_BYTES, VALUE_BYTES, OFFSET);
         NULL_RECORD = new Record(TOPIC, PARTITION, null, null, OFFSET);
         EMPTY_RECORD = new Record(TOPIC, PARTITION, new byte[0], new byte[0], OFFSET);
         // Build multiple headers that might cause problems
-        Headers headers = new ConnectHeaders();
-        headers.add("", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, new byte[0]));
-        headers.add("null", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, null));
-        headers.add("value", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, VALUE_BYTES));
+        RecordHeaders headers = new RecordHeaders();
+        headers.add("", new byte[0]);
+        headers.add("null", null);
+        headers.add("value", VALUE_BYTES);
         HEADER_RECORD = new Record(TOPIC, PARTITION, KEY_BYTES, VALUE_BYTES, OFFSET, null, TimestampType.NO_TIMESTAMP_TYPE, headers);
     }
 
@@ -100,7 +97,7 @@ public class RecordSerdeTest {
 
     /**
      * Utility function to be run once when the format on disk changes to be able to stay backwards-compatible
-     * 
+     * <p>
      * Call it manually once when the format changes
      */
     private static void writeTestRecordsToFile() throws IOException {

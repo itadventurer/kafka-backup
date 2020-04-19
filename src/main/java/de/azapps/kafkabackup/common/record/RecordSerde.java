@@ -1,13 +1,8 @@
 package de.azapps.kafkabackup.common.record;
 
-import de.azapps.kafkabackup.common.AlreadyBytesConverter;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaAndValue;
-import org.apache.kafka.connect.header.ConnectHeaders;
-import org.apache.kafka.connect.header.Header;
-import org.apache.kafka.connect.header.Headers;
-import org.apache.kafka.connect.storage.Converter;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -69,7 +64,7 @@ public class RecordSerde {
             dataStream.read(value);
         }
         int headerCount = dataStream.readInt();
-        Headers headers = new ConnectHeaders();
+        RecordHeaders headers = new RecordHeaders();
         for (int i = 0; i < headerCount; i++) {
             // Key
             int headerKeyLength = dataStream.readInt();
@@ -86,14 +81,13 @@ public class RecordSerde {
                 headerValue = new byte[headerValueLength];
                 dataStream.read(headerValue);
             }
-            headers.add(headerKey, new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, headerValue));
+            headers.add(headerKey, headerValue);
         }
 
         return new Record(topic, partition, key, value, offset, timestamp, timestampType, headers);
     }
 
     public static void write(OutputStream outputStream, Record record) throws IOException {
-        Converter converter = new AlreadyBytesConverter();
         DataOutputStream dataStream = new DataOutputStream(outputStream);
         dataStream.writeLong(record.kafkaOffset());
         dataStream.writeInt(record.timestampType().id);
@@ -112,15 +106,15 @@ public class RecordSerde {
         } else {
             dataStream.writeInt(-1);
         }
-        dataStream.writeInt(record.headers().size());
+        Header[] headers = record.headers().toArray();
+        dataStream.writeInt(headers.length);
         for (Header header : record.headers()) {
             byte[] headerKeyBytes = header.key().getBytes(StandardCharsets.UTF_8);
             dataStream.writeInt(headerKeyBytes.length);
             dataStream.write(headerKeyBytes);
             if (header.value() != null) {
-                byte[] headerValueBytes = converter.fromConnectData(record.topic(), header.schema(), header.value());
-                dataStream.writeInt(headerValueBytes.length);
-                dataStream.write(headerValueBytes);
+                dataStream.writeInt(header.value().length);
+                dataStream.write(header.value());
             } else {
                 dataStream.writeInt(-1);
             }

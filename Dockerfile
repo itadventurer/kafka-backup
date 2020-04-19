@@ -1,8 +1,8 @@
 # Build Kafka Backup
-FROM openjdk:8u212-jdk-alpine AS builder
+FROM gradle:6.3.0-jdk8 AS builder
 WORKDIR /opt/kafka-backup
 COPY . /opt/kafka-backup
-RUN ./gradlew --no-daemon test shadowJar
+RUN gradle --no-daemon test shadowJar
 
 # Build Docker Image with Kafka Backup Jar
 FROM openjdk:8u212-jre-alpine

@@ -4,6 +4,7 @@ import de.azapps.kafkabackup.common.TestUtils;
 import de.azapps.kafkabackup.common.record.Record;
 import de.azapps.kafkabackup.common.segment.SegmentReader;
 import de.azapps.kafkabackup.common.segment.SegmentUtils;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.header.ConnectHeaders;
 import org.apache.kafka.connect.header.Headers;
@@ -22,9 +23,17 @@ public class PartitionSerdeTest {
     private static final String TOPIC = "test-topic";
     private static final byte[] KEY_BYTES = "test-key".getBytes(StandardCharsets.UTF_8);
     private static final byte[] VALUE_BYTES = "test-value".getBytes(StandardCharsets.UTF_8);
-    private static final Headers HEADERS = new ConnectHeaders();
-    private static Path TEMP_DIR = TestUtils.getTestDir("PartitionSerdeTest");
+    private static final Path TEMP_DIR = TestUtils.getTestDir("PartitionSerdeTest");
 
+    private static final RecordHeaders HEADERS = new RecordHeaders();
+    private static final byte[] HEADER_0_VALUE_BYTES = "header0-value".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] HEADER_1_VALUE_BYTES = "header1-value".getBytes(StandardCharsets.UTF_8);
+    static {
+        HEADERS.add("", new byte[0]);
+        HEADERS.add("null", null);
+        HEADERS.add("value0", HEADER_0_VALUE_BYTES);
+        HEADERS.add("value1", HEADER_1_VALUE_BYTES);
+    }
     @Test
     public void simpleRoundtripTest() throws Exception {
         int partition = 0;

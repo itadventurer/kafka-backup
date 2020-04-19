@@ -8,7 +8,9 @@ import de.azapps.kafkabackup.common.record.Record;
 import de.azapps.kafkabackup.common.segment.SegmentIndex;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.header.Header;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.header.ConnectHeaders;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
 import org.slf4j.Logger;
@@ -134,11 +136,15 @@ public class BackupSourceTask extends SourceTask {
         sourcePartition.put(SOURCE_PARTITION_PARTITION, record.kafkaPartition().toString());
         sourcePartition.put(SOURCE_PARTITION_TOPIC, record.topic());
         Map<String, Long> sourceOffset = Collections.singletonMap(SOURCE_OFFSET_OFFSET, record.kafkaOffset());
+        ConnectHeaders connectHeaders = new ConnectHeaders();
+        for(Header header : record.headers()) {
+            connectHeaders.addBytes(header.key(), header.value());
+        }
         return new SourceRecord(sourcePartition, sourceOffset,
                 record.topic(), record.kafkaPartition(),
                 Schema.OPTIONAL_BYTES_SCHEMA, record.key(),
                 Schema.OPTIONAL_BYTES_SCHEMA, record.value(),
-                record.timestamp(), record.headers());
+                record.timestamp(), connectHeaders);
     }
 
     @Override
