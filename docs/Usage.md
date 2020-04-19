@@ -11,8 +11,9 @@ cases but otherwise you need to compile Kafka Connect 2.4 yourself or
 use our provided Docker image**
 
 Kafka Connect is shipped only with a small number of connectors. All
-other connectors are added by putting the connector `jar` file to the
-`CLASSPATH` where the JVM can find the classes.
+other connectors are added by putting the connector `jar` file either 
+in the plugin.path destination, or add it to the `CLASSPATH` where the
+JVM can find the classes.
 
 ### Non-Containerized environment
 
