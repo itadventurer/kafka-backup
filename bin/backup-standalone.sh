@@ -48,11 +48,11 @@ END
 [ -z ${TARGET_DIR+x} ] && TARGET_DIR=""
 [ -z ${TOPICS+x} ] && TOPICS=""
 [ -z ${TOPICS_REGEX+x} ] && TOPICS_REGEX=""
-[ -z ${MAX_SEGMENT_SIZE+x} ] && MAX_SEGMENT_SIZE="$(( 1 * 1024 * 1024 * 1024 ))" # 1GiB
+[ -z ${MAX_SEGMENT_SIZE+x} ] && MAX_SEGMENT_SIZE="$((1 * 1024 * 1024 * 1024))" # 1GiB
 [ -z ${COMMAND_CONFIG+x} ] && COMMAND_CONFIG=""
 [ -z ${DEBUG+x} ] && DEBUG="n"
 
-PLUGIN_PATH="$( dirname "${BASH_SOURCE[0]}" )"
+PLUGIN_PATH="$(dirname "${BASH_SOURCE[0]}")"
 CONNECT_BIN=""
 
 # -temporarily store output to be able to check for errors
@@ -146,21 +146,20 @@ if [ ! -f "$PLUGIN_PATH/kafka-backup.jar" ]; then
   exit 1
 fi
 
-if [ -n "$(command -v connect-standalone.sh)" ] ; then
+if [ -n "$(command -v connect-standalone.sh)" ]; then
   CONNECT_BIN="connect-standalone.sh"
 fi
 
-if [ -n "$(command -v connect-standalone)" ] ; then
+if [ -n "$(command -v connect-standalone)" ]; then
   CONNECT_BIN="connect-standalone"
 fi
 
-if [ -z "$CONNECT_BIN" ] ; then
+if [ -z "$CONNECT_BIN" ]; then
   echo "Cannot find connect-standalone or connect-standalone.sh in PATH. please add it"
   exit 1
 fi
 
 ##################################### Create configs
-
 
 # Standalone Worker Config
 
@@ -210,6 +209,8 @@ if [ -n "$COMMAND_CONFIG" ]; then
   sed 's/^/cluster./' "$COMMAND_CONFIG" >>"$CONNECTOR_CONFIG"
 fi
 
+LOG4J_CONFIG="$WORKING_DIR/log4j.properties"
+
 if [ "$DEBUG" == "y" ]; then
   echo "$WORKER_CONFIG:"
   sed 's/^/> /' "$WORKER_CONFIG"
@@ -217,8 +218,33 @@ if [ "$DEBUG" == "y" ]; then
   echo "$CONNECTOR_CONFIG:"
   sed 's/^/> /' "$CONNECTOR_CONFIG"
   echo
+  cat <<EOF >"$LOG4J_CONFIG"
+log4j.rootLogger=INFO, stdout
+log4j.logger.de.azapps.kafkabackup=DEBUG
+log4j.logger.org.apache.zookeeper=ERROR
+log4j.logger.org.I0Itec.zkclient=ERROR
+log4j.logger.org.reflections=ERROR
+log4j.logger.org.glassfish=ERROR
+
+log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+log4j.appender.stdout.layout.ConversionPattern=[%d] %p %m (%c)%n
+EOF
+else
+  cat <<EOF >"$LOG4J_CONFIG"
+log4j.rootLogger=WARN, stdout
+log4j.logger.de.azapps.kafkabackup=INFO
+log4j.logger.org.apache.zookeeper=ERROR
+log4j.logger.org.I0Itec.zkclient=ERROR
+log4j.logger.org.reflections=ERROR
+log4j.logger.org.glassfish=ERROR
+
+log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+log4j.appender.stdout.layout.ConversionPattern=[%d] %p %m (%c)%n
+EOF
 fi
 
 ##################################### Start Connect Standalone
 
-"$CONNECT_BIN" "$WORKER_CONFIG" "$CONNECTOR_CONFIG"
+KAFKA_LOG4J_OPTS="-Dlog4j.configuration=file:${LOG4J_CONFIG}" "$CONNECT_BIN" "$WORKER_CONFIG" "$CONNECTOR_CONFIG"

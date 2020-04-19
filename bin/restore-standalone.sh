@@ -187,8 +187,6 @@ bootstrap.servers=$BOOTSTRAP_SERVER
 key.converter=org.apache.kafka.connect.converters.ByteArrayConverter
 value.converter=org.apache.kafka.connect.converters.ByteArrayConverter
 header.converter=org.apache.kafka.connect.converters.ByteArrayConverter
-key.converter.schemas.enable=false
-value.converter.schemas.enable=false
 offset.storage.file.filename=$OFFSET_FILE
 offset.flush.interval.ms=10000
 plugin.path=$PLUGIN_PATH
@@ -221,6 +219,8 @@ if [ -n "$COMMAND_CONFIG" ]; then
   sed 's/^/cluster./' "$COMMAND_CONFIG" >>"$CONNECTOR_CONFIG"
 fi
 
+LOG4J_CONFIG="$WORKING_DIR/log4j.properties"
+
 if [ "$DEBUG" == "y" ]; then
   echo "$WORKER_CONFIG:"
   sed 's/^/> /' "$WORKER_CONFIG"
@@ -229,6 +229,31 @@ if [ "$DEBUG" == "y" ]; then
   sed 's/^/> /' "$CONNECTOR_CONFIG"
   echo
 
+  cat <<EOF >"$LOG4J_CONFIG"
+log4j.rootLogger=INFO, stdout
+log4j.logger.de.azapps.kafkabackup=DEBUG
+log4j.logger.org.apache.zookeeper=ERROR
+log4j.logger.org.I0Itec.zkclient=ERROR
+log4j.logger.org.reflections=ERROR
+log4j.logger.org.glassfish=ERROR
+
+log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+log4j.appender.stdout.layout.ConversionPattern=[%d] %p %m (%c)%n
+EOF
+else
+  cat <<EOF >"$LOG4J_CONFIG"
+log4j.rootLogger=WARN, stdout
+log4j.logger.de.azapps.kafkabackup=INFO
+log4j.logger.org.apache.zookeeper=ERROR
+log4j.logger.org.I0Itec.zkclient=ERROR
+log4j.logger.org.reflections=ERROR
+log4j.logger.org.glassfish=ERROR
+
+log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+log4j.appender.stdout.layout.ConversionPattern=[%d] %p %m (%c)%n
+EOF
 fi
 
 ##################################### Start Connect Standalone
@@ -241,7 +266,7 @@ fi
 # expected line and kill all background processes when we encounter it
 
 # Start Kafka connect in the background
-"$CONNECT_BIN" "$WORKER_CONFIG" "$CONNECTOR_CONFIG" >>"$WORKING_DIR/log" &
+KAFKA_LOG4J_OPTS="-Dlog4j.configuration=file:${LOG4J_CONFIG}" "$CONNECT_BIN" "$WORKER_CONFIG" "$CONNECTOR_CONFIG" >>"$WORKING_DIR/log" &
 PID=$!
 # Print the content of the log to stdout. Fork it to the background
 tail -F "$WORKING_DIR/log" &
