@@ -1,9 +1,7 @@
 package de.azapps.kafkabackup.common.record;
 
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaAndValue;
-import org.apache.kafka.connect.header.ConnectHeaders;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.junit.jupiter.api.Test;
 
@@ -25,13 +23,13 @@ public class RecordTest {
     // Header fixtures:
     private static final byte[] HEADER_0_VALUE_BYTES = "header0-value".getBytes(StandardCharsets.UTF_8);
     private static final byte[] HEADER_1_VALUE_BYTES = "header1-value".getBytes(StandardCharsets.UTF_8);
-    private static final ConnectHeaders HEADERS = new ConnectHeaders();
+    private static final RecordHeaders HEADERS = new RecordHeaders();
 
     static {
-        HEADERS.add("", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, new byte[0]));
-        HEADERS.add("null", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, null));
-        HEADERS.add("value0", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, HEADER_0_VALUE_BYTES));
-        HEADERS.add("value1", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, HEADER_1_VALUE_BYTES));
+        HEADERS.add("", new byte[0]);
+        HEADERS.add("null", null);
+        HEADERS.add("value0", HEADER_0_VALUE_BYTES);
+        HEADERS.add("value1", HEADER_1_VALUE_BYTES);
     }
 
     @Test
@@ -48,11 +46,11 @@ public class RecordTest {
         // GIVEN
         Record a = new Record(TOPIC, PARTITION, KEY_BYTES, VALUE_BYTES, OFFSET, TIMESTAMP, TIMESTAMP_TYPE, HEADERS);
 
-        ConnectHeaders bHeaders = new ConnectHeaders();
-        bHeaders.add("", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, new byte[0]));
-        bHeaders.add("null", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, null));
-        bHeaders.add("value0", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, Arrays.copyOf(HEADER_0_VALUE_BYTES, HEADER_0_VALUE_BYTES.length)));
-        bHeaders.add("value1", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, Arrays.copyOf(HEADER_1_VALUE_BYTES, HEADER_1_VALUE_BYTES.length)));
+        RecordHeaders bHeaders = new RecordHeaders();
+        bHeaders.add("", new byte[0]);
+        bHeaders.add("null", null);
+        bHeaders.add("value0", Arrays.copyOf(HEADER_0_VALUE_BYTES, HEADER_0_VALUE_BYTES.length));
+        bHeaders.add("value1", Arrays.copyOf(HEADER_1_VALUE_BYTES, HEADER_1_VALUE_BYTES.length));
         Record b = new Record(TOPIC, PARTITION, KEY_BYTES, VALUE_BYTES, OFFSET, TIMESTAMP, TIMESTAMP_TYPE, bHeaders);
 
         // THEN
@@ -74,19 +72,19 @@ public class RecordTest {
     @Test
     public void equalsFalseBecauseHeadersStrictSubsetTest() {
         // GIVEN
-        ConnectHeaders aHeaders = new ConnectHeaders();
-        aHeaders.add("header0-key", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, Arrays.copyOf(HEADER_0_VALUE_BYTES, HEADER_0_VALUE_BYTES.length)));
-        aHeaders.add("header1-key", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, Arrays.copyOf(HEADER_1_VALUE_BYTES, HEADER_1_VALUE_BYTES.length)));
+        RecordHeaders aHeaders = new RecordHeaders();
+        aHeaders.add("header0-key", Arrays.copyOf(HEADER_0_VALUE_BYTES, HEADER_0_VALUE_BYTES.length));
+        aHeaders.add("header1-key", Arrays.copyOf(HEADER_1_VALUE_BYTES, HEADER_1_VALUE_BYTES.length));
         Record a = new Record(TOPIC, PARTITION, KEY_BYTES, VALUE_BYTES, OFFSET, TIMESTAMP, TIMESTAMP_TYPE, aHeaders);
 
-        ConnectHeaders bHeaders = new ConnectHeaders();
-        bHeaders.add("header0-key", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, Arrays.copyOf(HEADER_0_VALUE_BYTES, HEADER_0_VALUE_BYTES.length)));
+        RecordHeaders bHeaders = new RecordHeaders();
+        bHeaders.add("header0-key", Arrays.copyOf(HEADER_0_VALUE_BYTES, HEADER_0_VALUE_BYTES.length));
         Record b = new Record(TOPIC, PARTITION, KEY_BYTES, VALUE_BYTES, OFFSET, TIMESTAMP, TIMESTAMP_TYPE, bHeaders);
 
 
-        ConnectHeaders cHeaders = new ConnectHeaders();
-        cHeaders.add("header1-key", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, Arrays.copyOf(HEADER_0_VALUE_BYTES, HEADER_0_VALUE_BYTES.length)));
-        cHeaders.add("header1-key", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, Arrays.copyOf(HEADER_1_VALUE_BYTES, HEADER_1_VALUE_BYTES.length)));
+        RecordHeaders cHeaders = new RecordHeaders();
+        cHeaders.add("header1-key", Arrays.copyOf(HEADER_0_VALUE_BYTES, HEADER_0_VALUE_BYTES.length));
+        cHeaders.add("header1-key", Arrays.copyOf(HEADER_1_VALUE_BYTES, HEADER_1_VALUE_BYTES.length));
         Record c = new Record(TOPIC, PARTITION, KEY_BYTES, VALUE_BYTES, OFFSET, TIMESTAMP, TIMESTAMP_TYPE, cHeaders);
 
         // THEN

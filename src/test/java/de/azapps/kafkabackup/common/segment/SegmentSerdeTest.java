@@ -2,11 +2,8 @@ package de.azapps.kafkabackup.common.segment;
 
 import de.azapps.kafkabackup.common.TestUtils;
 import de.azapps.kafkabackup.common.record.Record;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaAndValue;
-import org.apache.kafka.connect.header.ConnectHeaders;
-import org.apache.kafka.connect.header.Headers;
 import org.junit.jupiter.api.Test;
 
 import java.io.EOFException;
@@ -23,13 +20,13 @@ public class SegmentSerdeTest {
     private static final String TOPIC = "test-topic";
     private static final byte[] KEY_BYTES = "test-key".getBytes(StandardCharsets.UTF_8);
     private static final byte[] VALUE_BYTES = "test-value".getBytes(StandardCharsets.UTF_8);
-    private static final Headers HEADERS = new ConnectHeaders();
-    private static Path TEMP_DIR = TestUtils.getTestDir("SegmentSerdeTest");
+    private static final RecordHeaders HEADERS = new RecordHeaders();
+    private static final Path TEMP_DIR = TestUtils.getTestDir("SegmentSerdeTest");
 
     static {
-        HEADERS.add("", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, new byte[0]));
-        HEADERS.add("null", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, null));
-        HEADERS.add("value", new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, VALUE_BYTES));
+        HEADERS.add("", new byte[0]);
+        HEADERS.add("null", null);
+        HEADERS.add("value", VALUE_BYTES);
     }
 
     @Test

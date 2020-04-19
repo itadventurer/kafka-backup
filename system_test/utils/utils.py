@@ -56,12 +56,33 @@ weird_messages = [
         'key': b'emptyValue'
     },
     {
-        'value': b"headers",
+        'value': b"normalHeaders",
         'key': b"headers",
         'headers': {
+            "foo": b"bar",
+            "baz": b"banana",
             "normal": b"someheader",
             "null": None,
             "empty": b'',
+            "":"blubb"
+        }
+    },
+    {
+        'value': b"nullHeaders",
+        'key': b"headers",
+        'headers': {
+            "null": None,
+            "bla": None,
+            "foo": b"bar",
+        }
+    },
+    {
+        'value': b"emptyHeaders",
+        'key': b"headers",
+        'headers': {
+            "foo": b"bar",
+            "empty": b'',
+            "blubb": b'',
         }
     }
 ]
