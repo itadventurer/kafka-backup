@@ -19,7 +19,6 @@ public abstract class BackupConfig extends AbstractConfig {
             throw new RuntimeException("Missing Configuration Variable: " + CLUSTER_BOOTSTRAP_SERVERS);
         }
 
-        System.out.println(props.get(KEY_CONVERTER));
         if(!props.containsKey(KEY_CONVERTER) || ! props.get(KEY_CONVERTER).equals(MANDATORY_CONVERTER)) {
             throw new RuntimeException(KEY_CONVERTER + " must be set and must equal " + MANDATORY_CONVERTER);
         }

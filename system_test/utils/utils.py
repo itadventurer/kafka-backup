@@ -64,7 +64,7 @@ weird_messages = [
             "normal": b"someheader",
             "null": None,
             "empty": b'',
-            "":"blubb"
+            "": "blubb"
         }
     },
     {
@@ -92,9 +92,9 @@ def produce_weird_messages(topic, partition, bootstrap_servers):
     producer = Producer({'bootstrap.servers': bootstrap_servers})
     for msg in weird_messages:
         if 'headers' in msg:
-            producer.produce(topic, msg['value'], key= msg['key'], headers=msg['headers'], partition=partition)
+            producer.produce(topic, msg['value'], key=msg['key'], headers=msg['headers'], partition=partition)
         else:
-            producer.produce(topic, msg['value'], key= msg['key'], partition=partition)
+            producer.produce(topic, msg['value'], key=msg['key'], partition=partition)
     producer.flush()
 
 
@@ -142,21 +142,39 @@ def consume_verify_weird_messages(topic, partition, bootstrap_servers):
             if i != j:
                 check_msg_equality(i, weird_messages[j], msgs[i], expectFail=True)
 
+
 key_regex = re.compile('part_([0-9]*)_num_([0-9]*)_(.*)')
 
 
-def verify_messages(expected_num, partition, key, value):
+def verify_messages(expected_num, partition, msg):
+    key = msg.key()
+    value = msg.value()
     m = key_regex.match(key.decode('utf-8'))
     (key_partition, key_num, key_checksum) = m.groups()
-    recordInfo = f"Partition {partition}, Key {key_num}, vlength {len(value)}"
+    recordInfo = f"Offset {msg.offset()} Partition {partition}, Key {key_num}, vlength {len(value)}"
     if expected_num != int(key_num):
         print(recordInfo)
         print(f"Number mismatch: Expected {expected_num} got {key_num}")
+        exit(255)
     if key_checksum != hashlib.md5(value).hexdigest():
         print(recordInfo)
         print(
             f"Checksum mismatch: Checksum in key ({key_checksum}) does not match Checksum of value {hashlib.md5(value).hexdigest()}")
         exit(255)
+
+
+def count_messages(bootstrap_servers):
+    c = Consumer({'bootstrap.servers': bootstrap_servers,
+                  'group.id': 'group2',
+                  'enable.auto.commit': False,
+                  'auto.offset.reset': 'beginning'})
+
+    metadata = c.list_topics()
+    topics = metadata.topics
+    for topic, topicMetadata in topics.items():
+        for partition in topicMetadata.partitions:
+            (low, high) = c.get_watermark_offsets(TopicPartition(topic, partition))
+            print(f"{topic} {partition}: {high}")
 
 
 def consume_verify_messages(topic, partition, start_num, count, bootstrap_servers):
@@ -174,7 +192,7 @@ def consume_verify_messages(topic, partition, start_num, count, bootstrap_server
         if msg.error():
             print("Consumer error: {}".format(msg.error()))
             exit(255)
-        verify_messages(start_num + num_msg, partition, msg.key(), msg.value())
+        verify_messages(start_num + num_msg, partition, msg)
         num_msg += 1
     c.close()
 
@@ -236,6 +254,10 @@ p_consume_verify_weird_messages = subparsers.add_parser('consume_verify_weird_me
 p_consume_verify_weird_messages.add_argument('--topic', type=str, required=True)
 p_consume_verify_weird_messages.add_argument('--partition', type=int, required=True)
 p_consume_verify_weird_messages.set_defaults(func=consume_verify_weird_messages)
+
+p_count_messages = subparsers.add_parser('count_messages')
+p_count_messages.set_defaults(func=count_messages)
+
 
 args = parser.parse_args()
 if 'func' not in args:

@@ -25,6 +25,11 @@
     - name: Produce 3000 messages
       command: docker-compose exec -T to-backup-kafka
         utils.py produce_messages --topic backup-test-1partition --partition 0 --start_num 0 --count 3000
+    - name: Count Messages
+      command: docker-compose exec -T to-backup-kafka
+        utils.py count_messages
+      stdout_has:
+        - "backup-test-1partition 0: 3000"
 
 - name: Start Kafka Backup
   entries:
@@ -78,9 +83,14 @@
 
 - name: Verify Backup
   entries:
+    - name: Count Messages
+      command: docker-compose exec -T restore-to-kafka
+        utils.py count_messages
+      stdout_has:
+        - "backup-test-1partition 0: 1959"
     - name: Verify Records
       command: docker-compose exec -T restore-to-kafka
-        utils.py consume_verify_messages --topic backup-test-1partition --partition 0 --start_num 1041 --count 300
+        utils.py consume_verify_messages --topic backup-test-1partition --partition 0 --start_num 1041 --count 1959
 
 - name: Clean-up Containers
   entries:
