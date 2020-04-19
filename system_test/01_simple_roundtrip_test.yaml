@@ -57,6 +57,14 @@
         utils.py consume_messages --topic backup-test-1partition --consumer_group cg-300 --count 300
 - name: Check Consumer Group Offsets
   entries:
+    - name: Count Messages
+      command: docker-compose exec -T to-backup-kafka
+        utils.py count_messages
+      stdout_has:
+        - "backup-test-1partition 0: 300"
+        - "backup-test-empty-topic 0: 300"
+        - "backup-test-empty-topic 1: 0"
+        - "backup-test-empty-topic 2: 0"
     - name: Check Consumer Group cg-100
       command: docker-compose exec -T to-backup-kafka
         kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group cg-100
@@ -119,6 +127,14 @@
       timeout: 15s
       command: docker-compose exec -T restore-to-kafka bash -c '
         utils.py consume_verify_weird_messages --partition 0 --topic backup-test-weird-msgs'
+    - name: Count Messages
+      command: docker-compose exec -T restore-to-kafka
+        utils.py count_messages
+      stdout_has:
+        - "backup-test-1partition 0: 300"
+        - "backup-test-empty-topic 0: 300"
+        - "backup-test-empty-topic 1: 0"
+        - "backup-test-empty-topic 2: 0"
     - name: Check Consumer Group cg-100
       timeout: 30s
       command: docker-compose exec -T restore-to-kafka
