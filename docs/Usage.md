@@ -118,12 +118,13 @@ batch.size=500
 | `name`            | ✓         | `backup-source`                                      | A unique name identifying this connector jobs                                    |
 | `connector.class` | ✓         | `de.azapps.kafkabackup.source.BackupSourceConnector` | Must be this class to use `kafka-backup`                                         |
 | `tasks.max`       | ✓         | 1                                                    | Must be `1`. Currently no support for multi-task backups                         |
-| `topics`          | ✓         | `topic1,topic2,topic3`                               | A list of topics to restore. Only explicit list of topics is currently supported |
+| `topics`          | ✓         | `topic1,topic2,topic3`                               | A list of topics to restore. Only explicit list of topics is currently supported. Rename existing folder on disk to restore to a different topic. |
 | `key.converter`   | ✓         | `org.apache.kafka.connect.converters.ByteArrayConverter` | Must be this class to interpret the data as bytes                                |
 | `value.converter` | ✓         | `org.apache.kafka.connect.converters.ByteArrayConverter` | Must be this class to interpret the data as bytes                                |
 | `header.converter` | ✓         | `org.apache.kafka.connect.converters.ByteArrayConverter` | Must be this class to interpret the data as bytes                                |
 | `source.dir`      | ✓         | `/my/backup/dir`                                     | Location of the backup files.                                                    |
 | `batch.size`      | -         | `500`                                                | How many messages should be processed in one batch?                                                                                 |
+| `cluster.*`                 | -         | none                                                 | Other producer configuration options required to connect to the cluster (e.g. SSL settings, serialization settings, etc)            |
 
 ### Monitor the restore progress
 
