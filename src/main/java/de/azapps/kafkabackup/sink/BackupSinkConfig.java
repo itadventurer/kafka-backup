@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
-import org.apache.kafka.common.config.ConfigDef.Type;
 
 class BackupSinkConfig extends AbstractConfig {
     // Standard Kafka Connect Task configs
@@ -26,6 +25,8 @@ class BackupSinkConfig extends AbstractConfig {
     static final String STORAGE_MODE = "storage.mode";
     static final String CONSUMER_GROUPS_SYNC_MAX_AGE_MS = "consumer.groups.sync.max.age.ms";
     static final String CONSUMER_OFFSET_SYNC_INTERVAL_MS = "consumer.offset.sync.interval.ms";
+    static final String MAX_BATCH_MESSAGES = "max.batch.messages";
+    static final String MAX_BATCH_TIME_MS = "max.batch.time.ms";
 
     static final ConfigDef CONFIG_DEF = new ConfigDef()
             .define(KEY_CONVERTER, ConfigDef.Type.STRING, KAFKA_BYTE_ARRAY_CONVERTER_CLASS,
@@ -48,10 +49,14 @@ class BackupSinkConfig extends AbstractConfig {
                     ConfigDef.Importance.MEDIUM, "AWS S3 Bucket path style access")
             .define(AWS_S3_BUCKET_NAME, ConfigDef.Type.STRING,
                     ConfigDef.Importance.MEDIUM, "AWS S3 Bucket name")
-            .define(CONSUMER_GROUPS_SYNC_MAX_AGE_MS, Type.LONG, 300000,
+            .define(CONSUMER_GROUPS_SYNC_MAX_AGE_MS, ConfigDef.Type.LONG, 300000,
                     ConfigDef.Importance.MEDIUM, "List of consumer groups for offset sync will be an most this old.")
-            .define(CONSUMER_OFFSET_SYNC_INTERVAL_MS, Type.LONG, 60000,
-                    ConfigDef.Importance.MEDIUM, "Consumer offsets will be synced at this interval.");
+            .define(CONSUMER_OFFSET_SYNC_INTERVAL_MS, ConfigDef.Type.LONG, 60000,
+                    ConfigDef.Importance.MEDIUM, "Consumer offsets will be synced at this interval.")
+            .define(MAX_BATCH_MESSAGES, ConfigDef.Type.INT, 1000,
+                    ConfigDef.Importance.MEDIUM, "Batches will be rotated after this number of messages.")
+            .define(MAX_BATCH_TIME_MS, ConfigDef.Type.LONG, 600000,
+                    ConfigDef.Importance.MEDIUM, "Batches will be rotated after this amount of time.");
 
     BackupSinkConfig(Map<?, ?> props) {
         super(CONFIG_DEF, props);
@@ -116,4 +121,6 @@ class BackupSinkConfig extends AbstractConfig {
     Long consumerOffsetSyncIntervalMs() {
         return getLong(CONSUMER_OFFSET_SYNC_INTERVAL_MS);
     }
+    Integer maxBatchMessages() { return getInt(MAX_BATCH_MESSAGES); }
+    Long maxBatchTimeMs() { return getLong(MAX_BATCH_TIME_MS); }
 }
