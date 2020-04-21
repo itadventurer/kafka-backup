@@ -10,6 +10,16 @@ jobs:
       # Build
       - name: Build Image
         run: docker build . --tag kafka-backup-dev:latest
+      # Get the jar file and upload it as an artifact
+      - name: Copy jar to /tmp/
+        run: |
+          id=$(docker create kafka-backup-dev:latest)
+          docker cp $id:/opt/kafka-backup/kafka-backup.jar .
+          docker rm -v $id
+      - uses: actions/upload-artifact@v1
+        with:
+          name: kafka-backup.jar
+          path: ./kafka-backup.jar
       # Integration Tests
       - name: setup env
         run: |
@@ -31,13 +41,19 @@ jobs:
       # Run system tests
       - name: Simple Roundtrip Test
         working-directory: ./system_test/
-        run: coyote -c 01_simple_roundtrip_test.yaml --out out/01.html
+        run: coyote -c 01_simple_roundtrip_test.yaml --out out/01_simple_roundtrip_test.html
       - name: Full Test
         working-directory: ./system_test/
-        run: coyote -c 02_full_test.yaml --out out/02.html
+        run: coyote -c 02_full_test.yaml --out out/02_full_test.html
       - name: Start and Stop Kafka Connect
         working-directory: ./system_test/
-        run: coyote -c 03_start_n_stop.yaml --out out/03.html
+        run: coyote -c 03_start_n_stop.yaml --out out/03_start_n_stop.html
       - name: Delete old Segments before restore
         working-directory: ./system_test/
-        run: coyote -c 04_delete_old_segments.yaml --out out/04.html
+        run: coyote -c 04_delete_old_segments.yaml --out out/04_delete_old_segments.html
+      # Upload Test Results
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v1
+        with:
+          name: Test Results
+          path: ./system_test/out/
