@@ -1,8 +1,5 @@
 # Kafka Backup: Tooling
 
-**Before you start, you need to [Build and Run](./Build_and_Run.md)
-Kafka Backup to get the `jar` file**
-
 Before you go, you need to add the `kafka-backup.jar` to your
 classpath:
 
