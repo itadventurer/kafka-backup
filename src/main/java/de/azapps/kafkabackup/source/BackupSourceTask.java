@@ -90,7 +90,7 @@ public class BackupSourceTask extends SourceTask {
                         throw new RuntimeException(e);
                     }
                     partitionReaders.put(topicPartition, partitionReader);
-                    log.info("Registered topic " + topic + " partition " + partition);
+                    log.info("Registered topic {} partition {}", topic, partition);
                 }
             });
         }
@@ -113,10 +113,8 @@ public class BackupSourceTask extends SourceTask {
                 PartitionReader partitionReader = partitionReaders.get(topicPartition);
                 List<Record> records = partitionReader.readBytesBatch(batchSize);
                 if (records.size() > 0) {
-                    log.info("Read " + records.size() + " record " +
-                            "from topic " + records.get(0).topic() +
-                            " partition " + records.get(0).kafkaPartition() +
-                            ". Current offset: " + records.get(records.size() - 1).kafkaOffset());
+                    log.info("Read {} record(s) from topic {} partition {}. Current offset: {}",
+                            records.size(), records.get(0).topic(), records.get(0).kafkaPartition(), records.get(records.size() - 1).kafkaOffset());
                 }
                 for (Record record : records) {
                     sourceRecords.add(toSourceRecord(record));
