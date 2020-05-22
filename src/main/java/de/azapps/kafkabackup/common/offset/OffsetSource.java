@@ -55,7 +55,8 @@ public class OffsetSource {
                 Map<TopicPartition, OffsetAndMetadata> offsets = Collections.singletonMap(topicPartition, offsetAndMetadata);
                 consumer.commitSync(offsets);
                 consumer.close();
-                log.debug("Committed target offset " + (targetOffset + 1) + " for group " + group + " for topic " + topicPartition.topic() + " partition " + topicPartition.partition());
+                log.debug("Committed target offset {} for group {} for topic {} partition {}",
+                        (targetOffset + 1), group, topicPartition.topic(), topicPartition.partition());
             }
         }
     }

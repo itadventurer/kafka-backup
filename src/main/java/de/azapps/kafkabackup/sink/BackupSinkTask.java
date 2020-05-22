@@ -67,7 +67,7 @@ public class BackupSinkTask extends SinkTask {
                 PartitionWriter partition = partitionWriters.get(topicPartition);
                 partition.append(Record.fromSinkRecord(sinkRecord));
                 if (sinkRecord.kafkaOffset() % 100 == 0) {
-                    log.debug("Backed up Topic %s, Partition %d, up to offset %d", sinkRecord.topic(), sinkRecord.kafkaPartition(), sinkRecord.kafkaOffset());
+                    log.debug("Backed up Topic {}, Partition {}, up to offset {}", sinkRecord.topic(), sinkRecord.kafkaPartition(), sinkRecord.kafkaOffset());
                 }
             }
             // Todo: refactor to own worker. E.g. using the scheduler of MM2
