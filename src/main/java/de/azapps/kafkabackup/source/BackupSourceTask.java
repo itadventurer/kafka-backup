@@ -28,8 +28,8 @@ public class BackupSourceTask extends SourceTask {
     private static final String SOURCE_PARTITION_TOPIC = "Topic";
     private static final String SOURCE_OFFSET_OFFSET = "Offset";
     private Path sourceDir;
-    private Map<TopicPartition, PartitionReader> partitionReaders = new HashMap<>();
-    private Set<TopicPartition> finishedPartitions = new HashSet<>();
+    private final Map<TopicPartition, PartitionReader> partitionReaders = new HashMap<>();
+    private final Set<TopicPartition> finishedPartitions = new HashSet<>();
     private int batchSize = 100;
     private OffsetSource offsetSource;
     private List<String> topics;
@@ -52,13 +52,15 @@ public class BackupSourceTask extends SourceTask {
             throw new RuntimeException(e);
         }
 
-        for (TopicPartition topicPartition : partitionReaders.keySet()) {
+        for (Map.Entry<TopicPartition, PartitionReader> entry : partitionReaders.entrySet()) {
+            TopicPartition topicPartition = entry.getKey();
+            PartitionReader partitionReader = entry.getValue();
+
             Map<String, String> sourcePartition = new HashMap<>();
             sourcePartition.put(SOURCE_PARTITION_TOPIC, topicPartition.topic());
             sourcePartition.put(SOURCE_PARTITION_PARTITION, String.valueOf(topicPartition.partition()));
             Map<String, Object> sourceOffset = context.offsetStorageReader().offset(sourcePartition);
             if (sourceOffset != null) {
-                PartitionReader partitionReader = partitionReaders.get(topicPartition);
                 try {
                     // seek() seeks to the position of the OFFSET. We need to move to the position after the current OFFSET.
                     // Otherwise we would write the OFFSET multiple times in case of a restart
@@ -96,21 +98,24 @@ public class BackupSourceTask extends SourceTask {
         }
     }
 
-    long lastPrint=0;
+    long lastPrint = 0;
+
     @Override
-    public List<SourceRecord> poll() throws InterruptedException {
+    public List<SourceRecord> poll() {
         List<SourceRecord> sourceRecords = new ArrayList<>();
         if (finishedPartitions.equals(partitionReaders.keySet())) {
             long currentTime = System.currentTimeMillis();
-            if(currentTime - lastPrint > 5000) {
+            if (currentTime - lastPrint > 5000) {
                 log.info("All records read. Restore was successful");
-                lastPrint=currentTime;
+                lastPrint = currentTime;
             }
             return new ArrayList<>();
         }
         try {
-            for (TopicPartition topicPartition : partitionReaders.keySet()) {
-                PartitionReader partitionReader = partitionReaders.get(topicPartition);
+            for (Map.Entry<TopicPartition, PartitionReader> entry : partitionReaders.entrySet()) {
+                TopicPartition topicPartition = entry.getKey();
+                PartitionReader partitionReader = entry.getValue();
+
                 List<Record> records = partitionReader.readBytesBatch(batchSize);
                 if (records.size() > 0) {
                     log.info("Read {} record(s) from topic {} partition {}. Current offset: {}",
@@ -119,7 +124,7 @@ public class BackupSourceTask extends SourceTask {
                 for (Record record : records) {
                     sourceRecords.add(toSourceRecord(record));
                 }
-                if(!partitionReader.hasMoreData()){
+                if (!partitionReader.hasMoreData()) {
                     finishedPartitions.add(topicPartition);
                 }
             }
@@ -135,7 +140,7 @@ public class BackupSourceTask extends SourceTask {
         sourcePartition.put(SOURCE_PARTITION_TOPIC, record.topic());
         Map<String, Long> sourceOffset = Collections.singletonMap(SOURCE_OFFSET_OFFSET, record.kafkaOffset());
         ConnectHeaders connectHeaders = new ConnectHeaders();
-        for(Header header : record.headers()) {
+        for (Header header : record.headers()) {
             connectHeaders.addBytes(header.key(), header.value());
         }
         return new SourceRecord(sourcePartition, sourceOffset,
@@ -150,12 +155,7 @@ public class BackupSourceTask extends SourceTask {
         TopicPartition topicPartition = new TopicPartition(metadata.topic(), metadata.partition());
         long sourceOffset = (Long) record.sourceOffset().get(SOURCE_OFFSET_OFFSET);
         long targetOffset = metadata.offset();
-        try {
-            offsetSource.syncGroupForOffset(topicPartition, sourceOffset, targetOffset);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
+        offsetSource.syncGroupForOffset(topicPartition, sourceOffset, targetOffset);
     }
 
     @Override

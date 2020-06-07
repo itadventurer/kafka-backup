@@ -10,9 +10,9 @@ import java.util.Objects;
  * recordLength: int64
  */
 public class SegmentIndexEntry {
-    private long offset;
-    private long recordFilePosition;
-    private long recordByteLength;
+    private final long offset;
+    private final long recordFilePosition;
+    private final long recordByteLength;
 
     SegmentIndexEntry(long offset, long recordFilePosition, long recordByteLength) {
         this.offset = offset;
@@ -45,6 +45,11 @@ public class SegmentIndexEntry {
         stream.writeLong(offset);
         stream.writeLong(recordFilePosition);
         stream.writeLong(recordByteLength);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(offset, recordFilePosition, recordByteLength);
     }
 
     @Override

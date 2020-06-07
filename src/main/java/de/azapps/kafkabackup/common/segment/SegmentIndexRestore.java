@@ -8,13 +8,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class SegmentIndexRestore {
-    private SegmentIndex segmentIndex;
-    private UnverifiedSegmentReader reader;
+    private final SegmentIndex segmentIndex;
+    private final UnverifiedSegmentReader reader;
 
     public SegmentIndexRestore(Path segmentFile) throws IOException, RestoreException, SegmentIndex.IndexException {
         int partition = SegmentUtils.getPartitionFromSegment(segmentFile);
         long startOffset = SegmentUtils.getStartOffsetFromSegment(segmentFile);
-        Path indexFile = SegmentUtils.indexFile(segmentFile.toAbsolutePath().getParent(), partition, startOffset);
+        Path parent = segmentFile.toAbsolutePath().getParent();
+        if (parent == null) {
+            throw new RestoreException("Segment file " + segmentFile + " does not exist");
+        }
+        Path indexFile = SegmentUtils.indexFile(parent, partition, startOffset);
 
         if (!Files.isRegularFile(segmentFile)) {
             throw new RestoreException("Segment file " + segmentFile + " does not exist");

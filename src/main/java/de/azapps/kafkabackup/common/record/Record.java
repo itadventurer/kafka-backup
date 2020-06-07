@@ -31,6 +31,8 @@ public class Record {
         this(topic, partition, key, value, kafkaOffset, timestamp, timestampType, new RecordHeaders());
     }
 
+    // We do not want to copy the data and assume that Kafka Connect is not malicious
+    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings("EI_EXPOSE_REP")
     public Record(String topic, int partition, byte[] key, byte[] value, long kafkaOffset, Long timestamp, TimestampType timestampType, Headers headers) {
         this.topic = topic;
         this.kafkaPartition = partition;
@@ -80,10 +82,14 @@ public class Record {
         return kafkaPartition;
     }
 
+    // We do not want to copy the data and assume that Kafka Connect is not malicious
+    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings("EI_EXPOSE_REP")
     public byte[] key() {
         return key;
     }
 
+    // We do not want to copy the data and assume that Kafka Connect is not malicious
+    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings("EI_EXPOSE_REP")
     public byte[] value() {
         return value;
     }
@@ -102,6 +108,14 @@ public class Record {
 
     public TimestampType timestampType() {
         return timestampType;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(topic, kafkaPartition, timestamp, headers, kafkaOffset, timestampType);
+        result = 31 * result + Arrays.hashCode(key);
+        result = 31 * result + Arrays.hashCode(value);
+        return result;
     }
 
     @Override
@@ -161,11 +175,11 @@ public class Record {
         }
         try {
             // This particular case is not handled by ConnectHeader::equals
-            byte[] aBytes = (byte[]) a.value();
-            byte[] bBytes = (byte[]) b.value();
+            byte[] aBytes = a.value();
+            byte[] bBytes = b.value();
             return Arrays.equals(aBytes, bBytes);
         } catch (ClassCastException e) {
-            return Objects.equals(a.value(), b.value());
+            return a.value() == b.value();
         }
     }
 

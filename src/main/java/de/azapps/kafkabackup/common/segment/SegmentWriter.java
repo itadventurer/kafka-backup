@@ -11,17 +11,15 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 public class SegmentWriter {
-    private String topic;
-    private int partition;
-    private long startOffset;
-    private SegmentIndex segmentIndex;
-    private FileOutputStream recordOutputStream;
-    private Path topicDir;
+    private final String topic;
+    private final int partition;
+    private final long startOffset;
+    private final SegmentIndex segmentIndex;
+    private final FileOutputStream recordOutputStream;
 
     public SegmentWriter(String topic, int partition, long startOffset, Path topicDir) throws IOException, SegmentIndex.IndexException {
         this.topic = topic;
         this.partition = partition;
-        this.topicDir = topicDir;
         this.startOffset = startOffset;
 
         Path indexFile = SegmentUtils.indexFile(topicDir, partition, startOffset);

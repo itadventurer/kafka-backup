@@ -41,25 +41,37 @@ public class SegmentUtils {
     }
 
     public static boolean isSegment(Path file) {
-        Matcher m = SEGMENT_PATTERN.matcher(file.getFileName().toString());
+        Path fpath = file.getFileName();
+        if (fpath == null) {
+            return false;
+        }
+        Matcher m = SEGMENT_PATTERN.matcher(fpath.toString());
         return m.find();
     }
 
     public static int getPartitionFromSegment(Path file) {
-        Matcher m = SEGMENT_PATTERN.matcher(file.getFileName().toString());
+        Path fpath = file.getFileName();
+        if (fpath == null) {
+            throw new RuntimeException("File " + file + " is not a Segment");
+        }
+        Matcher m = SEGMENT_PATTERN.matcher(fpath.toString());
         if (m.find()) {
             String partitionStr = m.group(1);
-            return Integer.valueOf(partitionStr);
+            return Integer.parseInt(partitionStr);
         } else {
             throw new RuntimeException("File " + file + " is not a Segment");
         }
     }
 
     public static long getStartOffsetFromSegment(Path file) {
-        Matcher m = SEGMENT_PATTERN.matcher(file.getFileName().toString());
+        Path fpath = file.getFileName();
+        if (fpath == null) {
+            throw new RuntimeException("File " + file + " is not a Segment");
+        }
+        Matcher m = SEGMENT_PATTERN.matcher(fpath.toString());
         if (m.find()) {
             String offsetStr = m.group(2);
-            return Long.valueOf(offsetStr);
+            return Long.parseLong(offsetStr);
         } else {
             throw new RuntimeException("File " + file + " is not a Segment");
         }

@@ -23,7 +23,7 @@ public class SegmentIndexTest {
     private static final SegmentIndexEntry ENTRY2 = new SegmentIndexEntry(1, 11, 10);
     private static final SegmentIndexEntry ENTRY3 = new SegmentIndexEntry(5, 21, 15);
     private static final SegmentIndexEntry ENTRY4 = new SegmentIndexEntry(6, 36, 10);
-    private static Path TEMP_DIR = TestUtils.getTestDir("SegmentIndexTest");
+    private static final Path TEMP_DIR = TestUtils.getTestDir("SegmentIndexTest");
 
     @Test
     public void simpleRoundtripTest() throws Exception {
@@ -100,7 +100,6 @@ public class SegmentIndexTest {
     public void incrementingIndex() throws Exception {
         String indexFile = "incrementingIndex";
         SegmentIndex index = new SegmentIndex(Paths.get(TEMP_DIR.toString(), indexFile));
-        List<SegmentIndexEntry> entries = new ArrayList<>();
         index.addEntry(new SegmentIndexEntry(5, 22, 15));
         // Wrong offset
         assertThrows(SegmentIndex.IndexException.class,
