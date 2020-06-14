@@ -20,9 +20,9 @@ import java.util.stream.Collectors;
 
 public class OffsetSink {
     private final Path targetDir;
-    private Map<TopicPartition, OffsetStoreFile> topicOffsets = new HashMap<>();
+    private final Map<TopicPartition, OffsetStoreFile> topicOffsets = new HashMap<>();
     private List<String> consumerGroups = new ArrayList<>();
-    private AdminClient adminClient;
+    private final AdminClient adminClient;
 
     public OffsetSink(AdminClient adminClient, Path targetDir) {
         this.adminClient = adminClient;
@@ -59,13 +59,16 @@ public class OffsetSink {
         } catch (InterruptedException | ExecutionException e) {
             throw new RetriableException(e);
         }
-        for (TopicPartition tp : topicOffsetsAndMetadata.keySet()) {
+        for (Map.Entry<TopicPartition, OffsetAndMetadata> entry : topicOffsetsAndMetadata.entrySet()) {
+            TopicPartition tp = entry.getKey();
+            OffsetAndMetadata offsetAndMetadata = entry.getValue();
+
             if (validTopic(tp.topic())) {
                 if (!this.topicOffsets.containsKey(tp)) {
                     this.topicOffsets.put(tp, new OffsetStoreFile(targetDir, tp));
                 }
                 OffsetStoreFile offsets = this.topicOffsets.get(tp);
-                offsets.put(consumerGroup, topicOffsetsAndMetadata.get(tp).offset());
+                offsets.put(consumerGroup, offsetAndMetadata.offset());
             }
         }
     }
@@ -96,8 +99,8 @@ public class OffsetSink {
     private static class OffsetStoreFile {
         private Map<String, Long> groupOffsets = new HashMap<>();
 
-        private ObjectMapper mapper = new ObjectMapper();
-        private Path storeFile;
+        private final ObjectMapper mapper = new ObjectMapper();
+        private final Path storeFile;
 
         OffsetStoreFile(Path targetDir, TopicPartition topicPartition) throws IOException {
             storeFile = OffsetUtils.offsetStoreFile(targetDir, topicPartition);

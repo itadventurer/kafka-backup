@@ -54,14 +54,20 @@ public class RecordSerde {
         byte[] key = null;
         if (keyLength >= 0) {
             key = new byte[keyLength];
-            dataStream.read(key);
+            int readBytes = dataStream.read(key);
+            if (readBytes != keyLength) {
+                throw new IOException(String.format("Expected to read %d bytes, got %d", keyLength, readBytes));
+            }
         }
 
         int valueLength = dataStream.readInt();
         byte[] value = null;
         if (valueLength >= 0) {
             value = new byte[valueLength];
-            dataStream.read(value);
+            int readBytes = dataStream.read(value);
+            if (readBytes != valueLength) {
+                throw new IOException(String.format("Expected to read %d bytes, got %d", valueLength, readBytes));
+            }
         }
         int headerCount = dataStream.readInt();
         RecordHeaders headers = new RecordHeaders();
@@ -72,14 +78,20 @@ public class RecordSerde {
                 throw new RuntimeException("Invalid negative header key size " + headerKeyLength);
             }
             byte[] headerKeyBytes = new byte[headerKeyLength];
-            dataStream.read(headerKeyBytes);
+            int readBytes = dataStream.read(headerKeyBytes);
+            if (readBytes != headerKeyLength) {
+                throw new IOException(String.format("Expected to read %d bytes, got %d", headerKeyLength, readBytes));
+            }
             String headerKey = new String(headerKeyBytes, StandardCharsets.UTF_8);
             // Value
             int headerValueLength = dataStream.readInt();
             byte[] headerValue = null;
             if (headerValueLength >= 0) {
                 headerValue = new byte[headerValueLength];
-                dataStream.read(headerValue);
+                int hvReadBytes = dataStream.read(headerValue);
+                if (hvReadBytes != headerValueLength) {
+                    throw new IOException(String.format("Expected to read %d bytes, got %d", headerValueLength, hvReadBytes));
+                }
             }
             headers.add(headerKey, headerValue);
         }

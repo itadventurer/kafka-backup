@@ -1,7 +1,5 @@
 package de.azapps.kafkabackup.common.partition;
 
-import de.azapps.kafkabackup.common.segment.SegmentIndexEntry;
-
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
@@ -14,8 +12,8 @@ import java.util.Objects;
  * [endOffset: int64]
  */
 public class PartitionIndexEntry {
-    private String filename;
-    private long startOffset;
+    private final String filename;
+    private final long startOffset;
 
     PartitionIndexEntry(OutputStream byteStream, String filename, long startOffset) throws IOException {
         this.filename = filename;
@@ -36,7 +34,10 @@ public class PartitionIndexEntry {
         DataInputStream stream = new DataInputStream(byteStream);
         int filenameLength = stream.readInt();
         byte[] filenameBytes = new byte[filenameLength];
-        stream.read(filenameBytes);
+        int readBytes = stream.read(filenameBytes);
+        if (readBytes != filenameLength) {
+            throw new IOException(String.format("Expected to read %d bytes, got %d", filenameLength, readBytes));
+        }
         String filename = new String(filenameBytes, StandardCharsets.UTF_8);
         long startOffset = stream.readLong();
         return new PartitionIndexEntry(filename, startOffset);
@@ -48,6 +49,11 @@ public class PartitionIndexEntry {
 
     public String filename() {
         return filename;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(filename, startOffset);
     }
 
     @Override

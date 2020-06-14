@@ -1,15 +1,20 @@
 buildscript {
     repositories {
         jcenter()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
     }
     dependencies {
         classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.2'
         classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.20.0"
+        classpath "gradle.plugin.com.github.spotbugs.snom:spotbugs-gradle-plugin:4.3.0"
     }
 }
 
 apply plugin: 'java'
 apply plugin: 'idea'
+apply plugin: "com.github.spotbugs"
 
 description = "kafka-backup"
 group = 'de.azapps.kafkabackup'
@@ -35,6 +40,7 @@ dependencies {
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.10.1'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.10.1'
     implementation group: 'net.sf.jopt-simple', name: 'jopt-simple', version: '6.0-alpha-3'
+    implementation 'com.github.spotbugs:spotbugs-annotations:4.0.1'
     testImplementation('org.junit.jupiter:junit-jupiter:5.6.0')
 }
 

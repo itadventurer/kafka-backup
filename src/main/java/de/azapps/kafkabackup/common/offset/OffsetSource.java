@@ -18,8 +18,8 @@ import java.util.stream.Collectors;
 
 public class OffsetSource {
     private static final Logger log = LoggerFactory.getLogger(OffsetSource.class);
-    private Map<TopicPartition, OffsetStoreFile> topicOffsets = new HashMap<>();
-    private Map<String, Object> consumerConfig;
+    private final Map<TopicPartition, OffsetStoreFile> topicOffsets = new HashMap<>();
+    private final Map<String, Object> consumerConfig;
 
     public OffsetSource(Path backupDir, List<String> topics, Map<String, Object> consumerConfig) throws IOException {
         this.consumerConfig = consumerConfig;
@@ -39,7 +39,7 @@ public class OffsetSource {
         }
     }
 
-    public void syncGroupForOffset(TopicPartition topicPartition, long sourceOffset, long targetOffset) throws IOException {
+    public void syncGroupForOffset(TopicPartition topicPartition, long sourceOffset, long targetOffset) {
         OffsetStoreFile offsetStoreFile = topicOffsets.get(topicPartition);
         // __consumer_offsets contains the offset of the message to read next. So we need to search for the offset + 1
         // if we do not do that we might miss
@@ -65,14 +65,15 @@ public class OffsetSource {
         TypeReference<HashMap<String, Long>> typeRef
                 = new TypeReference<HashMap<String, Long>>() {
         };
-        private Map<Long, List<String>> offsetGroups = new HashMap<>();
-
+        private final Map<Long, List<String>> offsetGroups = new HashMap<>();
 
         OffsetStoreFile(Path storeFile) throws IOException {
             ObjectMapper mapper = new ObjectMapper();
             Map<String, Long> groupOffsets = mapper.readValue(storeFile.toFile(), typeRef);
-            for (String group : groupOffsets.keySet()) {
-                Long offset = groupOffsets.get(group);
+            for (Map.Entry<String, Long> entry : groupOffsets.entrySet()) {
+                String group = entry.getKey();
+                Long offset = entry.getValue();
+
                 if (offsetGroups.containsKey(offset)) {
                     List<String> groups = offsetGroups.get(offset);
                     groups.add(group);

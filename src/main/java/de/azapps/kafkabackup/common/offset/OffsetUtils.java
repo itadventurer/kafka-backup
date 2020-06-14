@@ -22,7 +22,11 @@ class OffsetUtils {
     }
 
     static Optional<Integer> isOffsetStoreFile(Path f) {
-        String fname = f.getFileName().toString();
+        Path fpath = f.getFileName();
+        if (fpath == null) {
+            return Optional.empty();
+        }
+        String fname = fpath.toString();
         Matcher m = FILE_PATTERN.matcher(fname);
         if (m.find()) {
             String partitionStr = m.group(1);
