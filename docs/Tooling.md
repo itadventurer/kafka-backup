@@ -123,3 +123,32 @@ for i in {0..$(( $NUM_PARTITIONS - 1 ))} ; do
     java de.azapps.kafkabackup.cli.PartitionIndexCLI --restore --partition $i --topic-dir "$TOPICDIR"
 done
 ```
+
+## Completed segments processing
+
+You may want to process completed segment files. Let's say you have your
+`target.dir` backed up to cloud storage daily. So you don't need to keep all
+the files locally then. To save some space you may delete completed segment
+files. There is `bin/completed_segments.py` script for your convenience.
+
+To get some information on segment files just call script with path to your
+backup directory.
+
+```sh
+completed_segments.py /path/to/target_dir
+```
+
+To delete completed segments use `-d` option.
+```sh
+completed_segments.py -d /path/to/target_dir
+```
+
+You may keep last N completed segments by using `-k N` option.
+
+If you need more complex processing you may just list completed segment files
+and pass them for further processing. E.g. to keep last 2 segments and `shred`
+the rest run the following command.
+
+```sh
+completed_segments.py -l -k 2 /path/to/target_dir | xargs shred -u
+```
