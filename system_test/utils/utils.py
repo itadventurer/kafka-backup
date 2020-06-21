@@ -6,6 +6,7 @@ import re
 
 from confluent_kafka import Producer, Consumer, TopicPartition, Message
 from confluent_kafka.admin import AdminClient, NewTopic
+import pykafka
 
 
 def create_topic(topic, partitions, bootstrap_servers):
@@ -96,6 +97,11 @@ def produce_weird_messages(topic, partition, bootstrap_servers):
         else:
             producer.produce(topic, msg['value'], key=msg['key'], partition=partition)
     producer.flush()
+    # pykafka for weird timestamps
+    pykafkaClient = pykafka.KafkaClient(hosts=bootstrap_servers)
+    pykafkaTopic = pykafkaClient.topics[topic]
+    with pykafkaTopic.get_sync_producer() as pykafkaProducer:
+        pykafkaProducer.produce(b"noneTimestamp")
 
 
 def check_msg_equality(msgnum, expected, given: Message, expectFail=False):
