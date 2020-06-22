@@ -104,6 +104,7 @@ public class BackupSinkTaskTest {
         AtomicBoolean endConditionCheck = new AtomicBoolean();
         // Start Task
         BackupSinkTask task = new BackupSinkTask();
+        task.initialize(new MockSinkTaskContext());
         task.start(props, new MockOffsetSink(null, null), new MockEndOffsetReader("", endOffsets), (n) -> endConditionCheck.set(true));
 
         task.open(partitions);
