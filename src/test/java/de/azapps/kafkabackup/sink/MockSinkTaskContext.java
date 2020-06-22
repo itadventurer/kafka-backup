@@ -3,6 +3,7 @@ package de.azapps.kafkabackup.sink;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.sink.SinkTaskContext;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -10,7 +11,7 @@ public class MockSinkTaskContext implements SinkTaskContext {
 
     @Override
     public Map<String, String> configs() {
-        return null;
+        return new HashMap<>();
     }
 
     @Override

@@ -12,15 +12,18 @@ class BackupSinkConfig extends AbstractConfig {
     static final String ADMIN_CLIENT_PREFIX = "admin.";
     static final String TARGET_DIR_CONFIG = "target.dir";
     static final String MAX_SEGMENT_SIZE = "max.segment.size.bytes";
+    static final String SNAPSHOT_MODE = "snapshot.mode";
 
     static final ConfigDef CONFIG_DEF = new ConfigDef()
             .define(TARGET_DIR_CONFIG, ConfigDef.Type.STRING,
                     ConfigDef.Importance.HIGH, "TargetDir")
             .define(MAX_SEGMENT_SIZE, ConfigDef.Type.INT, 1024 ^ 3, // 1 GiB
-                    ConfigDef.Importance.LOW, "Maximum segment size");
+                    ConfigDef.Importance.LOW, "Maximum segment size")
+            .define(SNAPSHOT_MODE, ConfigDef.Type.BOOLEAN, false,
+                   ConfigDef.Importance.LOW, "Snapshot mode. Terminates connector when end of all partitions has been reached.");
 
     BackupSinkConfig(Map<?, ?> props) {
-        super(CONFIG_DEF, props);
+        super(CONFIG_DEF, props, true);
         if (!props.containsKey(TARGET_DIR_CONFIG)) {
             throw new RuntimeException("Missing Configuration Variable: " + TARGET_DIR_CONFIG);
         }
@@ -43,6 +46,8 @@ class BackupSinkConfig extends AbstractConfig {
     Integer maxSegmentSizeBytes() {
         return getInt(MAX_SEGMENT_SIZE);
     }
+
+    Boolean snapShotMode() { return getBoolean(SNAPSHOT_MODE); }
 
 
 }

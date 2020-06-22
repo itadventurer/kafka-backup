@@ -1,0 +1,41 @@
+package de.azapps.kafkabackup.common.offset;
+
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+
+import java.util.*;
+
+public class EndOffsetReader {
+  private final String bootstrapServers;
+
+  public EndOffsetReader(String bootstrapServers) {
+    this.bootstrapServers = bootstrapServers;
+  }
+
+  /**
+   * Obtain end offsets for each given partition
+   */
+  public Map<TopicPartition, Long> getEndOffsets(Collection<TopicPartition> partitions) {
+    Properties props = new Properties();
+    props.put("bootstrap.servers", bootstrapServers);
+    props.put("key.deserializer", ByteArrayDeserializer.class.getName());
+    props.put("value.deserializer", ByteArrayDeserializer.class.getName());
+    KafkaConsumer<Byte[], Byte[]> consumer = new KafkaConsumer<>(props);
+    consumer.assign(partitions);
+    Map<TopicPartition, Long> offsets = consumer.endOffsets(partitions);
+    List<TopicPartition> toRemove = new ArrayList<>();
+
+    for (TopicPartition partition: offsets.keySet()) {
+      if (offsets.get(partition) == 0L) {
+        toRemove.add(partition); // don't store empty offsets
+      }
+    }
+
+    for (TopicPartition partition: toRemove) {
+      offsets.remove(partition);
+    }
+    consumer.close();
+    return offsets;
+  }
+}
