@@ -31,24 +31,29 @@ public class RecordSerde {
         long offset = dataStream.readLong();
         int timestampTypeInt = dataStream.readInt();
         TimestampType timestampType;
-        switch (timestampTypeInt) {
-            case -1:
-                timestampType = TimestampType.NO_TIMESTAMP_TYPE;
-                break;
-            case 0:
-                timestampType = TimestampType.CREATE_TIME;
-                break;
-            case 1:
-                timestampType = TimestampType.LOG_APPEND_TIME;
-                break;
-            default:
-                throw new RuntimeException("Unexpected TimestampType. Expected -1,0 or 1. Got " + timestampTypeInt);
-        }
         Long timestamp;
-        if (timestampType != TimestampType.NO_TIMESTAMP_TYPE) {
-            timestamp = dataStream.readLong();
+        if (timestampTypeInt == -2) {
+            timestampType = TimestampType.CREATE_TIME;
+            timestamp=null;
         } else {
-            timestamp = null;
+            switch (timestampTypeInt) {
+                case -1:
+                    timestampType = TimestampType.NO_TIMESTAMP_TYPE;
+                    break;
+                case 0:
+                    timestampType = TimestampType.CREATE_TIME;
+                    break;
+                case 1:
+                    timestampType = TimestampType.LOG_APPEND_TIME;
+                    break;
+                default:
+                    throw new RuntimeException("Unexpected TimestampType. Expected -1,0 or 1. Got " + timestampTypeInt);
+            }
+            if (timestampType != TimestampType.NO_TIMESTAMP_TYPE) {
+                timestamp = dataStream.readLong();
+            } else {
+                timestamp = null;
+            }
         }
         int keyLength = dataStream.readInt();
         byte[] key = null;
@@ -102,9 +107,13 @@ public class RecordSerde {
     public static void write(OutputStream outputStream, Record record) throws IOException {
         DataOutputStream dataStream = new DataOutputStream(outputStream);
         dataStream.writeLong(record.kafkaOffset());
-        dataStream.writeInt(record.timestampType().id);
-        if (record.timestampType() != TimestampType.NO_TIMESTAMP_TYPE) {
-            dataStream.writeLong(record.timestamp());
+        if (record.timestampType() == TimestampType.CREATE_TIME && record.timestamp() == null) {
+            dataStream.writeInt(-2);
+        } else {
+            dataStream.writeInt(record.timestampType().id);
+            if (record.timestampType() != TimestampType.NO_TIMESTAMP_TYPE) {
+                dataStream.writeLong(record.timestamp());
+            }
         }
         if (record.key() != null) {
             dataStream.writeInt(record.key().length);

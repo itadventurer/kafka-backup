@@ -17,6 +17,7 @@ public class RecordSerdeTest {
     private static final long OFFSET = 123;
     private static final byte[] KEY_BYTES = "test-key".getBytes(StandardCharsets.UTF_8);
     private static final byte[] VALUE_BYTES = "test-value".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] NULL_TIMESTAMP_BYTES = "null-timestamp".getBytes(StandardCharsets.UTF_8);
 
     private static final String SIMPLE_RECORD_FILE = "simple_record";
     private static final String NULL_RECORD_FILE = "null_record";
@@ -24,12 +25,13 @@ public class RecordSerdeTest {
     private static final String HEADER_RECORD_FILE = "header_record";
 
     // Example records
-    private static final Record SIMPLE_RECORD, NULL_RECORD, EMPTY_RECORD, HEADER_RECORD;
+    private static final Record SIMPLE_RECORD, NULL_RECORD, EMPTY_RECORD, HEADER_RECORD, NULL_TIMESTAMP_RECORD;
 
     static {
         SIMPLE_RECORD = new Record(TOPIC, PARTITION, KEY_BYTES, VALUE_BYTES, OFFSET);
         NULL_RECORD = new Record(TOPIC, PARTITION, null, null, OFFSET);
         EMPTY_RECORD = new Record(TOPIC, PARTITION, new byte[0], new byte[0], OFFSET);
+        NULL_TIMESTAMP_RECORD = new Record(TOPIC, PARTITION, NULL_TIMESTAMP_BYTES, null, OFFSET, null, TimestampType.CREATE_TIME);
         // Build multiple headers that might cause problems
         RecordHeaders headers = new RecordHeaders();
         headers.add("", new byte[0]);
@@ -54,6 +56,12 @@ public class RecordSerdeTest {
 
         // Must be different
         assertNotEquals(nullRoundtrip, emptyRoundtrip);
+    }
+
+    @Test
+    public void roundtripNullTimestamp() throws Exception {
+        Record nullTimestampRoundtrip =writeAndReadRecord(NULL_TIMESTAMP_RECORD);
+        assertEquals(NULL_TIMESTAMP_RECORD, nullTimestampRoundtrip);
     }
 
     @Test
