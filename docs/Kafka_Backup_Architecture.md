@@ -194,7 +194,7 @@ Each entry is of the following form:
 | Length (in bits) | Name            | Data Type         | Comment                                                                        |
 |------------------|-----------------|-------------------|--------------------------------------------------------------------------------|
 | 64               | `offset`        | `int64`           | The offset of the record in the source Kafka cluster                           |
-| 32               | `timestampType` | `int32`           | Type of the timestamp: `-1`: no timestamp, `0`: CreateTime, `1`: LogAppendTime |
+| 32               | `timestampType` | `int32`           | Type of the timestamp: `-1`: no timestamp, `0`: CreateTime, `1`: LogAppendTime, `-2`: CreateTime but with Timestamp `null` (dirty workaround regarding https://github.com/itadventurer/kafka-backup/issues/92) |
 | 0 or 64          | `timestamp`     | `optional<int64>` | Timestamp if exists                                                            |
 | 32               | `keyLength`     | `int32`           | byte-length of the record key  `-1` if the key is `null`                       |
 | `keyLength`      | `key`           | `byte[]`          | key (not interpreted in any way)                                               |
