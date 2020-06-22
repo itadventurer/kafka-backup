@@ -98,9 +98,9 @@ public class BackupSinkTask extends SinkTask {
      */
     private void terminateIfCompleted() {
         boolean terminate = true;
-        for (TopicPartition partition : endOffsets.keySet()) {
-            Long endOffset = endOffsets.get(partition);
-            Long currentOffset = currentOffsets.getOrDefault(partition, -1L);
+        for (Map.Entry<TopicPartition, Long> partitionOffset : endOffsets.entrySet()) {
+            Long endOffset = partitionOffset.getValue();
+            Long currentOffset = currentOffsets.getOrDefault(partitionOffset.getKey(), -1L);
 
             if (currentOffset < endOffset - 1) {
                 terminate = false;

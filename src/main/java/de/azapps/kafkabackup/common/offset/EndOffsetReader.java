@@ -26,9 +26,9 @@ public class EndOffsetReader {
     Map<TopicPartition, Long> offsets = consumer.endOffsets(partitions);
     List<TopicPartition> toRemove = new ArrayList<>();
 
-    for (TopicPartition partition: offsets.keySet()) {
-      if (offsets.get(partition) == 0L) {
-        toRemove.add(partition); // don't store empty offsets
+    for (Map.Entry<TopicPartition, Long> partitionOffset: offsets.entrySet()) {
+      if (partitionOffset.getValue() == 0L) {
+        toRemove.add(partitionOffset.getKey()); // don't store empty offsets
       }
     }
 
