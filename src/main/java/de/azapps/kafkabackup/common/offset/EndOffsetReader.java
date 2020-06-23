@@ -20,22 +20,23 @@ public class EndOffsetReader {
     Map<String, Object> serializerConfig = new HashMap<>(consumerConfig);
     serializerConfig.put("key.deserializer", ByteArrayDeserializer.class.getName());
     serializerConfig.put("value.deserializer", ByteArrayDeserializer.class.getName());
-    KafkaConsumer<Byte[], Byte[]> consumer = new KafkaConsumer<>(serializerConfig);
-    consumer.assign(partitions);
+    try (KafkaConsumer<Byte[], Byte[]> consumer = new KafkaConsumer<>(serializerConfig)) {
+      consumer.assign(partitions);
 
-    Map<TopicPartition, Long> offsets = consumer.endOffsets(partitions);
-    List<TopicPartition> toRemove = new ArrayList<>();
+      Map<TopicPartition, Long> offsets = consumer.endOffsets(partitions);
+      List<TopicPartition> toRemove = new ArrayList<>();
 
-    for (Map.Entry<TopicPartition, Long> partitionOffset: offsets.entrySet()) {
-      if (partitionOffset.getValue() == 0L) {
-        toRemove.add(partitionOffset.getKey()); // don't store empty offsets
+      for (Map.Entry<TopicPartition, Long> partitionOffset : offsets.entrySet()) {
+        if (partitionOffset.getValue() == 0L) {
+          toRemove.add(partitionOffset.getKey()); // don't store empty offsets
+        }
       }
-    }
 
-    for (TopicPartition partition: toRemove) {
-      offsets.remove(partition);
+      for (TopicPartition partition : toRemove) {
+        offsets.remove(partition);
+      }
+
+      return offsets;
     }
-    consumer.close();
-    return offsets;
   }
 }

@@ -168,7 +168,6 @@ public class BackupSinkTask extends SinkTask {
 
                 this.partitionWriters.put(topicPartition, partitionWriter);
                 this.currentOffsets.put(topicPartition, lastWrittenOffset);
-                log.debug("last written offset " + lastWrittenOffset);
             }
             if ( config.snapShotMode() ) {
                 this.endOffsets = endOffsetReader.getEndOffsets(partitions);
