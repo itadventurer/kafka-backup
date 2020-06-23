@@ -28,13 +28,10 @@ public class BackupSinkTask extends SinkTask {
     private Map<TopicPartition, PartitionWriter> partitionWriters = new HashMap<>();
     private long maxSegmentSizeBytes;
     private OffsetSink offsetSink;
-    private SinkTaskContext sinkTaskContext;
     private BackupSinkConfig config;
-    private AdminClient adminClient;
     private Map<TopicPartition, Long> endOffsets;
     private Map<TopicPartition, Long> currentOffsets = new HashMap<>();
     private EndOffsetReader endOffsetReader;
-    private String bootstrapServers;
     private java.util.function.Consumer<Integer> exitFunction;
 
     @Override
@@ -45,13 +42,6 @@ public class BackupSinkTask extends SinkTask {
     @Override
     public void start(Map<String, String> props) {
         start(props, null, null, null);
-    }
-
-    @Override
-    public void initialize(SinkTaskContext context) {
-        super.initialize(context);
-        this.sinkTaskContext = context;
-        this.bootstrapServers = context.configs().get(BackupSinkConfig.CLUSTER_BOOTSTRAP_SERVERS);
     }
 
     public void start(
@@ -71,14 +61,14 @@ public class BackupSinkTask extends SinkTask {
             if(overrideOffsetSink != null) {
                 offsetSink = overrideOffsetSink;
             } else {
-                adminClient = AdminClient.create(config.adminConfig());
+                AdminClient adminClient = AdminClient.create(config.adminConfig());
                 offsetSink = new OffsetSink(adminClient, targetDir);
             }
 
             if (overrideEndOffsetReader != null) {
                 this.endOffsetReader = overrideEndOffsetReader;
             } else {
-                endOffsetReader = new EndOffsetReader(bootstrapServers);
+                endOffsetReader = new EndOffsetReader(config.consumerConfig());
             }
 
             if (overrideExitFunction != null) {
@@ -103,8 +93,7 @@ public class BackupSinkTask extends SinkTask {
             Long currentOffset = currentOffsets.getOrDefault(partitionOffset.getKey(), -1L);
 
             if (currentOffset < endOffset - 1) {
-                terminate = false;
-                break;
+                return;
             }
         }
         if (terminate) {
@@ -126,7 +115,6 @@ public class BackupSinkTask extends SinkTask {
                 }
                 if (config.snapShotMode()) {
                     currentOffsets.put(topicPartition, sinkRecord.kafkaOffset());
-                    log.debug("Update offset for topic {}, partition {}, offset {}", sinkRecord.topic(), sinkRecord.kafkaPartition(), sinkRecord.kafkaOffset());
                 }
             }
 
@@ -216,9 +204,6 @@ public class BackupSinkTask extends SinkTask {
         try {
             for (PartitionWriter partition : partitionWriters.values()) {
                 partition.close();
-            }
-            if (adminClient != null) {
-                adminClient.close();
             }
             offsetSink.close();
             log.info("Stopped BackupSinkTask");

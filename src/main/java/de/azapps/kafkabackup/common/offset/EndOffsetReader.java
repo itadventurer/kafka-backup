@@ -7,22 +7,22 @@ import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import java.util.*;
 
 public class EndOffsetReader {
-  private final String bootstrapServers;
+  private final Map<String, Object> consumerConfig;
 
-  public EndOffsetReader(String bootstrapServers) {
-    this.bootstrapServers = bootstrapServers;
+  public EndOffsetReader(Map<String, Object> consumerConfig) {
+    this.consumerConfig = consumerConfig;
   }
 
   /**
    * Obtain end offsets for each given partition
    */
   public Map<TopicPartition, Long> getEndOffsets(Collection<TopicPartition> partitions) {
-    Properties props = new Properties();
-    props.put("bootstrap.servers", bootstrapServers);
-    props.put("key.deserializer", ByteArrayDeserializer.class.getName());
-    props.put("value.deserializer", ByteArrayDeserializer.class.getName());
-    KafkaConsumer<Byte[], Byte[]> consumer = new KafkaConsumer<>(props);
+    Map<String, Object> serializerConfig = new HashMap<>(consumerConfig);
+    serializerConfig.put("key.deserializer", ByteArrayDeserializer.class.getName());
+    serializerConfig.put("value.deserializer", ByteArrayDeserializer.class.getName());
+    KafkaConsumer<Byte[], Byte[]> consumer = new KafkaConsumer<>(serializerConfig);
     consumer.assign(partitions);
+
     Map<TopicPartition, Long> offsets = consumer.endOffsets(partitions);
     List<TopicPartition> toRemove = new ArrayList<>();
 

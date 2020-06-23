@@ -88,7 +88,7 @@ public class BackupSinkTaskTest {
         Files.createDirectories(directory);
         Map<String, String> props = new HashMap<>(DEFAULT_PROPS);
         props.put(BackupSinkConfig.TARGET_DIR_CONFIG, directory.toString());
-        props.put(BackupSinkConfig.SNAPSHOT_MODE, "true");
+        props.put(BackupSinkConfig.SNAPSHOT, "true");
 
         List<Record> records = new ArrayList<>();
         Map<TopicPartition, Long> endOffsets = new HashMap<>();
@@ -105,7 +105,7 @@ public class BackupSinkTaskTest {
         // Start Task
         BackupSinkTask task = new BackupSinkTask();
         task.initialize(new MockSinkTaskContext());
-        task.start(props, new MockOffsetSink(null, null), new MockEndOffsetReader("", endOffsets), (n) -> endConditionCheck.set(true));
+        task.start(props, new MockOffsetSink(null, null), new MockEndOffsetReader(endOffsets), (n) -> endConditionCheck.set(true));
 
         task.open(partitions);
         task.put(records.stream().map(Record::toSinkRecord).collect(Collectors.toList()));

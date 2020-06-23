@@ -7,7 +7,7 @@ RUN gradle --no-daemon check test shadowJar
 # Build Docker Image with Kafka Backup Jar
 FROM openjdk:8u212-jre-alpine
 
-ARG kafka_version=2.4.1
+ARG kafka_version=2.5.0
 ARG scala_version=2.12
 ARG glibc_version=2.31-r0
 
