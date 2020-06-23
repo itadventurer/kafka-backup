@@ -13,5 +13,5 @@ RUN mkdir /usr/src && cd /usr/src/ && \
 
 # Install confluent-kafka python
 
-RUN pip3 install confluent-kafka==1.3.0
+RUN pip3 install confluent-kafka==1.3.0 pykafka==2.8.0dev1
 COPY utils.py /usr/bin/utils.py

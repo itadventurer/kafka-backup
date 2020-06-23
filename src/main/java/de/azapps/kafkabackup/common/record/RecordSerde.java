@@ -10,8 +10,8 @@ import java.nio.charset.StandardCharsets;
 /**
  * Record Format:
  * offset: int64
- * timestampType: int32
- * [timestamp: int64] if timestampType != NO_TIMESTAMP_TYPE
+ * timestampType: int32 -2 if timestamp is null
+ * [timestamp: int64] if timestampType != NO_TIMESTAMP_TYPE && timestamp != null
  * keyLength: int32
  * [key: byte[keyLength]] if keyLength >= 0
  * valueLength: int32
@@ -31,24 +31,30 @@ public class RecordSerde {
         long offset = dataStream.readLong();
         int timestampTypeInt = dataStream.readInt();
         TimestampType timestampType;
-        switch (timestampTypeInt) {
-            case -1:
-                timestampType = TimestampType.NO_TIMESTAMP_TYPE;
-                break;
-            case 0:
-                timestampType = TimestampType.CREATE_TIME;
-                break;
-            case 1:
-                timestampType = TimestampType.LOG_APPEND_TIME;
-                break;
-            default:
-                throw new RuntimeException("Unexpected TimestampType. Expected -1,0 or 1. Got " + timestampTypeInt);
-        }
         Long timestamp;
-        if (timestampType != TimestampType.NO_TIMESTAMP_TYPE) {
-            timestamp = dataStream.readLong();
+        // See comment in `write()`
+        if (timestampTypeInt == -2) {
+            timestampType = TimestampType.CREATE_TIME;
+            timestamp=null;
         } else {
-            timestamp = null;
+            switch (timestampTypeInt) {
+                case -1:
+                    timestampType = TimestampType.NO_TIMESTAMP_TYPE;
+                    break;
+                case 0:
+                    timestampType = TimestampType.CREATE_TIME;
+                    break;
+                case 1:
+                    timestampType = TimestampType.LOG_APPEND_TIME;
+                    break;
+                default:
+                    throw new RuntimeException("Unexpected TimestampType. Expected -1,0 or 1. Got " + timestampTypeInt);
+            }
+            if (timestampType != TimestampType.NO_TIMESTAMP_TYPE) {
+                timestamp = dataStream.readLong();
+            } else {
+                timestamp = null;
+            }
         }
         int keyLength = dataStream.readInt();
         byte[] key = null;
@@ -102,9 +108,18 @@ public class RecordSerde {
     public static void write(OutputStream outputStream, Record record) throws IOException {
         DataOutputStream dataStream = new DataOutputStream(outputStream);
         dataStream.writeLong(record.kafkaOffset());
-        dataStream.writeInt(record.timestampType().id);
-        if (record.timestampType() != TimestampType.NO_TIMESTAMP_TYPE) {
-            dataStream.writeLong(record.timestamp());
+        // There is a special case where the timestamp type eqauls `CREATE_TIME` but is actually `null`.
+        // This should not happen normally and I see it as a bug in the Client implementation of pykafka
+        // But as Kafka accepts that value, so should Kafka Backup. Thus, this dirty workaround: we write the
+        // timestamp type `-2` if the type is CREATE_TIME but the timestamp itself is null. Otherwise we would have
+        // needed to change the byte format and for now I think this is the better solution.
+        if (record.timestampType() == TimestampType.CREATE_TIME && record.timestamp() == null) {
+            dataStream.writeInt(-2);
+        } else {
+            dataStream.writeInt(record.timestampType().id);
+            if (record.timestampType() != TimestampType.NO_TIMESTAMP_TYPE) {
+                dataStream.writeLong(record.timestamp());
+            }
         }
         if (record.key() != null) {
             dataStream.writeInt(record.key().length);

@@ -128,6 +128,7 @@
       command: docker-compose exec -T restore-to-kafka bash -c '
         utils.py consume_verify_weird_messages --partition 0 --topic backup-test-weird-msgs'
     - name: Count Messages
+      timeout: 30s
       command: docker-compose exec -T restore-to-kafka
         utils.py count_messages
       stdout_has:
@@ -155,3 +156,4 @@
   entries:
     - name: Docker Compose Down
       command: docker-compose down
+      timeout: 15s
