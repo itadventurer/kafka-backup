@@ -23,7 +23,7 @@ trap _term INT
 ##################################### Parse arguments
 
 OPTIONS="h"
-LONGOPTS=bootstrap-server:,target-dir:,topics:,topics-regex:,max-segment-size:,command-config:,help,debug
+LONGOPTS=bootstrap-server:,target-dir:,topics:,topics-regex:,max-segment-size:,command-config:,help,debug,snapshot
 
 HELP=$(
   cat <<END
@@ -36,6 +36,7 @@ HELP=$(
                                passed to Admin Client. Only useful if you have additional connection options
 --help                         Prints this message
 --debug                        Print Debug information (if using the environment variable, set it to 'y')
+--snapshot                     One-off backup mode
 
 You can also set all parameters using environment variables. Use CAPITAL LETTERS and underscores (_) instead of dashes (-).
 E.g. BOOTSTRAP_SERVER instead of --bootstrap-server
@@ -51,6 +52,7 @@ END
 [ -z ${MAX_SEGMENT_SIZE+x} ] && MAX_SEGMENT_SIZE="$((1 * 1024 * 1024 * 1024))" # 1GiB
 [ -z ${COMMAND_CONFIG+x} ] && COMMAND_CONFIG=""
 [ -z ${DEBUG+x} ] && DEBUG="n"
+[ -z ${SNAPSHOT+x} ] && SNAPSHOT="false"
 
 PLUGIN_PATH="$(dirname "${BASH_SOURCE[0]}")"
 CONNECT_BIN=""
@@ -99,6 +101,10 @@ while true; do
     ;;
   -d | --debug)
     DEBUG=y
+    shift
+    ;;
+  -s | --snapshot)
+    SNAPSHOT=true
     shift
     ;;
   --)
@@ -195,6 +201,7 @@ header.converter=org.apache.kafka.connect.converters.ByteArrayConverter
 target.dir=$TARGET_DIR
 max.segment.size.bytes=$MAX_SEGMENT_SIZE
 cluster.bootstrap.servers=$BOOTSTRAP_SERVER
+snapshot=$SNAPSHOT
 EOF
 
 if [ -n "$TOPICS" ]; then

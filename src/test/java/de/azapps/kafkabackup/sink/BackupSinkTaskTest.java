@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -60,7 +61,7 @@ public class BackupSinkTaskTest {
 
         // Start Task
         BackupSinkTask task = new BackupSinkTask();
-        task.start(props, new MockOffsetSink(null, null));
+        task.start(props, new MockOffsetSink(null, null), null, (n) -> {});
         task.open(partitions);
         task.put(records.stream().map(Record::toSinkRecord).collect(Collectors.toList()));
 
@@ -78,6 +79,54 @@ public class BackupSinkTaskTest {
         allRecords.addAll(records2);
         PartitionReader partitionReader = new PartitionReader(TOPIC1, 0, Paths.get(directory.toString(), TOPIC1));
         assertEquals(allRecords, partitionReader.readFully());
+    }
+
+    @Test
+    public void simpleTestWithSnapshotMode() throws Exception {
+        // Prepare
+        Path directory = Paths.get(TEMP_DIR.toString(), "simpleTestWithSnapshotMode");
+        Files.createDirectories(directory);
+        Map<String, String> props = new HashMap<>(DEFAULT_PROPS);
+        props.put(BackupSinkConfig.TARGET_DIR_CONFIG, directory.toString());
+        props.put(BackupSinkConfig.SNAPSHOT, "true");
+
+        List<Record> records = new ArrayList<>();
+        Map<TopicPartition, Long> endOffsets = new HashMap<>();
+        endOffsets.put(new TopicPartition(TOPIC1, 0), 13L);
+
+        records.add(new Record(TOPIC1, 0, KEY_BYTES, VALUE_BYTES, 0));
+        records.add(new Record(TOPIC1, 0, null, null, 1));
+        records.add(new Record(TOPIC1, 0, KEY_BYTES, VALUE_BYTES, 10));
+
+        List<TopicPartition> partitions = new ArrayList<>();
+        partitions.add(new TopicPartition(TOPIC1, 0));
+
+        AtomicBoolean endConditionCheck = new AtomicBoolean();
+        // Start Task
+        BackupSinkTask task = new BackupSinkTask();
+        task.initialize(new MockSinkTaskContext());
+        task.start(props, new MockOffsetSink(null, null), new MockEndOffsetReader(endOffsets), (n) -> endConditionCheck.set(true));
+
+        task.open(partitions);
+        task.put(records.stream().map(Record::toSinkRecord).collect(Collectors.toList()));
+
+        assertFalse(endConditionCheck.get());
+
+        // Write again
+        List<Record> records2 = new ArrayList<>();
+        records2.add(new Record(TOPIC1, 0, KEY_BYTES, VALUE_BYTES, 11));
+        records2.add(new Record(TOPIC1, 0, null, null, 12));
+        records2.add(new Record(TOPIC1, 0, KEY_BYTES, VALUE_BYTES, 13));
+        task.put(records2.stream().map(Record::toSinkRecord).collect(Collectors.toList()));
+
+        task.close(partitions);
+
+        // Check backed up data
+        List<Record> allRecords = new ArrayList<>(records);
+        allRecords.addAll(records2);
+        PartitionReader partitionReader = new PartitionReader(TOPIC1, 0, Paths.get(directory.toString(), TOPIC1));
+        assertEquals(allRecords, partitionReader.readFully());
+        assertTrue(endConditionCheck.get());
     }
 
     @Test
@@ -109,7 +158,7 @@ public class BackupSinkTaskTest {
 
         // Start Task
         BackupSinkTask task = new BackupSinkTask();
-        task.start(props, new MockOffsetSink(null, null));
+        task.start(props, new MockOffsetSink(null, null), null, (n) -> {});
         task.open(partitions);
         task.put(records.stream().map(Record::toSinkRecord).collect(Collectors.toList()));
         task.close(partitions);
@@ -173,7 +222,7 @@ public class BackupSinkTaskTest {
 
         // Start Task
         BackupSinkTask task = new BackupSinkTask();
-        task.start(props, new MockOffsetSink(null, null));
+        task.start(props, new MockOffsetSink(null, null), null, (n) -> {});
         task.open(partitions);
         assertThrows(RuntimeException.class, () -> task.put(records.stream().map(Record::toSinkRecord).collect(Collectors.toList())));
         assertDoesNotThrow(() -> task.put(records2.stream().map(Record::toSinkRecord).collect(Collectors.toList())));
@@ -220,7 +269,7 @@ public class BackupSinkTaskTest {
         // Start Task
         BackupSinkTask task = new BackupSinkTask();
         task.initialize(new MockSinkTaskContext());
-        task.start(props, new MockOffsetSink(null, null));
+        task.start(props, new MockOffsetSink(null, null), null, (n) -> {});
         task.open(partitions);
         task.put(records.stream().map(Record::toSinkRecord).collect(Collectors.toList()));
         task.close(partitions);
