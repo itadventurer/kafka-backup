@@ -33,6 +33,7 @@ public class BackupSinkTask extends SinkTask {
     private Map<TopicPartition, Long> currentOffsets = new HashMap<>();
     private EndOffsetReader endOffsetReader;
     private java.util.function.Consumer<Integer> exitFunction;
+    private Boolean isZeroTask = false;
 
     @Override
     public String version() {
@@ -51,6 +52,10 @@ public class BackupSinkTask extends SinkTask {
             java.util.function.Consumer<Integer> overrideExitFunction
     ) {
         this.config = new BackupSinkConfig(props);
+        String taskId = props.get("task.id");
+        this.isZeroTask = taskId.equals("0");
+        if(isZeroTask) log.info("I'm zeroTask [task: {}] so, I'm going to sync consumer and offsets.", taskId);
+        else log.info("I am not zeroTask [task: {}] so, I will not to sync consumer and offsets.", taskId);
 
         try {
             maxSegmentSizeBytes = config.maxSegmentSizeBytes();
@@ -119,8 +124,10 @@ public class BackupSinkTask extends SinkTask {
             }
 
             // Todo: refactor to own worker. E.g. using the scheduler of MM2
-            offsetSink.syncConsumerGroups();
-            offsetSink.syncOffsets();
+            if(isZeroTask) {
+                offsetSink.syncConsumerGroups();
+                offsetSink.syncOffsets();
+            }
 
             if (config.snapShotMode()) {
                 terminateIfCompleted();
