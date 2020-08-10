@@ -1,11 +1,14 @@
 package de.azapps.kafkabackup.common.offset;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.azapps.kafkabackup.sink.BackupSinkTask;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.ConsumerGroupListing;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.errors.RetriableException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -19,6 +22,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 public class OffsetSink {
+    private static final Logger log = LoggerFactory.getLogger(OffsetSink.class);
     private final Path targetDir;
     private final Map<TopicPartition, OffsetStoreFile> topicOffsets = new HashMap<>();
     private List<String> consumerGroups = new ArrayList<>();
@@ -62,6 +66,10 @@ public class OffsetSink {
         for (Map.Entry<TopicPartition, OffsetAndMetadata> entry : topicOffsetsAndMetadata.entrySet()) {
             TopicPartition tp = entry.getKey();
             OffsetAndMetadata offsetAndMetadata = entry.getValue();
+            if (offsetAndMetadata == null) {
+               log.warn("OffsetAndMetadata not available, negative offset? for tp {}", tp);
+               return;
+            }
 
             if (validTopic(tp.topic())) {
                 if (!this.topicOffsets.containsKey(tp)) {
