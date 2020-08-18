@@ -85,8 +85,24 @@ class BackupSinkConfig extends AbstractConfig {
 
     Map<String, Object> adminConfig() {
         Map<String, Object> props = new HashMap<>();
+        // First use envvars to populate certain props
+        String saslMechanism = System.getenv("CONNECT_ADMIN_SASL_MECHANISM");
+        if (saslMechanism != null) {
+            props.put("sasl.mechanism", saslMechanism);
+        }
+        String securityProtocol = System.getenv("CONNECT_ADMIN_SECURITY_PROTOCOL");
+        if (securityProtocol != null) {
+            props.put("security.protocol", securityProtocol);
+        }
+        // NOTE: this is secret, so we *cannot* put it in the task config
+        String saslJaasConfig = System.getenv("CONNECT_ADMIN_SASL_JAAS_CONFIG");
+        if (saslJaasConfig != null) {
+            props.put("sasl.jaas.config", saslJaasConfig);
+        }
+        // Then override with task config
         props.putAll(originalsWithPrefix(CLUSTER_PREFIX));
         props.putAll(originalsWithPrefix(ADMIN_CLIENT_PREFIX));
+
         return props;
     }
 
