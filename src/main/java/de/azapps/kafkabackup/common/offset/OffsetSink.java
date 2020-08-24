@@ -78,12 +78,26 @@ public abstract class OffsetSink {
     }
 
     private void syncOffsetsForGroup(String consumerGroup) throws IOException {
-        Map<TopicPartition, OffsetAndMetadata> partitionOffsetsAndMetadata;
+        Map<TopicPartition, OffsetAndMetadata> partitionOffsetsAndMetadata = new HashMap<>();
+        partitionsReadLock.lock();
 
         try {
-            partitionOffsetsAndMetadata = adminClient.listConsumerGroupOffsets(consumerGroup).partitionsToOffsetAndMetadata().get();
+            ListConsumerGroupOffsetsOptions listConsumerGroupOffsetsOptions = new ListConsumerGroupOffsetsOptions();
+            listConsumerGroupOffsetsOptions.topicPartitions((List<TopicPartition>)partitions);
+
+            partitionOffsetsAndMetadata = adminClient
+                .listConsumerGroupOffsets(consumerGroup, listConsumerGroupOffsetsOptions)
+                .partitionsToOffsetAndMetadata()
+                .get()
+                .entrySet()
+                .stream()
+                .filter(map -> map.getValue() != null)
+                .collect(Collectors.toMap(map -> map.getKey(), map -> map.getValue()));
+
         } catch (InterruptedException | ExecutionException e) {
             throw new RetriableException(e);
+        } finally {
+            partitionsReadLock.unlock();
         }
 
         writeOffsetsForGroup(consumerGroup, partitionOffsetsAndMetadata);
