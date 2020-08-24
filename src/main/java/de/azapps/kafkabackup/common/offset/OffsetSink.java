@@ -79,11 +79,13 @@ public abstract class OffsetSink {
 
     private void syncOffsetsForGroup(String consumerGroup) throws IOException {
         Map<TopicPartition, OffsetAndMetadata> partitionOffsetsAndMetadata = new HashMap<>();
+        List<TopicPartition> partitionList = new ArrayList<TopicPartition>();
         partitionsReadLock.lock();
+        partitionList.addAll(partitions);
 
         try {
             ListConsumerGroupOffsetsOptions listConsumerGroupOffsetsOptions = new ListConsumerGroupOffsetsOptions();
-            listConsumerGroupOffsetsOptions.topicPartitions((List<TopicPartition>)partitions);
+            listConsumerGroupOffsetsOptions.topicPartitions(partitionList);
 
             partitionOffsetsAndMetadata = adminClient
                 .listConsumerGroupOffsets(consumerGroup, listConsumerGroupOffsetsOptions)
@@ -94,8 +96,10 @@ public abstract class OffsetSink {
                 .filter(map -> map.getValue() != null)
                 .collect(Collectors.toMap(map -> map.getKey(), map -> map.getValue()));
 
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
             throw new RetriableException(e);
+        } catch (ExecutionException e) {
+            throw new Error(e);
         } finally {
             partitionsReadLock.unlock();
         }
