@@ -79,29 +79,31 @@ public abstract class OffsetSink {
 
     private void syncOffsetsForGroup(String consumerGroup) throws IOException {
         Map<TopicPartition, OffsetAndMetadata> partitionOffsetsAndMetadata = new HashMap<>();
+        List<TopicPartition> partitionList = new ArrayList<TopicPartition>();
         partitionsReadLock.lock();
+        partitionList.addAll(partitions);
+
         try {
-            // Due to https://issues.apache.org/jira/browse/KAFKA-9507, we need to fetch offsets one TopicPartition at a time
-            // and catch the exception that occurs if the consumer group is missing from the TopicPartition's committed offsets.
-            // TODO: fix when 2.4.1 is released!
-            for (TopicPartition tp : partitions) {
-                ListConsumerGroupOffsetsOptions listConsumerGroupOffsetsOptions = new ListConsumerGroupOffsetsOptions();
-                listConsumerGroupOffsetsOptions.topicPartitions(Collections.singletonList(tp));
-                try {
-                    Map<TopicPartition, OffsetAndMetadata> offsetsAndMetadata = adminClient
-                            .listConsumerGroupOffsets(consumerGroup, listConsumerGroupOffsetsOptions)
-                            .partitionsToOffsetAndMetadata()
-                            .get();
-                    partitionOffsetsAndMetadata.put(tp, offsetsAndMetadata.get(tp));
-                } catch (ExecutionException e) {
-                    log.debug("No committed offsets for consumer group {} on topic {} partition {}", consumerGroup, tp.topic(), tp.partition());
-                } catch (InterruptedException e) {
-                    throw new RetriableException(e);
-                }
-            }
+            ListConsumerGroupOffsetsOptions listConsumerGroupOffsetsOptions = new ListConsumerGroupOffsetsOptions();
+            listConsumerGroupOffsetsOptions.topicPartitions(partitionList);
+
+            partitionOffsetsAndMetadata = adminClient
+                .listConsumerGroupOffsets(consumerGroup, listConsumerGroupOffsetsOptions)
+                .partitionsToOffsetAndMetadata()
+                .get()
+                .entrySet()
+                .stream()
+                .filter(map -> map.getValue() != null)
+                .collect(Collectors.toMap(map -> map.getKey(), map -> map.getValue()));
+
+        } catch (InterruptedException e) {
+            throw new RetriableException(e);
+        } catch (ExecutionException e) {
+            throw new Error(e);
         } finally {
             partitionsReadLock.unlock();
         }
+
         writeOffsetsForGroup(consumerGroup, partitionOffsetsAndMetadata);
     }
 

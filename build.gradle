@@ -25,8 +25,8 @@ repositories {
 
 dependencies {
     compile "org.slf4j:slf4j-api:1.7.26"
-    compile group: 'org.apache.kafka', name: 'connect-api', version: '2.4.0'
-    compile group: 'org.apache.kafka', name: 'kafka-clients', version: '2.4.0'
+    compile group: 'org.apache.kafka', name: 'connect-api', version: '2.4.1'
+    compile group: 'org.apache.kafka', name: 'kafka-clients', version: '2.4.1'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.10.1'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.10.1'
     compile group: 'net.sf.jopt-simple', name: 'jopt-simple', version: '6.0-alpha-3'
