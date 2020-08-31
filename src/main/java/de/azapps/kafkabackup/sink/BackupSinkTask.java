@@ -193,10 +193,11 @@ public class BackupSinkTask extends SinkTask {
     }
 
     public void flush() {
+        log.info("Flushing");
         // Note: we must iterate over all assigned partitions here,
         // since time-based rotation might kick in for partitions not present in last call to put().
         for (TopicPartition tp : partitionWriters.keySet()) {
-            log.info("Flushing {}", tp);
+            log.debug("Flushing {}", tp);
             PartitionWriter partitionWriter = partitionWriters.get(tp);
             try {
                 partitionWriter.flush(); // Trigger a flush for this partition
@@ -225,7 +226,7 @@ public class BackupSinkTask extends SinkTask {
             Long committableOffset = partitionWriters.get(tp).getLastCommittableOffset();
             if (committableOffset != null) {
                 // Only commit offsets that where successfully written to target
-                log.info("Mark {} : {} as ready to commit.", tp, committableOffset);
+                log.debug("Mark {} : {} as ready to commit.", tp, committableOffset);
                 offsetsToCommit.put(tp, new OffsetAndMetadata(committableOffset));
             }
         }
