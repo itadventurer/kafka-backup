@@ -193,6 +193,7 @@ public class BackupSinkTask extends SinkTask {
     }
 
     public void flush() {
+        log.info("Flushing");
         // Note: we must iterate over all assigned partitions here,
         // since time-based rotation might kick in for partitions not present in last call to put().
         for (TopicPartition tp : partitionWriters.keySet()) {
