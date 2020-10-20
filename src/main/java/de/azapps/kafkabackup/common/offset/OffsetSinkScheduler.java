@@ -21,10 +21,15 @@ public class OffsetSinkScheduler {
     public void start(long syncIntervalMs) {
         log.info("Started OffsetSinkScheduler");
         final Runnable task = () -> {
-            log.info("Syncing offsets...");
-            offsetSink.syncOffsets();
-            offsetSink.flush();
-            log.info("Syncing offsets... done");
+            try {
+                log.info("Syncing offsets...");
+                offsetSink.syncOffsets();
+                offsetSink.flush();
+                log.info("Syncing offsets... done");
+            }
+            catch (Throwable throwable) {
+                log.error("Error occurred while syncing offsets.", throwable);
+            }
         };
         handle = executorService.scheduleAtFixedRate(task, 0, syncIntervalMs, TimeUnit.MILLISECONDS);
     }
