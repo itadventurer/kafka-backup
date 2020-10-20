@@ -64,7 +64,7 @@ public abstract class OffsetSink {
                 try {
                     syncOffsetsForGroup(consumerGroup);
                     return Stream.empty();
-                } catch (IOException e) {
+                } catch (Exception e) {
                     return Stream.of(e);
                 }
             })
