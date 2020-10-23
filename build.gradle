@@ -34,7 +34,11 @@ dependencies {
     compile group: 'com.google.guava', name: 'guava', version: '28.2-jre'
     compileOnly 'org.projectlombok:lombok:1.18.12'
     annotationProcessor 'org.projectlombok:lombok:1.18.12'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.12'
+    testImplementation 'org.projectlombok:lombok:1.18.12'
     testImplementation("org.junit.jupiter:junit-jupiter:5.6.0")
+    testImplementation 'org.mockito:mockito-core:3.0.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:3.0.0'
 }
 
 apply plugin: "com.github.johnrengelman.shadow"
