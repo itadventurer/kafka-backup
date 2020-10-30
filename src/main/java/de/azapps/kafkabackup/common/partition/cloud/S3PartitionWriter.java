@@ -29,7 +29,11 @@ public class S3PartitionWriter implements PartitionWriter {
 
   @Override
   public void append(Record record) throws PartitionException {
-    buffer.add(record);
+    if (record.kafkaOffset() > batchWriter.getEndOffset()) {
+      buffer.add(record);
+    } else {
+      log.debug("Skipping message already added to buffer.");
+    }
   }
 
   @Override
@@ -44,6 +48,9 @@ public class S3PartitionWriter implements PartitionWriter {
 
   private void writeToBatch(Record record) {
     try {
+      if (record.kafkaOffset() <= batchWriter.getEndOffset()) {
+        log.debug("Skipping message already added to batch.");
+      }
       if (batchWriter == null) {
         batchWriter = new S3BatchWriter(awsS3Service, bucketName, topicPartition, record);
       } else {
