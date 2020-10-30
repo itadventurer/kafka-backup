@@ -4,14 +4,13 @@ import de.azapps.kafkabackup.common.partition.PartitionException;
 import de.azapps.kafkabackup.common.partition.PartitionWriter;
 import de.azapps.kafkabackup.common.record.Record;
 import de.azapps.kafkabackup.storage.s3.AwsS3Service;
+import java.io.IOException;
+import java.util.LinkedList;
+import java.util.Queue;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.errors.RetriableException;
-
-import java.io.IOException;
-import java.util.LinkedList;
-import java.util.Queue;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -27,12 +26,15 @@ public class S3PartitionWriter implements PartitionWriter {
   private S3BatchWriter batchWriter;
   private Long lastCommittableOffset = null; // Nothing written so far, so nothing to commit
 
+  private boolean forceCommit = false;
+
   @Override
   public void append(Record record) throws PartitionException {
     if (record.kafkaOffset() > batchWriter.getEndOffset()) {
       buffer.add(record);
     } else {
       log.debug("Skipping message already added to buffer.");
+      forceCommit = true;
     }
   }
 
@@ -43,6 +45,8 @@ public class S3PartitionWriter implements PartitionWriter {
       writeToBatch(record);
       maybeCommitBasedOnMessages();
     }
+
+    maybeForceCommitBecauseOfRepeatedOffset(forceCommit);
     maybeCommitBasedOnTime();
   }
 
@@ -50,6 +54,7 @@ public class S3PartitionWriter implements PartitionWriter {
     try {
       if (record.kafkaOffset() <= batchWriter.getEndOffset()) {
         log.debug("Skipping message already added to batch.");
+        forceCommit = true;
       }
       if (batchWriter == null) {
         batchWriter = new S3BatchWriter(awsS3Service, bucketName, topicPartition, record);
@@ -58,6 +63,14 @@ public class S3PartitionWriter implements PartitionWriter {
       }
     } catch (IOException e) {
       throw new PartitionException(e);
+    }
+  }
+
+  private void maybeForceCommitBecauseOfRepeatedOffset(boolean shouldCommit) {
+    if (shouldCommit) {
+      log.info("Commit {} based on repeated message offset", batchWriter.getObjectKey());
+      commitCurrentBatch();
+      forceCommit = false;
     }
   }
 
