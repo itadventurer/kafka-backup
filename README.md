@@ -1,5 +1,7 @@
 # Kafka Backup
 
+**Hi all, I am currently not able to maintain this Project on my own. If you are interested in supporting me, please let me know for example by opening an issue.**
+
 Kafka Backup is a tool to back up and restore your Kafka data
 including all (configurable) topic data and especially also consumer
 group offsets. To the best of our knowledge, Kafka Backup is the only
