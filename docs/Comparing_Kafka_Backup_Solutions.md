@@ -41,7 +41,7 @@ another (cold) disk.
   enough to store it without replication.
 * Reduced availability as every broker needs to be turned of for a
   backup
-* Inremental Backups are harder to achieve (e.g. due to partition
+* Incremental Backups are harder to achieve (e.g. due to partition
   rebalancing)
 * **POTENTIAL DATA LOSS**: If the backup is performed during a
   partition rebalance (very likely when the backup takes a loooong
