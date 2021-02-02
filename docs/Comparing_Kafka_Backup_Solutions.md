@@ -26,7 +26,7 @@ another (cold) disk.
 **Advantages:**
 
 * Uses native OS tools
-* As this procuder needs to be done very often, the fear of shutting
+* As this procedure needs to be done very often, the fear of shutting
   down a broker is minimized (especially for a team and environment
   with few Kafka expertise)
 * Offsets are backed up and restored correctly
