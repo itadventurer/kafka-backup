@@ -27,6 +27,8 @@ public class RecordSerdeTest {
     // Example records
     private static final Record SIMPLE_RECORD, NULL_RECORD, EMPTY_RECORD, HEADER_RECORD, NULL_TIMESTAMP_RECORD;
 
+    private static final byte[] NON_UTF8_BYTES = {0x012, 0x00, 0xf};
+
     static {
         SIMPLE_RECORD = new Record(TOPIC, PARTITION, KEY_BYTES, VALUE_BYTES, OFFSET);
         NULL_RECORD = new Record(TOPIC, PARTITION, null, null, OFFSET);
@@ -44,6 +46,14 @@ public class RecordSerdeTest {
     public void roundtripTest() throws Exception {
         Record simpleRoundtrip = writeAndReadRecord(SIMPLE_RECORD);
         assertEquals(SIMPLE_RECORD, simpleRoundtrip);
+
+        // non-utf8
+        RecordHeaders headers = new RecordHeaders();
+        headers.add("nonutf8", NON_UTF8_BYTES);
+        Record nonUtf8Headers = new Record(TOPIC, PARTITION, KEY_BYTES, VALUE_BYTES, OFFSET, null, TimestampType.NO_TIMESTAMP_TYPE, headers);
+        Record nonUtf8Roundtrip = writeAndReadRecord(nonUtf8Headers);
+        assertEquals(nonUtf8Headers, nonUtf8Roundtrip);
+
     }
 
     @Test
@@ -109,7 +119,7 @@ public class RecordSerdeTest {
      * Call it manually once when the format changes
      */
     private static void writeTestRecordsToFile() throws IOException {
-        File directory = new File("src/test/assets/v1/records"); // CHANGEME WHEN CHANGING DATA FORMAT!
+        File directory = new File("src/test/assets/v1_nonutf8/records"); // CHANGEME WHEN CHANGING DATA FORMAT!
         writeCurrentVersionRecordToFile(SIMPLE_RECORD, new File(directory, SIMPLE_RECORD_FILE));
         writeCurrentVersionRecordToFile(NULL_RECORD, new File(directory, NULL_RECORD_FILE));
         writeCurrentVersionRecordToFile(EMPTY_RECORD, new File(directory, EMPTY_RECORD_FILE));

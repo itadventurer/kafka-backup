@@ -85,6 +85,16 @@ weird_messages = [
             "empty": b'',
             "blubb": b'',
         }
+    },
+    {
+        'value': b"nonUTFHeaders",
+        'key': b"headers",
+        'headers': {
+            "nonutf8": bytes.fromhex("deadbeef"),
+            "nonutf82": bytes.fromhex("0000"),
+            "nonutf83": bytes.fromhex("ffff"),
+            bytes.fromhex("deadbeef"): bytes.fromhex("deadbeef"),
+        }
     }
 ]
 

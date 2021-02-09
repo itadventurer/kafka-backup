@@ -22,6 +22,7 @@ public class SegmentSerdeTest {
     private static final byte[] VALUE_BYTES = "test-value".getBytes(StandardCharsets.UTF_8);
     private static final RecordHeaders HEADERS = new RecordHeaders();
     private static final Path TEMP_DIR = TestUtils.getTestDir("SegmentSerdeTest");
+    private static final byte[] NON_UTF8_BYTES = {0x012, 0x00, 0xf};
 
     static {
         HEADERS.add("", new byte[0]);
@@ -39,11 +40,16 @@ public class SegmentSerdeTest {
         records.add(new Record(TOPIC, partition, new byte[0], new byte[0], 2));
         records.add(new Record(TOPIC, partition, KEY_BYTES, VALUE_BYTES, 3, null, TimestampType.NO_TIMESTAMP_TYPE, HEADERS));
 
+        RecordHeaders headers = new RecordHeaders();
+        headers.add("nonutf8", NON_UTF8_BYTES);
+        records.add(new Record(TOPIC, partition, KEY_BYTES, VALUE_BYTES, 4, null, TimestampType.NO_TIMESTAMP_TYPE, headers));
+
+
         SegmentWriter segmentWriter = new SegmentWriter(TOPIC, partition, 0, TEMP_DIR);
         for (Record record : records) {
             segmentWriter.append(record);
         }
-        assertEquals(segmentWriter.lastWrittenOffset(), 3);
+        assertEquals(segmentWriter.lastWrittenOffset(), 4);
 
 
         // Read with default reader
