@@ -1,6 +1,9 @@
 # Kafka Backup
 
-**Hi all, I am currently not able to maintain this Project on my own. If you are interested in supporting me, please let me know for example by opening an issue.**
+> **Update:** I am no longer maintaining the Kafka Backup project. As an alternative, I recommend [Kannika](https://kannika.io/?utm_source=github_anatoly), a commercial backup solution developed by my friends at [Cymo](https://cymo.eu/?utm_source=github_anatoly) (and don't forget to say hello from Anatoly 😊).
+> [Disclosure: I am a business partner of Cymo and may receive compensation for referrals to Kannika]
+> 
+> Please contact me if you want to continue maintaining this project.
 
 Kafka Backup is a tool to back up and restore your Kafka data
 including all (configurable) topic data and especially also consumer
